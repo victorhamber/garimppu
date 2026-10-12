@@ -2,6 +2,8 @@ import logging
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -68,6 +70,24 @@ class Settings(BaseSettings):
     smtp_password: str | None = None
     smtp_from: str | None = None
     smtp_tls: bool = True
+
+    @field_validator("database_url")
+    @classmethod
+    def _psycopg_driver(cls, url: str) -> str:
+        # EasyPanel and most hosts hand out postgres:// URLs; SQLAlchemy needs the driver spelled out.
+        for prefix in ("postgres://", "postgresql://"):
+            if url.startswith(prefix):
+                return "postgresql+psycopg://" + url.removeprefix(prefix)
+        return url
+
+    @field_validator("database_url")
+    @classmethod
+    def _psycopg_driver(cls, url: str) -> str:
+        # EasyPanel and most hosts hand out postgres:// URLs; SQLAlchemy needs the driver spelled out.
+        for prefix in ("postgres://", "postgresql://"):
+            if url.startswith(prefix):
+                return "postgresql+psycopg://" + url.removeprefix(prefix)
+        return url
 
 
 logging.getLogger("httpx").setLevel(logging.WARNING)

@@ -1,16 +1,34 @@
-# Same shape as the EasyPanel deploy (see DEPLOY.md): one API container with a data volume, plus the panel.
+# Same shape as the EasyPanel deploy (see DEPLOY.md): Postgres, the API with a media volume, and the panel.
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: garimppu
+      POSTGRES_PASSWORD: garimppu
+      POSTGRES_DB: garimppu
+    volumes:
+      - garimppu-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U garimppu"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
   api:
     build: ./backend
     env_file: ./backend/.env
     environment:
+      DATABASE_URL: postgres://garimppu:garimppu@db:5432/garimppu
       APP_URL: http://localhost:3000
       API_PUBLIC_URL: http://localhost:8000
     volumes:
-      - garimppu-data:/app/data
+      - garimppu-media:/app/data
     ports:
       - "8000:8000"
     shm_size: "1gb"
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
   web:
@@ -25,4 +43,5 @@ services:
     restart: unless-stopped
 
 volumes:
-  garimppu-data:
+  garimppu-db:
+  garimppu-media:

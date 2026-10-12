@@ -1,14 +1,15 @@
 # Deploy do Garimppu no EasyPanel
 
-São dois apps no mesmo projeto do EasyPanel, os dois construídos a partir deste repositório:
+São três serviços no mesmo projeto do EasyPanel:
 
-| App | Pasta (Build Path) | Porta | Domínio sugerido |
-| --- | --- | --- | --- |
-| `garimppu-api` | `/backend` | 8000 | `api.garimppu.com` |
-| `garimppu-web` | `/frontend` | 3000 | `app.garimppu.com` |
+| Serviço | Tipo | Origem | Porta | Domínio sugerido |
+| --- | --- | --- | --- | --- |
+| `garimppu-db` | Postgres | modelo do EasyPanel | 5432 (interna) | nenhum |
+| `garimppu-api` | App | este repositório, Build Path `/backend` | 8000 | `api.garimppu.com` |
+| `garimppu-web` | App | este repositório, Build Path `/frontend` | 3000 | `app.garimppu.com` |
 
-O banco é SQLite e fica, junto com as imagens baixadas dos anúncios, num volume montado em `/app/data` da API.
-Não precisa criar Postgres nem Redis: as coletas e o agendador rodam dentro da própria API.
+O banco é Postgres. As imagens baixadas dos anúncios ficam num volume montado em `/app/data` da API.
+Não precisa de Redis: as coletas e o agendador rodam dentro da própria API.
 
 > O painel e a API precisam ficar no **mesmo domínio principal** (`app.garimppu.com` e `api.garimppu.com`).
 > É isso que permite o cookie de login funcionar entre os dois.
@@ -27,20 +28,30 @@ O EasyPanel gera o HTTPS sozinho quando o domínio já aponta para a VPS.
 O código está em **https://github.com/victorhamber/garimppu** (privado).
 No EasyPanel, em **Settings → GitHub**, conecte sua conta do GitHub para ele conseguir ler repositórios privados.
 
-## 3. API (`garimppu-api`)
+## 3. Banco (`garimppu-db`)
 
-1. No projeto, **+ Service → App**, nome `garimppu-api`.
+1. No projeto, **+ Service → Postgres**, nome `garimppu-db`. Deixe o EasyPanel gerar a senha.
+2. Depois de criado, abra o serviço e copie a **Internal Connection URL**
+   (algo como `postgres://postgres:SENHA@<projeto>_garimppu-db:5432/<projeto>`).
+   Ela só funciona de dentro da VPS, que é o que queremos: o banco não fica exposto na internet.
+
+Não precisa criar tabelas: a API cria e atualiza tudo sozinha ao iniciar.
+
+## 4. API (`garimppu-api`)
+
+1. **+ Service → App**, nome `garimppu-api`.
 2. **Source → GitHub**: owner `victorhamber`, repositório `garimppu`, branch `main`, **Build Path** `/backend`.
 3. **Build**: tipo **Dockerfile** (arquivo `Dockerfile`).
-4. **Environment**:
+4. **Environment** (cole a URL copiada no passo 3 como está, com `postgres://`):
    ```
+   DATABASE_URL=postgres://postgres:SENHA@<projeto>_garimppu-db:5432/<projeto>
    APP_URL=https://app.garimppu.com
    API_PUBLIC_URL=https://api.garimppu.com
    COOKIE_SECURE=true
    ```
    Opcional: `META_ACCESS_TOKEN=` (token da API da Biblioteca de Anúncios).
-5. **Mounts → Add Volume**: nome `garimppu-data`, **Mount Path** `/app/data`.
-   Sem esse volume, o banco e as imagens somem a cada deploy.
+5. **Mounts → Add Volume**: nome `garimppu-media`, **Mount Path** `/app/data`.
+   Sem esse volume, as imagens dos anúncios somem a cada deploy.
 6. **Domains**: `api.garimppu.com`, porta **8000**, HTTPS ligado.
 7. **Deploy**. A primeira subida baixa a imagem do Playwright (com o Chromium da coleta) e demora alguns minutos.
    As migrações do banco rodam sozinhas a cada inicialização.
@@ -48,7 +59,11 @@ No EasyPanel, em **Settings → GitHub**, conecte sua conta do GitHub para ele c
 
 > Mantenha **1 réplica**. As coletas e o agendador rodam dentro da API; duas réplicas coletariam em dobro.
 
-### Criar o administrador
+## 5. Primeiro acesso
+
+Escolha **um** dos dois caminhos.
+
+### a) Começar do zero
 
 No serviço `garimppu-api`, abra **Console** (terminal do container) e rode:
 
@@ -58,7 +73,30 @@ python -m app.create_admin contato@victorhamber.com --senha-provisoria
 
 A senha provisória aparece na tela. Troque depois em **Minha conta**.
 
-## 4. Painel (`garimppu-web`)
+### b) Levar os dados do computador
+
+Leva buscas, anúncios, criativos, coleções, sua conta de administrador e as configurações de webhook e e-mail.
+A cópia só roda com o Postgres vazio, então faça isso **antes** de criar qualquer conta no servidor.
+
+1. No computador, pare o backend e gere uma cópia consistente do banco local:
+   ```powershell
+   cd backend
+   .\.venv\Scripts\python -c "import sqlite3; s=sqlite3.connect('data/miner.db'); d=sqlite3.connect('data/miner-export.db'); s.backup(d); d.close()"
+   ```
+2. Envie a cópia e as imagens para o volume da API. Na VPS, ele fica em
+   `/etc/easypanel/projects/<projeto>/garimppu-api/volumes/garimppu-media/`:
+   ```powershell
+   scp backend\data\miner-export.db root@IP_DA_VPS:/etc/easypanel/projects/<projeto>/garimppu-api/volumes/garimppu-media/
+   scp -r backend\data\media root@IP_DA_VPS:/etc/easypanel/projects/<projeto>/garimppu-api/volumes/garimppu-media/
+   ```
+3. No **Console** do `garimppu-api`:
+   ```sh
+   python -m app.import_sqlite data/miner-export.db
+   rm data/miner-export.db
+   ```
+   O comando mostra quantas linhas copiou de cada tabela. Entre com o mesmo e-mail e senha que você usa no computador.
+
+## 6. Painel (`garimppu-web`)
 
 1. **+ Service → App**, nome `garimppu-web`.
 2. **Source → GitHub**: mesmo repositório, branch `main`, **Build Path** `/frontend`.
@@ -70,7 +108,7 @@ A senha provisória aparece na tela. Troque depois em **Minha conta**.
 4. **Domains**: `app.garimppu.com`, porta **3000**, HTTPS ligado.
 5. **Deploy** e acesse `https://app.garimppu.com`.
 
-## 5. Configurar pelo painel
+## 7. Configurar pelo painel
 
 Entre como administrador e abra **Licenças** (menu da conta, canto superior direito):
 
@@ -80,25 +118,6 @@ Entre como administrador e abra **Licenças** (menu da conta, canto superior dir
    e cadastre a URL na Hotmart, Kiwify ou Cakto (o passo a passo está na própria tela).
 3. Use o botão de teste da plataforma e confira o evento em **Últimas notificações recebidas**.
 
-## 6. Levar os dados locais (opcional)
-
-Para começar em produção com as buscas e anúncios que você já minerou no computador:
-
-1. No computador, pare o backend e faça uma cópia consistente do banco
-   (o arquivo `backend/data/miner.db` sozinho pode estar desatualizado por causa do modo WAL):
-   ```powershell
-   cd backend
-   .\.venv\Scripts\python -c "import sqlite3; s=sqlite3.connect('data/miner.db'); d=sqlite3.connect('data/miner-export.db'); s.backup(d); d.close()"
-   ```
-2. No EasyPanel, pare o `garimppu-api` (**Stop**).
-3. Envie `miner-export.db` (renomeado para `miner.db`) e a pasta `backend/data/media` para o volume.
-   Na VPS, o volume fica em `/etc/easypanel/projects/<projeto>/garimppu-api/volumes/garimppu-data/`:
-   ```powershell
-   scp backend\data\miner-export.db root@IP_DA_VPS:/etc/easypanel/projects/<projeto>/garimppu-api/volumes/garimppu-data/miner.db
-   scp -r backend\data\media root@IP_DA_VPS:/etc/easypanel/projects/<projeto>/garimppu-api/volumes/garimppu-data/
-   ```
-4. **Start** no serviço. Sua conta de administrador local vem junto; não precisa rodar o `create_admin`.
-
 ## Atualizações
 
 Cada `git push` na branch `main` pode disparar o deploy automático (ative **Auto Deploy** nos dois apps).
@@ -106,16 +125,18 @@ Ao atualizar, a API aplica as migrações novas sozinha ao iniciar.
 
 ## Backup
 
-Tudo o que importa está no volume `garimppu-data` (`miner.db` e `media/`). Faça backup dele com frequência,
-por exemplo com o backup de volumes do EasyPanel ou copiando a pasta da VPS.
+- **Banco**: no serviço `garimppu-db`, aba **Backups**, agende um backup diário (para S3 ou compatível).
+- **Imagens**: o volume `garimppu-media`. Perder as imagens não quebra nada: as próximas coletas baixam de novo.
 
 ## Solução de problemas
 
 | Sintoma | Causa provável |
 | --- | --- |
+| API reinicia com "Banco indisponível" nos logs | `DATABASE_URL` errado, ou `garimppu-db` parado |
 | Login volta sempre para a tela de entrar | `COOKIE_SECURE=true` sem HTTPS, ou painel e API em domínios principais diferentes |
 | Erro de CORS no console do navegador | `APP_URL` da API diferente do endereço real do painel |
 | Painel não carrega nada | `NEXT_PUBLIC_API_URL` errado no **Build Args**; corrija e faça **Rebuild** do `garimppu-web` |
 | E-mails com link para `localhost` | `APP_URL` / `API_PUBLIC_URL` não configurados na API |
+| `import_sqlite` diz que o Postgres já tem dados | Alguém já entrou ou foi criado no servidor; a cópia só roda num banco vazio |
 | Coletas falham sempre | Veja os **Logs** do `garimppu-api`; a Meta pode ter mudado a página ou bloqueado o IP |
-| Dados sumiram após deploy | Volume não montado em `/app/data` |
+| Imagens sumiram após deploy | Volume não montado em `/app/data` |

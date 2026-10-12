@@ -23,7 +23,8 @@ Os pesos ficam em `backend/.env` (`SCORE_W_*`).
 
 ## Rodando localmente (Windows, sem Docker)
 
-Usa SQLite e executa as coletas numa thread do próprio backend.
+Usa SQLite (`backend/data/miner.db`) e executa as coletas numa thread do próprio backend.
+Produção usa Postgres: basta definir `DATABASE_URL` (veja [DEPLOY.md](DEPLOY.md)); as migrações valem para os dois.
 
 ```powershell
 # Backend
@@ -54,7 +55,8 @@ docker compose up --build
 docker compose exec api python -m app.create_admin seu@email.com --senha-provisoria
 ```
 
-Sobe a API (SQLite e mídia no volume `garimppu-data`, coletas e agendador no mesmo processo) e o painel em http://localhost:3000.
+Sobe o Postgres, a API (mídia no volume `garimppu-data`, coletas e agendador no mesmo processo) e o painel em http://localhost:3000.
+Para levar os dados do SQLite local: copie o `miner.db` para o volume e rode `docker compose exec api python -m app.import_sqlite data/miner.db` antes de criar o admin.
 
 ## Deploy no EasyPanel
 

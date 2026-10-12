@@ -63,6 +63,14 @@ def upgrade() -> None:
         batch.create_foreign_key('fk_searches_source_id', 'sources', ['source_id'], ['id'])
 
     # Collection names become unique per user ("Favoritos" exists once for each account).
+    if op.get_bind().dialect.name != 'sqlite':
+        op.add_column('collections', sa.Column('user_id', sa.Integer(), nullable=True))
+        op.create_index('ix_collections_user_id', 'collections', ['user_id'])
+        op.create_foreign_key('fk_collections_user_id', 'collections', 'users', ['user_id'], ['id'], ondelete='CASCADE')
+        op.drop_constraint('collections_name_key', 'collections', type_='unique')
+        op.create_unique_constraint('uq_collections_user_name', 'collections', ['user_id', 'name'])
+        return
+
     # copy_from describes the current table without its old global UNIQUE(name), which SQLite left unnamed.
     current = sa.Table(
         'collections', sa.MetaData(),
