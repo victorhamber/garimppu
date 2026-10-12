@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     session_days: int = 30
     cookie_secure: bool = False
     cookie_domain: str | None = None
+    # When both are set, the API makes sure this admin exists with this password on every start.
+    admin_email: str | None = None
+    admin_password: str | None = None
     login_max_attempts: int = 10  # per IP and per e-mail within login_window_minutes
     login_window_minutes: int = 15
 

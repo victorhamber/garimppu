@@ -50,6 +50,8 @@ Não precisa criar tabelas: a API cria e atualiza tudo sozinha ao iniciar.
    COOKIE_SECURE=true
    ```
    Opcional: `META_ACCESS_TOKEN=` (token da API da Biblioteca de Anúncios).
+   Opcional: `ADMIN_EMAIL=` e `ADMIN_PASSWORD=`. A cada início, a API garante essa conta de administrador
+   com essa senha. Para trocar a senha, mude a variável e clique em **Deploy**.
 5. **Mounts → Add Volume**: nome `garimppu-media`, **Mount Path** `/app/data`.
    Sem esse volume, as imagens dos anúncios somem a cada deploy.
 6. **Domains**: `api.garimppu.com`, porta **8000**, HTTPS ligado.

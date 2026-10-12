@@ -9,12 +9,38 @@ import sys
 
 from sqlalchemy import select, update
 
-from app.auth import find_user, hash_password, normalize_email, temporary_password
+from sqlalchemy.orm import Session
+
+from app.auth import end_user_sessions, find_user, hash_password, normalize_email, temporary_password, verify_password
+from app.config import get_settings
 from app.db import SessionLocal
 from app.licenses import log_event
 from app.models import Collection, Search, Source, User
 from app.pipeline.sources import sync_source
 from app.routes.collections import DEFAULT_COLLECTION, ensure_default_collection
+
+
+def sync_env_admin(db: Session) -> None:
+    """ADMIN_EMAIL + ADMIN_PASSWORD in the environment: that account is an active admin with that password."""
+    settings = get_settings()
+    if not (settings.admin_email and settings.admin_password):
+        return
+    email = normalize_email(settings.admin_email)
+    user = find_user(db, email)
+    if user is None:
+        user = User(email=email, password_hash=hash_password(settings.admin_password), is_admin=True, is_active=True)
+        db.add(user)
+        db.flush()
+        ensure_default_collection(db, user)
+        log_event(db, email, "admin", "created", user, "administrador via ADMIN_EMAIL/ADMIN_PASSWORD")
+    else:
+        user.is_admin = True
+        user.is_active = True
+        if not verify_password(settings.admin_password, user.password_hash):
+            user.password_hash = hash_password(settings.admin_password)
+            end_user_sessions(db, user.id)
+            log_event(db, email, "admin", "password", user, "senha definida por ADMIN_PASSWORD")
+    db.commit()
 
 
 def _ask_password() -> str:
