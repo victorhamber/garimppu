@@ -31,3 +31,7 @@ frontend/.impeccable/
 # OS / editors
 .DS_Store
 Thumbs.db
+
+# Scripts temporários de teste
+backend/_*.py
+backend/_*.ps1
