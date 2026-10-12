@@ -5,6 +5,8 @@ __pycache__/
 
 # Local data: database, backups, downloaded media
 backend/data/
+backend/_*.py
+backend/_*.ps1
 *.db
 *.db-wal
 *.db-shm
