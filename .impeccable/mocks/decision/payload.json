@@ -1,0 +1,46 @@
+{
+  "title": "Painel de Instrumentos: composição das leituras",
+  "question": "Três formas de pôr leituras no topo de cada tela, dentro do visual atual (ardósia escura, uma luz âmbar). Escolha uma, peça outra rodada ou ajuste a direção.",
+  "options": [
+    {
+      "id": "barra-de-bordo",
+      "label": "Barra de bordo fixa",
+      "kicker": "THE ROLL",
+      "lineage": "Leituras que acompanham o trabalho",
+      "thesis": "Uma faixa de leituras presa logo abaixo da navegação, que relê os números a cada filtro e nunca sai da vista.",
+      "palette": ["#0c0d0f", "#15171a", "#2a2e33", "#e8e6e1", "#f2a93b", "#ff6b3d"],
+      "materials": ["Geist Mono tabular", "divisórias de 1px", "faixa fixa sobre Mine Black"],
+      "viewport": "Navegação; logo abaixo, a barra com 5 leituras (criativos ativos, em brasa, com 4+ anúncios, ofertas com 2+ anunciantes, última coleta); depois título, filtros e grade. Ao rolar, a barra encolhe para uma linha de 36px e continua visível.",
+      "risk": "Ocupa altura o tempo todo; no celular vira uma linha rolável de lado, e alguém pode não perceber as leituras escondidas à direita.",
+      "html": ".impeccable/mocks/decision/barra-de-bordo.html",
+      "comp": ".impeccable/mocks/decision/barra-de-bordo.webp"
+    },
+    {
+      "id": "mostrador-principal",
+      "label": "Mostrador principal",
+      "lineage": "Uma pergunta por tela, respondida em número",
+      "thesis": "Cada tela abre com uma leitura grande que responde a sua pergunta (Explorar: quantos em brasa) e três leituras menores ao lado.",
+      "palette": ["#0c0d0f", "#15171a", "#2a2e33", "#e8e6e1", "#f2a93b", "#ff6b3d"],
+      "materials": ["Geist Mono 56px no número principal", "legendas em Micro", "coluna de três leituras"],
+      "viewport": "Título e subtítulo à esquerda; à direita, o mostrador: 15 em brasa em mono grande, com 'de 311 criativos ativos' embaixo; ao lado, 3 leituras empilhadas. Filtros e grade logo abaixo.",
+      "risk": "Número grande com leituras de apoio é o molde de painel de métricas que todo produto usa; só se sustenta se o número principal for a pergunta certa em cada tela.",
+      "html": ".impeccable/mocks/decision/mostrador-principal.html",
+      "comp": ".impeccable/mocks/decision/mostrador-principal.webp"
+    },
+    {
+      "id": "faixa-de-leituras",
+      "label": "Faixa de leituras",
+      "lineage": "A faixa de métricas do cartão, promovida à tela",
+      "thesis": "A mesma faixa de métricas dos cartões, em tamanho de tela: cinco células iguais sob o título, que rolam junto com a página.",
+      "palette": ["#0c0d0f", "#15171a", "#2a2e33", "#e8e6e1", "#f2a93b", "#ff6b3d"],
+      "materials": ["faixa de métricas com gap de 1px", "Geist Mono 24px", "legenda e contexto em Micro"],
+      "viewport": "Título e subtítulo; abaixo, uma faixa de 5 células iguais com valor, legenda e uma linha de contexto (ex.: 'top 5% do resultado'); depois os filtros e a grade. No celular, 2 colunas.",
+      "risk": "É a opção mais familiar: pode ler como a fileira de indicadores de qualquer painel, e some ao rolar.",
+      "html": ".impeccable/mocks/decision/faixa-de-leituras.html",
+      "comp": ".impeccable/mocks/decision/faixa-de-leituras.webp"
+    }
+  ],
+  "reroll": true,
+  "steer": true,
+  "buildPath": { "value": "code", "toggle": true }
+}

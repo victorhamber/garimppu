@@ -1,0 +1,31 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Local data: database, backups, downloaded media
+backend/data/
+*.db
+*.db-wal
+*.db-shm
+
+# Secrets
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env.local
+
+# Node / Next.js
+node_modules/
+.next/
+frontend/tsconfig.tsbuildinfo
+frontend/next-env.d.ts
+
+# Design tool session state
+.impeccable/questions/
+frontend/.impeccable/
+
+# OS / editors
+.DS_Store
+Thumbs.db

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Faixa de leituras</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+body{width:1440px;height:900px;overflow:hidden;background:#0c0d0f;color:#e8e6e1;font:14px/1.5 Geist,system-ui,sans-serif}
+.micro{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:#8d9096}
+nav{height:56px;display:flex;align-items:center;gap:32px;padding:0 32px;border-bottom:1px solid #2a2e33}
+.logo{font-weight:600;display:flex;gap:8px;align-items:center}.logo i{width:10px;height:10px;border-radius:2px;background:#f2a93b;display:block}
+nav a{color:#8d9096}nav a.on{color:#e8e6e1;box-shadow:inset 0 -2px #f2a93b;padding:18px 0}
+main{padding:32px}
+h1{font-size:24px;font-weight:600;letter-spacing:-.01em}
+.sub{color:#8d9096;margin-top:4px}
+.strip{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:#2a2e33;border:1px solid #2a2e33;border-radius:8px;overflow:hidden;margin-top:20px}
+.strip div{background:#15171a;padding:14px 18px}
+.strip b{display:block;font:500 24px/1.2 "Geist Mono",monospace;font-variant-numeric:tabular-nums}
+.strip .hot b{color:#ff6b3d}
+.strip .ctx{display:block;font-size:12px;color:#8d9096;margin-top:2px}
+.strip .empty b{color:#8d9096}
+.filters{display:flex;gap:8px;margin:20px 0 16px}
+.f{height:32px;padding:0 12px;border:1px solid #2a2e33;border-radius:6px;background:#15171a;display:flex;align-items:center;color:#8d9096;font-size:13px}
+.f.on{color:#e8e6e1;border-color:#f2a93b}
+.note{font-size:12px;color:#8d9096;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}
+.card{background:#15171a;border:1px solid #2a2e33;border-radius:8px;overflow:hidden}
+.card.hot{box-shadow:inset 3px 0 #ff6b3d}
+.thumb{aspect-ratio:4/5;background:linear-gradient(160deg,#1d2024,#0c0d0f)}
+.meta{padding:10px 12px;font-size:12px;color:#8d9096;display:flex;justify-content:space-between}
+.meta b{color:#e8e6e1;font-weight:500}
+</style></head><body>
+<nav><span class="logo"><i></i>Filão Ads</span><a class="on">Explorar</a><a>Ofertas</a><a>Minerar</a><a>Coleções</a></nav>
+<main>
+  <h1>Explorar</h1>
+  <p class="sub">Criativos que estão escalando agora, ordenados pelo índice de escala.</p>
+  <div class="strip">
+    <div><b>311</b><span class="micro">criativos ativos</span><span class="ctx">95 de marcas grandes fora</span></div>
+    <div class="hot"><b>15</b><span class="micro">em brasa</span><span class="ctx">top 5% do índice</span></div>
+    <div><b>31</b><span class="micro">com 4+ anúncios</span><span class="ctx">mesmo criativo duplicado</span></div>
+    <div><b>3</b><span class="micro">ofertas c/ 2+ anunciantes</span><span class="ctx">de 162 ofertas</span></div>
+    <div class="empty"><b>—</b><span class="micro">crescimento 7d</span><span class="ctx">aparece após a 2ª coleta</span></div>
+  </div>
+  <div class="filters">
+    <span class="f on">Nicho: Finanças</span><span class="f">Mídia: todas</span><span class="f">Ativo há 7+ dias</span><span class="f">Plataforma: todas</span><span class="f">Ordenar: índice de escala</span>
+  </div>
+  <p class="note">Última coleta há 4 h · próxima em 20 h</p>
+  <div class="grid">
+    <div class="card hot"><div class="thumb"></div><div class="meta"><b>Le Bron Brownie</b>Alimentação</div></div>
+    <div class="card hot"><div class="thumb"></div><div class="meta"><b>FXVM</b>Finanças</div></div>
+    <div class="card hot"><div class="thumb"></div><div class="meta"><b>FXVM</b>Finanças</div></div>
+    <div class="card"><div class="thumb"></div><div class="meta"><b>FXVM</b>Finanças</div></div>
+    <div class="card"><div class="thumb"></div><div class="meta"><b>Trade ao Vivo</b>Finanças</div></div>
+  </div>
+</main>
+</body></html>

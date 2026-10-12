@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-12T15:20:00-03:00",
+  "title": "Design System: Filão Ads",
+  "extensions": {
+    "colorMeta": {
+      "mine-black": { "role": "neutral", "displayName": "Mine Black", "canonical": "#0c0d0f", "tonalRamp": ["#060708", "#0c0d0f", "#15171a", "#1d2024", "#2a2e33", "#454a51", "#8d9096", "#e8e6e1"] },
+      "shaft-slate": { "role": "neutral", "displayName": "Shaft Slate", "canonical": "#15171a", "tonalRamp": ["#0c0d0f", "#15171a", "#1d2024", "#2a2e33", "#3a3f46", "#5a5f67", "#8d9096", "#c9cbcf"] },
+      "ledge-slate": { "role": "neutral", "displayName": "Ledge Slate", "canonical": "#1d2024", "tonalRamp": ["#0c0d0f", "#15171a", "#1d2024", "#2a2e33", "#3a3f46", "#5a5f67", "#8d9096", "#c9cbcf"] },
+      "seam-line": { "role": "neutral", "displayName": "Seam Line", "canonical": "#2a2e33", "tonalRamp": ["#15171a", "#1d2024", "#2a2e33", "#3a3f46", "#4d535a", "#6b7078", "#8d9096", "#c9cbcf"] },
+      "quartz-white": { "role": "neutral", "displayName": "Quartz White", "canonical": "#e8e6e1", "tonalRamp": ["#2b2a27", "#4a4844", "#6b6964", "#8f8c86", "#b3b0aa", "#cfccc6", "#e8e6e1", "#f6f5f2"] },
+      "dust-gray": { "role": "neutral", "displayName": "Dust Gray", "canonical": "#8d9096", "tonalRamp": ["#26282b", "#3a3d41", "#505358", "#6b6e74", "#8d9096", "#a9abb0", "#c7c9cc", "#e4e5e7"] },
+      "lantern-amber": { "role": "primary", "displayName": "Lantern Amber", "canonical": "#f2a93b", "tonalRamp": ["#3a2507", "#5e3c0c", "#875714", "#b4751f", "#f2a93b", "#f6c06b", "#f9d59a", "#fdeccc"] },
+      "ore-ink": { "role": "primary", "displayName": "Ore Ink", "canonical": "#1a1206", "tonalRamp": ["#0d0903", "#1a1206", "#2e200c", "#463213", "#5e441b", "#7a5a26", "#a07a3a", "#c9a466"] },
+      "ember": { "role": "secondary", "displayName": "Ember", "canonical": "#ff6b3d", "tonalRamp": ["#3d1305", "#64200b", "#8f3013", "#c4441d", "#ff6b3d", "#ff8f6a", "#ffb399", "#ffd9cc"] },
+      "vein-green": { "role": "success", "displayName": "Vein Green", "canonical": "#5cc98b", "tonalRamp": ["#0f2a1b", "#17432b", "#215f3d", "#2f8152", "#5cc98b", "#82d6a6", "#aae3c2", "#d4f1e0"] },
+      "alarm-red": { "role": "error", "displayName": "Alarm Red", "canonical": "#f06363", "tonalRamp": ["#3a1010", "#5c1a1a", "#842626", "#b53636", "#f06363", "#f48888", "#f8afaf", "#fcd7d7"] }
+    },
+    "typographyMeta": {
+      "headline": { "displayName": "Headline", "purpose": "Título da página; um por tela." },
+      "title": { "displayName": "Title", "purpose": "Nome de oferta, anunciante e títulos de seção." },
+      "body": { "displayName": "Body", "purpose": "Texto de interface e copy dos anúncios." },
+      "label": { "displayName": "Label", "purpose": "Rótulos de campo e cabeçalhos de tabela, caixa alta, Dust Gray." },
+      "metric": { "displayName": "Metric", "purpose": "Todo número comparável: scores, contagens, dias, crescimento, ranking." },
+      "micro": { "displayName": "Micro", "purpose": "Legenda sob números e códigos de plataforma." }
+    },
+    "shadows": [
+      { "name": "popover", "value": "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)", "purpose": "Somente menus suspensos que sobrepõem a página." }
+    ],
+    "motion": [
+      { "name": "color-transition", "value": "color, background-color, border-color 150ms cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Hover e foco de botões, campos, links e itens de navegação." },
+      { "name": "media-lift", "value": "transform 300ms cubic-bezier(0.4, 0, 0.2, 1); scale 1.02", "purpose": "Mídia do cartão de criativo no hover." },
+      { "name": "collecting-pulse", "value": "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite", "purpose": "Ponto no status 'Coletando'." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "A única ação com luz âmbar de cada região: Minerar agora, Minerar esta página.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Minerar agora</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 12px; border-radius: 6px; border: 1px solid #2a2e33; background: #1d2024; color: #e8e6e1; font: 500 14px/20px Geist, system-ui, sans-serif; white-space: nowrap; cursor: pointer; transition: color 150ms, background-color 150ms, border-color 150ms, filter 150ms; } .ds-btn-primary { background: #f2a93b; border-color: #f2a93b; color: #1a1206; } .ds-btn-primary:hover { filter: brightness(1.1); } .ds-btn:focus-visible { outline: 2px solid #f2a93b; outline-offset: 2px; } .ds-btn:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Default Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Ação secundária: Exportar CSV, Ver criativos, Coletar.",
+      "html": "<button class=\"ds-btn-default\">Exportar CSV</button>",
+      "css": ".ds-btn-default { display: inline-flex; align-items: center; height: 36px; padding: 0 12px; border-radius: 6px; border: 1px solid #2a2e33; background: #1d2024; color: #e8e6e1; font: 500 14px/20px Geist, system-ui, sans-serif; cursor: pointer; transition: border-color 150ms; } .ds-btn-default:hover { border-color: #8d9096; } .ds-btn-default:focus-visible { outline: 2px solid #f2a93b; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Ações compactas de cartão e 'Limpar filtros'.",
+      "html": "<button class=\"ds-btn-ghost\">Biblioteca</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; height: 32px; padding: 0 8px; border-radius: 6px; border: 1px solid transparent; background: transparent; color: #8d9096; font: 500 12px/16px Geist, system-ui, sans-serif; cursor: pointer; transition: background-color 150ms, color 150ms; } .ds-btn-ghost:hover { background: #1d2024; color: #e8e6e1; } .ds-btn-ghost:focus-visible { outline: 2px solid #f2a93b; outline-offset: 2px; }"
+    },
+    {
+      "name": "Field with Label",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Campo de filtro com rótulo em caixa alta acima; foco em borda âmbar.",
+      "html": "<label class=\"ds-field-wrap\"><span class=\"ds-label\">Buscar nas ofertas</span><input class=\"ds-field\" placeholder=\"link, anunciante ou texto\" /></label>",
+      "css": ".ds-field-wrap { display: block; width: 280px; } .ds-label { display: block; margin-bottom: 4px; font: 500 12px/16px Geist, system-ui, sans-serif; letter-spacing: 0.025em; text-transform: uppercase; color: #8d9096; } .ds-field { width: 100%; height: 36px; padding: 0 12px; border-radius: 6px; border: 1px solid #2a2e33; background: #1d2024; color: #e8e6e1; font: 400 14px/20px Geist, system-ui, sans-serif; outline: none; transition: border-color 150ms; } .ds-field::placeholder { color: rgb(141 144 150 / 0.7); } .ds-field:focus { border-color: #f2a93b; }"
+    },
+    {
+      "name": "Navigation",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Faixa fixa com marca âmbar e itens de texto; ativo em Ledge Slate.",
+      "html": "<nav class=\"ds-nav\"><span class=\"ds-brand\"><span class=\"ds-brand-mark\">F</span>Filão Ads</span><a class=\"ds-nav-item\">Explorar</a><a class=\"ds-nav-item ds-nav-active\">Ofertas</a><a class=\"ds-nav-item\">Minerar</a><a class=\"ds-nav-item\">Coleções</a></nav>",
+      "css": ".ds-nav { display: flex; align-items: center; gap: 4px; height: 56px; padding: 0 24px; background: rgb(12 13 15 / 0.9); border-bottom: 1px solid #2a2e33; font: 400 14px/20px Geist, system-ui, sans-serif; } .ds-brand { display: flex; align-items: center; gap: 8px; margin-right: 28px; font-weight: 600; color: #e8e6e1; } .ds-brand-mark { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 4px; background: #f2a93b; color: #1a1206; font: 700 14px/1 'Geist Mono', ui-monospace, monospace; } .ds-nav-item { padding: 6px 12px; border-radius: 6px; color: #8d9096; cursor: pointer; transition: color 150ms; } .ds-nav-item:hover { color: #e8e6e1; } .ds-nav-active { background: #1d2024; color: #e8e6e1; }"
+    },
+    {
+      "name": "Chips",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Categoria em pílula neutra; plataforma de venda em pílula âmbar contornada.",
+      "html": "<span class=\"ds-chip\">Infoproduto</span> <span class=\"ds-chip ds-chip-platform\">Hotmart</span> <span class=\"ds-code\">FB</span> <span class=\"ds-code\">IG</span>",
+      "css": ".ds-chip { display: inline-block; padding: 2px 8px; border-radius: 9999px; background: #1d2024; color: #8d9096; font: 400 11px/16px Geist, system-ui, sans-serif; } .ds-chip-platform { background: transparent; border: 1px solid rgb(242 169 59 / 0.4); color: #f2a93b; } .ds-code { display: inline-block; padding: 0 4px; border: 1px solid #2a2e33; border-radius: 4px; color: #8d9096; font: 400 10px/16px 'Geist Mono', ui-monospace, monospace; }"
+    },
+    {
+      "name": "Score Badge",
+      "kind": "custom",
+      "refersTo": "score-badge-hot",
+      "description": "Termômetro de escala relativo ao resultado atual: brasa no top 5%, âmbar no top 20%, ardósia no resto.",
+      "html": "<span class=\"ds-score ds-score-hot\">8.82</span> <span class=\"ds-score ds-score-warm\">2.41</span> <span class=\"ds-score ds-score-cold\">1.07</span>",
+      "css": ".ds-score { display: inline-block; padding: 2px 6px; border-radius: 4px; font: 600 12px/16px 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; } .ds-score-hot { background: #ff6b3d; color: #1a1206; } .ds-score-warm { background: #f2a93b; color: #1a1206; } .ds-score-cold { background: #1d2024; color: #e8e6e1; }"
+    },
+    {
+      "name": "Metric Strip",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Faixa de métricas com divisórias de 1px; âmbar só acima do limiar.",
+      "html": "<dl class=\"ds-metrics\"><div class=\"ds-metric\"><dd class=\"ds-metric-strong\">2</dd><dt>anunciantes</dt></div><div class=\"ds-metric\"><dd class=\"ds-metric-strong\">87</dd><dt>anúncios</dt></div><div class=\"ds-metric\"><dd>4</dd><dt>criativos</dt></div><div class=\"ds-metric\"><dd class=\"ds-metric-strong\">117</dd><dt>dias no ar</dt></div></dl>",
+      "css": ".ds-metrics { display: grid; grid-template-columns: repeat(4, minmax(64px, 1fr)); gap: 1px; margin: 0; overflow: hidden; border: 1px solid #2a2e33; border-radius: 8px; background: #2a2e33; text-align: center; } .ds-metric { padding: 6px 8px; background: #15171a; } .ds-metric dd { margin: 0; color: #e8e6e1; font: 400 14px/20px 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; } .ds-metric dd.ds-metric-strong { color: #f2a93b; } .ds-metric dt { color: #8d9096; font: 400 10px/15px Geist, system-ui, sans-serif; letter-spacing: 0.025em; text-transform: uppercase; }"
+    },
+    {
+      "name": "Creative Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Cartão de criativo: mídia quadrada com ranking e score, anunciante, métricas e copy.",
+      "html": "<article class=\"ds-card\"><div class=\"ds-card-media\"><span class=\"ds-rank\">#1</span><span class=\"ds-card-score\">3.32</span></div><div class=\"ds-card-body\"><strong>FXVM</strong><p>WARNING: Slow servers can ruin your EA trades! Take back control with FXVM's lightning-fast VPS.</p></div></article>",
+      "css": ".ds-card { width: 260px; overflow: hidden; border: 1px solid #2a2e33; border-radius: 8px; background: #15171a; transition: border-color 150ms; } .ds-card:hover { border-color: rgb(141 144 150 / 0.6); } .ds-card-media { position: relative; aspect-ratio: 1; background: #1d2024; } .ds-rank { position: absolute; top: 8px; left: 8px; padding: 2px 6px; border-radius: 4px; border: 1px solid #2a2e33; background: rgb(12 13 15 / 0.85); color: #e8e6e1; font: 400 12px/16px 'Geist Mono', ui-monospace, monospace; } .ds-card-score { position: absolute; top: 8px; right: 8px; padding: 2px 6px; border-radius: 4px; background: #ff6b3d; color: #1a1206; font: 600 12px/16px 'Geist Mono', ui-monospace, monospace; } .ds-card-body { display: flex; flex-direction: column; gap: 8px; padding: 12px; color: #e8e6e1; font: 500 14px/20px Geist, system-ui, sans-serif; } .ds-card-body p { margin: 0; color: #8d9096; font-weight: 400; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }"
+    },
+    {
+      "name": "Status Pill",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Status da coleta, com fundo da cor de estado a 15%.",
+      "html": "<span class=\"ds-status ds-status-running\">Coletando <i>●</i></span> <span class=\"ds-status ds-status-done\">Concluída</span> <span class=\"ds-status ds-status-error\">Erro</span>",
+      "css": ".ds-status { display: inline-block; padding: 2px 8px; border-radius: 4px; font: 500 12px/16px Geist, system-ui, sans-serif; } .ds-status i { font-style: normal; animation: ds-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; } .ds-status-running { background: rgb(242 169 59 / 0.15); color: #f2a93b; } .ds-status-done { background: rgb(92 201 139 / 0.15); color: #5cc98b; } .ds-status-error { background: rgb(240 99 99 / 0.15); color: #f06363; } @keyframes ds-pulse { 50% { opacity: 0.5; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "A Lanterna do Garimpeiro",
+    "overview": "O painel é o escuro de uma mina: superfícies quase pretas em camadas de ardósia, texto claro e quieto, e uma única luz âmbar que só acende onde há ouro. Tudo o que não é sinal recua para o cinza; o que é sinal (um score alto, um botão de ação, uma oferta com vários anunciantes) recebe a lanterna. A urgência vem da escassez dessa luz, não de volume, animação ou cor espalhada.\n\nÉ uma ferramenta de trabalho densa e rápida de escanear: listas e grades ranqueadas, números em fonte mono tabular, rótulos curtos em caixa alta. A precisão vem dos números alinhados e das métricas sempre com legenda; a calma vem da paleta contida, da ausência de sombras e de bordas finas de um pixel. Nada de \"painel de guru\" (neon, gradientes, promessas de dinheiro), nada de SaaS genérico claro em roxo e azul, e nada da estética de espião ou hacker (verde matrix, lupas, caveiras).",
+    "keyCharacteristics": [
+      "Tema escuro único, sem modo claro.",
+      "Uma cor de destaque (âmbar), usada só para ação primária, estado ativo e sinal forte.",
+      "Números em Geist Mono tabular; texto em Geist.",
+      "Profundidade por camadas tonais e bordas de 1px, não por sombras.",
+      "Densidade alta, cantos levemente arredondados, tipografia pequena e firme."
+    ],
+    "rules": [
+      { "name": "The One Lantern Rule", "body": "O âmbar é a única luz da tela. Se tudo brilha, nada é ouro: âmbar só em ação primária, foco, estado ativo e valor acima do limiar.", "section": "colors" },
+      { "name": "The Signal Threshold Rule", "body": "Uma métrica só fica âmbar quando está no topo do resultado que o usuário está vendo: anúncios e dias ativo no top 10% do conjunto filtrado (com pisos de 2 anúncios e 7 dias), calculados no backend sobre o conjunto inteiro, não só a página carregada. Limiares absolutos só valem quando o número tem significado próprio (anunciantes ≥ 2). Abaixo disso, fica em Quartz White; conjuntos pequenos demais para ranquear não acendem nada.", "section": "colors" },
+      { "name": "The Numbers Are Mono Rule", "body": "Todo número que o usuário compara (score, contagem, dias, crescimento, posição) é Geist Mono tabular, para que colunas alinhem e a leitura seja de instrumento.", "section": "typography" },
+      { "name": "The Flat Mine Rule", "body": "Superfícies não flutuam. Para separar, suba uma camada de ardósia ou use uma borda de 1px; sombra só para o que literalmente sobrepõe a página (menus, popovers).", "section": "elevation" }
+    ],
+    "dos": [
+      "Do reservar Lantern Amber para a ação primária, o foco, o estado ativo e os valores acima do limiar (The One Lantern Rule).",
+      "Do escrever todo número comparável em Geist Mono tabular, com legenda em Micro logo abaixo.",
+      "Do separar superfícies com camadas de ardósia e bordas Seam Line de 1px.",
+      "Do mostrar por que algo ranqueia (anunciantes, anúncios, dias, crescimento) ao lado do score.",
+      "Do dar a todo estado vazio uma explicação e um próximo passo."
+    ],
+    "donts": [
+      "Don't usar neon, gradientes ou linguagem de \"painel de guru\" com promessas de dinheiro.",
+      "Don't adotar o visual de SaaS genérico claro em roxo e azul.",
+      "Don't usar estética de espião ou hacker (verde matrix, lupas, caveiras).",
+      "Don't colocar sombras em cartões ou painéis; sombra é só para menus que sobrepõem a página.",
+      "Don't introduzir uma segunda cor de destaque; Ember existe só no selo de score mais quente."
+    ]
+  }
+}

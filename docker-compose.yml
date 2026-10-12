@@ -1,0 +1,28 @@
+# Same shape as the EasyPanel deploy (see DEPLOY.md): one API container with a data volume, plus the panel.
+services:
+  api:
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      APP_URL: http://localhost:3000
+      API_PUBLIC_URL: http://localhost:8000
+    volumes:
+      - garimppu-data:/app/data
+    ports:
+      - "8000:8000"
+    shm_size: "1gb"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  garimppu-data:
