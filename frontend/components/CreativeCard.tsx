@@ -15,23 +15,18 @@ type Props = {
   onCollectionsChange: (ids: number[]) => void;
 };
 
-function mediaName(creative: Creative, rank: number, heat: ScoreHeat | null) {
+/** The item's one link to its detail page; the thumbnail repeats it for the mouse only, so Tab stops here once. */
+function Title({ creative, rank, heat }: Pick<Props, "creative" | "rank" | "heat">) {
   const advertiser = creative.page?.name ?? creative.page?.page_id;
   const kind = creative.media_type === "video" ? "Vídeo" : creative.media_type === "image" ? "Imagem" : "Anúncio só texto";
-  return `${kind} #${rank}${advertiser ? ` de ${advertiser}` : ""}, ${rankPhrase(creative.score?.score ?? 0, heat)}: ver detalhes`;
-}
-
-function Advertiser({ creative }: { creative: Creative }) {
-  return creative.page ? (
-    <Link
-      href={`/anunciantes/${creative.page.page_id}`}
-      className="min-w-0 truncate text-sm font-medium hover:text-accent"
-      title={creative.page.name ?? undefined}
-    >
-      {creative.page.name ?? creative.page.page_id}
-    </Link>
-  ) : (
-    <span className="text-sm text-muted">Anunciante desconhecido</span>
+  return (
+    <h3 className="min-w-0 truncate text-sm font-medium" title={advertiser ?? undefined}>
+      <Link href={`/criativos/${creative.id}`} className={`hover:text-accent ${advertiser ? "" : "text-muted"}`}>
+        <span className="sr-only">{kind} #{rank} de </span>
+        {advertiser ?? "Anunciante desconhecido"}
+        <span className="sr-only">, {rankPhrase(creative.score?.score ?? 0, heat)}</span>
+      </Link>
+    </h3>
   );
 }
 
@@ -66,34 +61,22 @@ function OfferLine({ creative }: { creative: Creative }) {
   );
 }
 
-function Actions({ creative, collections, onCollectionsChange, external = true }: Pick<Props, "creative" | "collections" | "onCollectionsChange"> & { external?: boolean }) {
+function Save({ creative, collections, onCollectionsChange }: Pick<Props, "creative" | "collections" | "onCollectionsChange">) {
   return (
-    <div className="flex shrink-0 items-center">
-      {external && creative.library_url && (
-        <a href={creative.library_url} target="_blank" rel="noreferrer" title="Abrir na Biblioteca de Anúncios" className="btn btn-ghost h-8 px-2 text-xs text-muted pointer-coarse:h-11">
-          Biblioteca
-        </a>
-      )}
-      {external && creative.link_url && (
-        <a href={creative.link_url} target="_blank" rel="noreferrer" title={creative.link_url} className="btn btn-ghost h-8 px-2 text-xs text-muted pointer-coarse:h-11">
-          Página
-        </a>
-      )}
-      <CollectionMenu
-        target={{ creativeId: creative.id }}
-        selected={creative.collection_ids}
-        collections={collections}
-        onChange={onCollectionsChange}
-      />
-    </div>
+    <CollectionMenu
+      target={{ creativeId: creative.id }}
+      selected={creative.collection_ids}
+      collections={collections}
+      onChange={onCollectionsChange}
+    />
   );
 }
 
 export function CreativeCard({ creative, rank, heat, collections, nicheLabel, onCollectionsChange }: Props) {
   return (
-    <article className="group flex flex-col overflow-hidden rounded-lg border border-line bg-surface transition-colors hover:border-muted/60">
-      <Link href={`/criativos/${creative.id}`} aria-label={mediaName(creative, rank, heat)}
-        className="relative block aspect-square overflow-hidden bg-surface-2 focus-visible:-outline-offset-2">
+    <li className="group flex flex-col overflow-hidden rounded-lg border border-line bg-surface transition-colors hover:border-muted/60">
+      <Link href={`/criativos/${creative.id}`} tabIndex={-1} aria-hidden="true"
+        className="relative block aspect-square overflow-hidden bg-surface-2">
         <CreativeMedia creative={creative} className="transition-transform duration-300 motion-safe:group-hover:scale-[1.02]" />
         <span className="absolute top-2 left-2 rounded border border-line bg-background/85 px-1.5 py-0.5 font-mono text-xs text-foreground tabular-nums">#{rank}</span>
         <span className="absolute top-2 right-2">
@@ -109,7 +92,7 @@ export function CreativeCard({ creative, rank, heat, collections, nicheLabel, on
 
       <div className="flex flex-1 flex-col gap-3 p-3">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <Advertiser creative={creative} />
+          <Title creative={creative} rank={rank} heat={heat} />
           <MetaLine niche={nicheLabel(creative.niche)} platforms={creative.platforms} bigBrand={creative.page?.big_brand} />
         </div>
 
@@ -120,19 +103,19 @@ export function CreativeCard({ creative, rank, heat, collections, nicheLabel, on
         <p className="line-clamp-2 text-sm leading-normal text-muted">{creative.body ?? creative.title ?? "Sem texto"}</p>
 
         <div className="mt-auto flex justify-end pt-1">
-          <Actions creative={creative} collections={collections} onCollectionsChange={onCollectionsChange} />
+          <Save creative={creative} collections={collections} onCollectionsChange={onCollectionsChange} />
         </div>
       </div>
-    </article>
+    </li>
   );
 }
 
 /** Compact view: one scan line per creative, same signals in the same order as the card. */
 export function CreativeRow({ creative, rank, heat, collections, nicheLabel, onCollectionsChange }: Props) {
   return (
-    <article className="flex items-center gap-3 rounded-lg border border-line bg-surface p-2 transition-colors hover:border-muted/60 sm:gap-4">
+    <li className="flex items-center gap-3 rounded-lg border border-line bg-surface p-2 transition-colors hover:border-muted/60 sm:gap-4">
       <span className="hidden w-8 shrink-0 text-right font-mono text-xs text-muted tabular-nums sm:block" aria-hidden="true">#{rank}</span>
-      <Link href={`/criativos/${creative.id}`} aria-label={mediaName(creative, rank, heat)}
+      <Link href={`/criativos/${creative.id}`} tabIndex={-1} aria-hidden="true"
         className="relative size-14 shrink-0 overflow-hidden rounded-md bg-surface-2 sm:size-16">
         <CreativeMedia creative={creative} compact />
         {creative.media_type === "video" && (
@@ -145,7 +128,7 @@ export function CreativeRow({ creative, rank, heat, collections, nicheLabel, onC
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex min-w-0 items-center gap-2">
           <span className="font-mono text-xs text-muted tabular-nums sm:hidden" aria-hidden="true">#{rank}</span>
-          <Advertiser creative={creative} />
+          <Title creative={creative} rank={rank} heat={heat} />
         </div>
         <MetaLine niche={nicheLabel(creative.niche)} platforms={creative.platforms} bigBrand={creative.page?.big_brand} />
         {creative.score && (
@@ -166,8 +149,8 @@ export function CreativeRow({ creative, rank, heat, collections, nicheLabel, onC
         <ScoreBadge value={creative.score?.score ?? 0} heat={heat} />
       </span>
       <span className="hidden sm:block">
-        <Actions creative={creative} collections={collections} onCollectionsChange={onCollectionsChange} external={false} />
+        <Save creative={creative} collections={collections} onCollectionsChange={onCollectionsChange} />
       </span>
-    </article>
+    </li>
   );
 }

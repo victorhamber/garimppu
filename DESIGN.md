@@ -259,7 +259,7 @@ Firmes e discretos; a ação primária é a única com luz.
 - **Shape:** cantos de 6px, altura de 36px (32px nas ações compactas de cartão), padding horizontal de 12px.
 - **Primary:** fundo Lantern Amber, texto Ore Ink, peso 500. É uma por região ("Minerar agora", "Minerar esta página"). Os painéis de filtro não têm botão primário: os filtros se aplicam sozinhos.
 - **Default:** fundo Ledge Slate, borda Seam Line, texto Quartz White; no hover, a borda passa a Dust Gray.
-- **Ghost:** transparente e sem borda, texto Dust Gray; no hover, ganha fundo Ledge Slate. Usado em ações de cartão ("Biblioteca", "Página") e em "Limpar filtros".
+- **Ghost:** transparente e sem borda, texto Dust Gray; no hover, ganha fundo Ledge Slate. Usado em ações de linha ("Excluir") e em "Limpar filtros".
 - **Disabled:** 50% de opacidade e cursor bloqueado. O primário também fica com brilho a 110% no hover. "Exportar CSV" fica desativado enquanto carrega e quando o resultado é vazio.
 
 ### Chips
@@ -278,6 +278,7 @@ Quando a imagem falha ou é um quadro preto (amostra de 8×8 com brilho máximo 
 - **Shadow Strategy:** nenhuma (veja Elevation & Depth).
 - **Border:** Seam Line; no hover, o cartão de criativo clareia a borda para Dust Gray a 60% e a mídia cresce 2%.
 - **Internal Padding:** 12px nos cartões, 16px nos painéis de filtro.
+- **Cartão de criativo:** é um item de `ol` (grade ou lista) com título `h3`: o nome do anunciante, que leva ao detalhe; o leitor de tela ouve "Vídeo #3 de {anunciante}, top 5% deste resultado". A mídia repete o link só para o mouse (`tabIndex=-1`, `aria-hidden`). As paradas de Tab são o título, a oferta (quando há) e os dois botões de salvar. Biblioteca, página de destino e a página do anunciante ficam no detalhe.
 
 ### Inputs / Fields
 - **Style:** altura de 36px, fundo Ledge Slate, borda Seam Line de 1px, cantos de 6px, texto de 14px, placeholder Dust Gray a 70%.
@@ -285,7 +286,7 @@ Quando a imagem falha ou é um quadro preto (amostra de 8×8 com brilho máximo 
 - **Placeholder:** Dust Gray pleno (5:1 sobre Ledge Slate).
 
 ### Focus Ring
-Todo elemento interativo (links, botões, campos, selects, caixas) mostra, só em foco por teclado (`:focus-visible`), um contorno Lantern Amber de 2px afastado 2px. Campos usam afastamento de 1px; elementos encostados numa borda que corta (mídia do cartão) desenham o anel para dentro (-2px). É o único uso do âmbar que não sinaliza ação primária ou limiar: estado ativo de foco.
+Todo elemento interativo (links, botões, campos, selects, caixas) mostra, só em foco por teclado (`:focus-visible`), um contorno Lantern Amber de 2px afastado 2px. Campos usam afastamento de 1px; elementos encostados numa borda que corta desenham o anel para dentro (-2px). É o único uso do âmbar que não sinaliza ação primária ou limiar: estado ativo de foco.
 - **Labels:** sempre acima, no estilo Label (caixa alta, Dust Gray).
 
 ### Navigation
@@ -312,7 +313,7 @@ Logo abaixo da faixa de métricas: um chip neutro (borda Seam Line, texto Quartz
 Todo filtro vive na URL e se aplica sozinho: selects e caixas na hora, campos digitados (texto e mínimos numéricos) 400ms depois da última tecla. Enter aplica tudo o que foi digitado sem esperar. Campos numéricos aceitam só dígitos. Durante a recarga, a lista anterior fica a 60% de opacidade, com `aria-busy`, e uma região `role="status"` oculta anuncia "Carregando…" e depois "N criativos encontrados" (ou "Nenhum…").
 
 ### Confirmação de mineração
-Minerar consulta a Biblioteca da Meta por minutos, então nunca é um clique só. O botão primário abre, no próprio lugar, um painel Shaft Slate com o que vai acontecer (escopo, até 300 anúncios, segundo plano, onde acompanhar) e os botões "Minerar agora" (primário, recebe o foco) e "Cancelar" (ghost). Escape cancela e devolve o foco ao botão original. Usado no estado vazio do Explorar e na página do anunciante.
+Minerar consulta a Biblioteca da Meta por minutos, então nunca é um clique só. O botão primário abre, no próprio lugar, um painel Shaft Slate com o que vai acontecer (escopo, até 300 anúncios, segundo plano, onde acompanhar) e os botões "Minerar agora" (primário, recebe o foco) e "Cancelar" (ghost). Escape cancela e devolve o foco ao botão original. Usado no estado vazio do Explorar, na página do anunciante e em "Minerar no Meta" das palavras-chave (ali o botão que abre é uma pílula).
 
 ### Métrica sem histórico
 Enquanto um criativo só foi visto num dia de coleta, a célula de crescimento mostra "—" com a legenda "1ª coleta", e a ordenação por crescimento fica oculta.

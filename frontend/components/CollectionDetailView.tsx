@@ -193,6 +193,7 @@ export function CollectionDetailView() {
         {hasOthers && <h2 id="col-creatives" className="text-lg font-semibold">Criativos</h2>}
         <CreativeGrid
           filters={{ collection_id: id, active_only: "false" }}
+          heading={!hasOthers}
           emptyMessage={hasOthers ? "Nenhum criativo nesta coleção."
             : collection?.name === "Favoritos" ? "Nada salvo ainda. A estrela de qualquer card salva aqui."
             : `Nada salvo ainda. Na seta ao lado da estrela de qualquer card, escolha "${collection?.name ?? "esta coleção"}".`}

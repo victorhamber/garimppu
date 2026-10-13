@@ -18,6 +18,8 @@ type Props = {
   emptyMessage?: React.ReactNode;
   onHistoryChange?: (hasHistory: boolean) => void;
   onScopeChange?: (scope: Scope) => void;
+  /** Hidden h2 above the items' h3 titles; off where the page already shows a "Criativos" h2. */
+  heading?: boolean;
   /** Result-level controls shown beside the count (e.g. sort). */
   toolbar?: React.ReactNode;
   /** Offered when big brands were left out of the result. */
@@ -37,7 +39,7 @@ const VIEWS: { id: GridView; label: string; icon: React.ReactNode }[] = [
   },
 ];
 
-export function CreativeGrid({ filters, emptyMessage, onHistoryChange, onScopeChange, toolbar, onShowBrands }: Props) {
+export function CreativeGrid({ filters, emptyMessage, onHistoryChange, onScopeChange, heading = true, toolbar, onShowBrands }: Props) {
   const [view, setView] = useViewPreference();
   const [attempt, setAttempt] = useState(0);
   const filtersKey = JSON.stringify(filters);
@@ -113,6 +115,7 @@ export function CreativeGrid({ filters, emptyMessage, onHistoryChange, onScopeCh
 
   return (
     <section className="flex flex-col gap-4">
+      {heading && <h2 className="sr-only">Criativos</h2>}
       <p role="status" className="sr-only">{status}</p>
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm text-muted">
@@ -159,8 +162,9 @@ export function CreativeGrid({ filters, emptyMessage, onHistoryChange, onScopeCh
 
       {refetching && !error && items.length === 0 && <ListSkeleton variant={view === "list" ? "thumb-rows" : "square-cards"} />}
 
-      <div
+      <ol
         aria-busy={loading}
+        aria-label="Criativos"
         className={`${view === "list" ? "flex flex-col gap-2" : "grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-4"} transition-opacity ${refetching && items.length > 0 ? "opacity-60" : ""}`}
       >
         {items.map((creative, i) => {
@@ -177,7 +181,7 @@ export function CreativeGrid({ filters, emptyMessage, onHistoryChange, onScopeCh
             />
           );
         })}
-      </div>
+      </ol>
 
       {items.length < total && (
         <button type="button" onClick={loadMore} disabled={loading} className="btn mx-auto">
