@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { api, timeAgo, toQuery, type Keyword, type KeywordPage, type KeywordSuggestions, type ScoreHeat, type Search } from "@/lib/api";
 import { useNiches } from "@/lib/hooks";
 import { useUrlFilters } from "@/lib/useUrlFilters";
-import { CheckToggle, FilterChips, FilterSelect, FilterToggle, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
+import { CheckToggle, FilterChips, FilterSelect, FilterToggle, ScopeToggle, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
 import { HEAT_HINT, heatClass } from "./Metrics";
 
 const PAGE_SIZE = 50;
@@ -42,13 +42,12 @@ export function KeywordsView() {
   const [error, setError] = useState<string | null>(null);
   const { niches, label } = useNiches();
 
-  const { filters, draft, hasFilters, type, set: update, flush, clear } = useUrlFilters(FILTER_KEYS, TYPED_KEYS);
+  const { filters, hasFilters, set: update, flush, clear } = useUrlFilters(FILTER_KEYS, TYPED_KEYS);
   const [attempt, setAttempt] = useState(0);
   const filtersKey = JSON.stringify(filters);
   const key = `${filtersKey}#${attempt}`;
   const loading = loadedKey !== key;
   const [panelOpen, setPanelOpen] = useState(false);
-  useSlashFocus("kq");
 
   const trendSearches = searches.filter((s) => s.source === "trends");
   const panelCount = PANEL_KEYS.filter((k) => filters[k]).length;
@@ -129,12 +128,6 @@ export function KeywordsView() {
         className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-3"
       >
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <div className="relative min-w-0 flex-1 basis-full sm:basis-72">
-            <label className="sr-only" htmlFor="kq">Buscar nas palavras-chave</label>
-            <input id="kq" type="search" enterKeyHint="search" className="field pr-9" value={draft.q ?? ""} aria-keyshortcuts="/"
-              onChange={(e) => type("q", e.target.value)} placeholder="Buscar termo" />
-            {!draft.q && <SlashHint />}
-          </div>
           {!filters.search_id && <ScopeToggle value={filters.scope} onChange={(v) => update("scope", v)} />}
           <FilterToggle open={panelOpen} count={panelCount} controls="keywords-panel" onToggle={() => setPanelOpen((v) => !v)} />
           <CheckToggle label="Só com nicho identificado" checked={filters.has_niche === "true"}
@@ -230,6 +223,7 @@ function KeywordSearch({ nicheLabel }: { nicheLabel: (id: string | null) => stri
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shown, setShown] = useState(SUGGEST_PAGE);
+  useSlashFocus("kw-term");
 
   async function search(e: React.FormEvent) {
     e.preventDefault();
@@ -253,7 +247,7 @@ function KeywordSearch({ nicheLabel }: { nicheLabel: (id: string | null) => stri
         className="flex flex-wrap items-end gap-3 rounded-lg border border-line bg-surface p-3">
         <div className="min-w-0 flex-1 basis-full sm:basis-72">
           <label className="label" htmlFor="kw-term">Palavra-chave</label>
-          <input id="kw-term" type="search" enterKeyHint="search" className="field" value={term} maxLength={80}
+          <input id="kw-term" type="search" enterKeyHint="search" className="field" value={term} maxLength={80} aria-keyshortcuts="/"
             onChange={(e) => setTerm(e.target.value)} placeholder="ex.: creatina, renda extra, emagrecer" />
         </div>
         <div className="w-20">
