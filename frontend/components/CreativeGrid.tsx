@@ -155,7 +155,7 @@ export function CreativeGrid({ filters, emptyMessage, onHistoryChange, toolbar, 
         </div>
       )}
 
-      {refetching && !error && items.length === 0 && <ListSkeleton variant={view === "list" ? "thumb-rows" : "cards"} />}
+      {refetching && !error && items.length === 0 && <ListSkeleton variant={view === "list" ? "thumb-rows" : "square-cards"} />}
 
       <div
         aria-busy={loading}
