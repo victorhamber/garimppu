@@ -6,6 +6,7 @@ import { api, timeAgo, toQuery, type Keyword, type KeywordPage, type KeywordSugg
 import { useNiches } from "@/lib/hooks";
 import { useUrlFilters } from "@/lib/useUrlFilters";
 import { CheckToggle, FilterChips, FilterSelect, FilterToggle, ScopeToggle, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
+import { CountrySelect } from "./CountrySelect";
 import { HEAT_HINT, heatClass } from "./Metrics";
 
 const PAGE_SIZE = 50;
@@ -250,10 +251,9 @@ function KeywordSearch({ nicheLabel }: { nicheLabel: (id: string | null) => stri
           <input id="kw-term" type="search" enterKeyHint="search" className="field" value={term} maxLength={80} aria-keyshortcuts="/"
             onChange={(e) => setTerm(e.target.value)} placeholder="ex.: creatina, renda extra, emagrecer" />
         </div>
-        <div className="w-20">
+        <div className="w-44">
           <label className="label" htmlFor="kw-country">País</label>
-          <input id="kw-country" className="field uppercase" value={country} maxLength={2}
-            onChange={(e) => setCountry(e.target.value.toUpperCase())} />
+          <CountrySelect id="kw-country" value={country} onChange={setCountry} />
         </div>
         <button type="submit" className="btn btn-primary" disabled={busy || term.trim().length < 2}>
           {busy ? "Pesquisando..." : "Pesquisar"}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { api, formatDate, formatDateTime, type Run, type Search, type TikTokIndustry } from "@/lib/api";
 import { useNiches } from "@/lib/hooks";
+import { CountrySelect } from "./CountrySelect";
 
 const REFRESH_OPTIONS = [
   { value: "", label: "Manual" },
@@ -50,7 +51,7 @@ const DEFAULT_BY_SOURCE = {
 
 const UNIT: Partial<Record<Search["source"], string>> = { youtube: "vídeos", tiktok: "anúncios", sites: "sites", trends: "palavras" };
 const KIND_LABEL: Partial<Record<Search["source"], string>> = {
-  youtube: "YouTube", tiktok: "TikTok Ads", sites: "Sites", trends: "Google Trends",
+  youtube: "YouTube", tiktok: "TikTok Ads", sites: "Sites (Cloudflare)", trends: "Google · em alta",
 };
 
 function creativesHref(search: Search) {
@@ -197,15 +198,15 @@ export function SearchManager() {
     <div className="flex flex-col gap-8">
       <h1 className="text-2xl font-semibold tracking-tight">Minerar</h1>
 
-      <form onSubmit={submit} className="grid grid-cols-2 gap-3 rounded-lg border border-line bg-surface p-4 md:grid-cols-4 xl:grid-cols-9">
-        <div>
+      <form onSubmit={submit} className="grid grid-cols-2 gap-3 rounded-lg border border-line bg-surface p-4 md:grid-cols-4 xl:grid-cols-10">
+        <div className="col-span-2">
           <label className="label" htmlFor="mode">Buscar por</label>
           <select id="mode" className="field" value={form.source === "meta" ? form.mode : form.source} onChange={setKind}>
-            <option value="keyword">Palavra-chave</option>
-            <option value="page">Página</option>
-            <option value="youtube">YouTube</option>
-            <option value="tiktok">TikTok Ads</option>
-            <option value="trends">Palavras-chave em alta</option>
+            <option value="keyword">Meta Ads · palavra-chave</option>
+            <option value="page">Meta Ads · página do anunciante</option>
+            <option value="tiktok">TikTok Ads · top anúncios</option>
+            <option value="youtube">YouTube · vídeos em alta</option>
+            <option value="trends">Google · palavras-chave em alta</option>
           </select>
         </div>
         {trends ? (
@@ -241,7 +242,7 @@ export function SearchManager() {
         )}
         <div>
           <label className="label" htmlFor="country">País</label>
-          <input id="country" className="field uppercase" value={form.country} onChange={set("country")} maxLength={2} />
+          <CountrySelect id="country" value={form.country} onChange={(country) => setForm((f) => ({ ...f, country }))} />
         </div>
         <div hidden={sites || trends}>
           <label className="label" htmlFor="language">Idioma</label>
@@ -305,7 +306,7 @@ export function SearchManager() {
             </select>
           </div>
         )}
-        <div className="col-span-2 flex items-center justify-end gap-3 md:col-span-3 xl:col-span-9">
+        <div className="col-span-2 flex items-center justify-end gap-3 md:col-span-3 xl:col-span-10">
           {error && <span className="mr-auto text-sm text-danger">{error}</span>}
           {notice && !error && (
             <p role="status" className="mr-auto text-sm text-muted">
@@ -360,7 +361,7 @@ export function SearchManager() {
                         ) : s.term}
                       </div>
                       <div className="mt-0.5 text-xs text-muted">
-                        {KIND_LABEL[s.source] ?? (s.page_id ? "Página" : "Palavra-chave")} · {s.country}
+                        {KIND_LABEL[s.source] ?? (s.page_id ? "Meta Ads · página" : "Meta Ads · palavra-chave")} · {s.country}
                         {s.source !== "trends" && ` · até ${s.max_ads} ${unit}`}
                         {!yt && !tt && !st && s.media_type !== "all" && ` · ${s.media_type === "image" ? "imagens" : "vídeos"}`}
                         {s.niche && ` · só ${label(s.niche)}`}
