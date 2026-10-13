@@ -1,5 +1,12 @@
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
+/** The browser extension's personal key; `token` only comes right after creating it. */
+export type ExtensionKey = {
+  token: string | null;
+  created_at: string | null;
+  last_used_at: string | null;
+};
+
 export type Run = {
   id: number;
   status: "queued" | "running" | "done" | "error";
@@ -30,6 +37,8 @@ export type Search = {
   creatives_count: number;
   monitored_since: string;
   reused: boolean;
+  /** Meta searches only: the Ad Library page that advanced mining opens. */
+  library_url: string | null;
 };
 
 export type PageInfo = {

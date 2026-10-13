@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Garimppu</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header><span class="logo" aria-hidden="true">G</span>Garimppu</header>
+
+  <section id="connected" hidden>
+    <p class="ok">Conectado como <strong id="email"></strong></p>
+    <a class="btn primary" href="https://www.facebook.com/ads/library/?active_status=active&amp;ad_type=all&amp;country=BR&amp;media_type=all"
+      target="_blank" rel="noopener">Abrir a Biblioteca de Anúncios</a>
+    <p class="hint">Busque uma palavra-chave e role a página: os anúncios vão para o Garimppu.</p>
+    <button id="disconnect" class="link" type="button">Desconectar</button>
+  </section>
+
+  <form id="connect" hidden>
+    <label for="token">Chave da extensão</label>
+    <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="gp_..." required>
+    <p id="error" class="error" role="alert" hidden></p>
+    <button class="btn primary" type="submit">Conectar</button>
+    <a class="link" href="https://app.garimppu.com/extensao" target="_blank" rel="noopener">Gerar minha chave no Garimppu</a>
+  </form>
+
+  <script src="popup.js"></script>
+</body>
+</html>

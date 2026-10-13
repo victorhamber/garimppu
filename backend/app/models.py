@@ -64,6 +64,19 @@ class AuthSession(Base):
     user: Mapped[User] = relationship()
 
 
+class ExtensionToken(Base):
+    """The browser extension's personal key; only its hash is stored and creating a new one revokes the old."""
+
+    __tablename__ = "extension_tokens"
+
+    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    user: Mapped[User] = relationship()
+
+
 class PasswordReset(Base):
     """Single-use "forgot my password" links; only a hash of the token is stored."""
 

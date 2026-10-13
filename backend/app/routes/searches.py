@@ -5,6 +5,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.auth import current_user
+from app.collectors.base import SearchQuery
+from app.collectors.library_scraper import build_search_url
 from app.collectors.google_trends import source_term as trends_source_term
 from app.collectors.tiktok_ads import INDUSTRIES as TIKTOK_INDUSTRIES, PREFIX as TIKTOK_PREFIX
 from app.collectors.youtube import NICHE_PREFIX
@@ -29,6 +31,7 @@ from app.pipeline.sources import find_or_create_source, is_fresh, sync_source
 from app.schemas import RunOut, SearchCreate, SearchOut, SearchUpdate
 
 router = APIRouter(prefix="/api", tags=["searches"])
+META_COLLECTORS = ("scraper", "api", "hybrid")
 
 
 def _search_out(db: Session, search: Search, reused: bool = False) -> SearchOut:
@@ -71,6 +74,10 @@ def _search_out(db: Session, search: Search, reused: bool = False) -> SearchOut:
         creatives_count=creatives or 0,
         monitored_since=source.created_at,
         reused=reused,
+        library_url=build_search_url(SearchQuery(
+            term=source.term, country=source.country, language=source.language, media_type=source.media_type,
+            page_id=source.page_id,
+        )) if source.collector in META_COLLECTORS else None,
     )
 
 

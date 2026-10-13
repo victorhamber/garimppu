@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Garimppu: mineração avançada",
+  "short_name": "Garimppu",
+  "version": "1.0.0",
+  "description": "Envia para o Garimppu os anúncios que você vê ao rolar a Biblioteca de Anúncios do Meta.",
+  "homepage_url": "https://app.garimppu.com/extensao",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "Garimppu",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["storage"],
+  "host_permissions": ["https://api.garimppu.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.facebook.com/ads/library*"],
+      "js": ["page-hook.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://www.facebook.com/ads/library*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

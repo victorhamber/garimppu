@@ -291,6 +291,7 @@ function AccountMenu() {
           className="absolute right-0 top-full z-40 mt-1 w-56 rounded-md border border-line bg-surface p-1 shadow-xl">
           <p className="truncate px-2 py-1.5 text-xs text-muted" title={user.email}>{user.email}</p>
           <Link href="/conta" className={itemClass}>Minha conta</Link>
+          <Link href="/extensao" className={itemClass}>Extensão do Chrome</Link>
           {user.is_admin && <Link href="/admin" className={itemClass}>Licenças</Link>}
           <button type="button" onClick={logout} className={itemClass}>Sair</button>
         </div>

@@ -16,6 +16,7 @@ from app.routes import (
     auth,
     collections,
     creatives,
+    extension,
     keywords,
     offers,
     pages,
@@ -62,6 +63,7 @@ app.mount("/media", StaticFiles(directory=settings.media_dir), name="media")
 app.include_router(auth.router)
 app.include_router(webhooks.router)
 app.include_router(admin.router)
+app.include_router(extension.router)
 licensed = [Depends(current_user)]
 for router in (searches.router, creatives.router, offers.router, pages.router, collections.router, videos.router, tiktok.router, sites.router,
                keywords.router):

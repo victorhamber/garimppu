@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 import httpx
@@ -18,6 +19,7 @@ from app.pipeline.scoring import recompute_scores, refresh_page_counts
 
 logger = logging.getLogger(__name__)
 COMMIT_EVERY = 25
+PREFETCH_WORKERS = 8
 
 
 class Ingestor:
@@ -146,7 +148,16 @@ class Ingestor:
             ))
         return creative
 
+    def prefetch_thumbnails(self, raw_ads: list[RawAd]) -> None:
+        """Downloads thumbnails in parallel into the media cache, so the sequential loop reads them from disk."""
+        urls = {media.url_key(u): u for raw in raw_ads
+                if (u := (raw.video_preview_urls or raw.image_urls or [None])[0])}
+        if len(urls) > 1:
+            with ThreadPoolExecutor(max_workers=PREFETCH_WORKERS) as pool:
+                list(pool.map(lambda url: media.download_image(self.client, url), urls.values()))
+
     def run(self, raw_ads: list[RawAd]) -> tuple[int, set[int]]:
+        self.prefetch_thumbnails(raw_ads)
         creative_ids: set[int] = set()
         page_ids: set[str] = set()
         for i, raw in enumerate(raw_ads, 1):

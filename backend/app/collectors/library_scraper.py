@@ -15,7 +15,7 @@ import time
 from collections.abc import Callable, Iterator
 from datetime import date, datetime, timezone
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from app.collectors.base import RawAd, SearchQuery
 from app.config import get_settings
@@ -52,6 +52,29 @@ def build_search_url(query: SearchQuery) -> str:
     if query.language:
         params["content_languages[0]"] = query.language
     return f"{LIBRARY_URL}?{urlencode(params)}"
+
+
+def query_from_url(url: str) -> SearchQuery | None:
+    """Inverse of ``build_search_url``: the search an Ad Library page shows, or None for other pages."""
+    parsed = urlparse(url)
+    if not (parsed.hostname or "").endswith("facebook.com") or not parsed.path.startswith("/ads/library"):
+        return None
+    params = {key: values[0] for key, values in parse_qs(parsed.query).items()}
+    page_id = params.get("view_all_page_id", "")
+    page_id = page_id if page_id.isdigit() else None
+    term = (params.get("q") or "").strip()
+    if not page_id and not term:
+        return None
+    if term and params.get("search_type") == "keyword_exact_phrase":
+        term = f'"{term}"'
+    media = params.get("media_type")
+    return SearchQuery(
+        term=term or page_id,
+        country=(params.get("country") or "BR").upper()[:8],
+        language=params.get("content_languages[0]") or None,
+        media_type=media if media in {"image", "video"} else "all",
+        page_id=page_id,
+    )
 
 
 def _loads_lenient(text: str) -> Iterator[Any]:

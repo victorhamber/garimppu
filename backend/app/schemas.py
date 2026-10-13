@@ -26,6 +26,27 @@ class SearchCreate(BaseModel):
     run_now: bool = True
 
 
+class ExtensionAdsIn(BaseModel):
+    url: str = Field(max_length=2000)  # the Ad Library page the ads came from: it names the search
+    nodes: list[dict] = Field(max_length=200)  # raw ad objects as the Ad Library page received them
+    run_id: int | None = None  # same scrolling session: keeps adding to one run
+
+
+class ExtensionAdsOut(BaseModel):
+    run_id: int
+    search_id: int
+    term: str
+    received: int
+    new: int
+    total: int  # ads this search has after the batch
+
+
+class ExtensionTokenOut(BaseModel):
+    token: str | None = None  # only right after creating; afterwards just the dates
+    created_at: datetime | None = None
+    last_used_at: datetime | None = None
+
+
 class SearchUpdate(BaseModel):
     niche: str | None = None
     max_ads: int | None = Field(default=None, ge=10, le=3000)
@@ -65,6 +86,8 @@ class SearchOut(BaseModel):
     monitored_since: datetime
     # Set on creation when an existing, recently collected source was reused instead of collecting again.
     reused: bool = False
+    # Meta searches only: the Ad Library page advanced mining opens.
+    library_url: str | None = None
 
 
 class PageOut(ORM):
