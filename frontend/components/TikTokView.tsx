@@ -258,7 +258,7 @@ function TikTokCard({ ad, rank, heat }: { ad: TikTokAd; rank: number; heat?: Sco
   const topCtr = ad.ctr_rank != null && ad.ctr_rank <= 0.1;
   return (
     <article className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-line bg-surface">
-      <a href={ad.url} target="_blank" rel="noreferrer" className="relative block aspect-square bg-surface-2"
+      <a href={ad.url} target="_blank" rel="noreferrer" className="relative block aspect-square overflow-hidden bg-surface-2"
         aria-label={`Assistir no Creative Center do TikTok: ${title}`}>
         {cover ? (
           <CoverImage src={cover} alt="" className="h-full w-full object-cover" fallback={<VideoFallback compact />} />
