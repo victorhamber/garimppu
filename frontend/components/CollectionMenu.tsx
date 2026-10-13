@@ -32,8 +32,25 @@ function remove(collectionId: number, target: CollectionTarget) {
   return api(`/api/collections/${collectionId}/${path}`, { method: "DELETE" });
 }
 
+/**
+ * Opens upward by default (save sits at the bottom of cards); flips down when the sticky header or the screen top
+ * leaves less room above than the panel needs and there is more room below, above the phone's bottom bar.
+ */
+function opensBelow(anchor: HTMLElement, rows: number): boolean {
+  const rowHeight = window.matchMedia("(pointer: coarse)").matches ? 48 : 34;
+  const needed = Math.max(rows, 1) * rowHeight + 16;
+  const box = anchor.getBoundingClientRect();
+  const top = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+  const bar = document.querySelector<HTMLElement>("nav.fixed")?.getBoundingClientRect();
+  const bottom = bar && bar.height > 0 ? bar.top : window.innerHeight;
+  const above = box.top - Math.max(top, 0);
+  const below = bottom - box.bottom;
+  return above < needed && below > above;
+}
+
 export function CollectionMenu({ target, selected, collections, onChange }: Props) {
   const [open, setOpen] = useState(false);
+  const [below, setBelow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ action: string; message: string } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -105,6 +122,7 @@ export function CollectionMenu({ target, selected, collections, onChange }: Prop
         ref={toggleRef}
         type="button"
         onClick={() => {
+          if (!open && ref.current) setBelow(opensBelow(ref.current, collections.length));
           setOpen((v) => !v);
           setError(null);
         }}
@@ -119,7 +137,7 @@ export function CollectionMenu({ target, selected, collections, onChange }: Prop
         </svg>
       </button>
       {open && (
-        <div id={panelId} role="group" aria-label="Coleções" className="absolute right-0 bottom-full z-20 mb-1 w-64 rounded-md border border-line bg-surface p-1 shadow-xl">
+        <div id={panelId} role="group" aria-label="Coleções" className={`absolute right-0 z-20 w-64 ${below ? "top-full mt-1" : "bottom-full mb-1"} rounded-md border border-line bg-surface p-1 shadow-xl`}>
           {error && (
             <div className="mb-1">
               <ErrorState action={error.action} error={error.message} compact />

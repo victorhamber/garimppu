@@ -56,7 +56,7 @@ export function UndoToast({ message, onUndo }: { message: string | null; onUndo:
   }, [message]);
 
   return (
-    <div role="status" className="pointer-events-none fixed inset-x-0 bottom-20 z-40 flex justify-center px-4 md:bottom-6">
+    <div role="status" className="pointer-events-none fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 flex justify-center px-4 md:bottom-6">
       {message && (
         <div className="pointer-events-auto flex max-w-lg items-center gap-4 rounded-md border border-line bg-surface-2 py-2 pr-2 pl-4 text-sm shadow-[0_8px_24px_rgb(0_0_0/0.4)]">
           <span className="min-w-0 break-words">{message}</span>

@@ -321,6 +321,12 @@ Enquanto um criativo só foi visto num dia de coleta, a célula de crescimento m
 ### Título da aba
 Cada página tem o seu título, no formato "Página · Garimppu" ("Minerar · Garimppu", "Criativos · Garimppu"). Os detalhes trocam pelo nome real quando ele chega: o anunciante no criativo e no anunciante, o nome da coleção na coleção.
 
+### Dicas visíveis
+Nada essencial mora só no `title`, porque no toque ele não existe. Em Minerar, uma legenda de uma linha (12px, Dust Gray, `aria-describedby` dos campos) muda com a fonte e diz o que ela coleta e o limite. Métricas com nome curto ("vs. inscritos", "engaj.", "CTR top 3%") são explicadas ao abrir a legenda do score. A nota de marcas grandes diz o porquê na própria frase. O `title` fica só como repetição para o mouse.
+
+### Menu de coleção no celular
+Na lista compacta, o selo de score e o salvar empilham à direita no celular e ficam lado a lado a partir de 640px; salvar nunca some. O painel abre para cima e vira para baixo quando o cabeçalho fixo deixa menos espaço acima do que ele precisa e há mais espaço abaixo, contando a barra de baixo. O aviso de desfazer fica a 4,5rem mais a área segura do fundo no celular, acima da barra.
+
 ### Status Pill
 Um rótulo de 4px a 12px em peso 500, com no mínimo 24px de altura, fundo da cor de estado a 15% e texto na cor de estado: "Na fila" (neutro), "Coletando" (âmbar, com um ponto desenhado que pulsa só sem reduced-motion), "Concluída" (verde) e "Erro" (vermelho). Clicar no rótulo abre e fecha o log da coleta (`aria-expanded`).
 

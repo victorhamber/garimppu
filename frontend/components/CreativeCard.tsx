@@ -145,12 +145,10 @@ export function CreativeRow({ creative, rank, heat, collections, nicheLabel, onC
       <div className="hidden w-60 shrink-0 md:block">
         <MetricRow score={creative.score} heat={heat} hasHistory={creative.has_history} />
       </div>
-      <span className="shrink-0">
+      <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-4">
         <ScoreBadge value={creative.score?.score ?? 0} heat={heat} />
-      </span>
-      <span className="hidden sm:block">
         <Save creative={creative} collections={collections} onCollectionsChange={onCollectionsChange} />
-      </span>
+      </div>
     </li>
   );
 }

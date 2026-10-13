@@ -257,6 +257,15 @@ export function SearchManager() {
     !trends && `até ${form.max_ads} ${youtube ? "vídeos" : sites ? "sites" : "anúncios"}`,
     trends ? "recoleta a cada hora" : `recoleta: ${refreshLabel.toLowerCase()}`,
   ].filter(Boolean).join(" · ");
+  const sourceHint = trends
+    ? "O Google Trends lista o que o país inteiro pesquisa nas últimas horas, então a coleta roda sozinha a cada hora."
+    : tiktok
+      ? "O TikTok não busca por palavra nos top anúncios: o filtro é o nicho do anunciante. Vêm os melhores CTRs e os mais curtidos de 180 dias."
+      : youtube
+        ? "Vêm os vídeos mais vistos dos últimos 30 dias. Sem tema, vale o nicho inteiro. O YouTube limita as buscas por dia, então prefira poucos vídeos."
+        : sites
+          ? "Vêm no máximo os 100 primeiros sites de cada lista."
+          : "O nicho de cada criativo é detectado sozinho; o filtro de nicho só muda o que aparece ao abrir a busca.";
   const setKind = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     setForm((f) => {
@@ -277,7 +286,8 @@ export function SearchManager() {
         <div className="grid grid-cols-2 gap-3 md:grid-cols-[minmax(0,15rem)_minmax(0,1fr)_minmax(0,11rem)_auto] md:items-end">
           <div className="col-span-2 md:col-span-1">
             <label className="label" htmlFor="mode">Buscar por</label>
-            <select id="mode" className="field" value={form.source === "meta" ? form.mode : form.source} onChange={setKind}>
+            <select id="mode" className="field" value={form.source === "meta" ? form.mode : form.source} onChange={setKind}
+              aria-describedby="mine-hint">
               <option value="keyword">Meta Ads · palavra-chave</option>
               <option value="page">Meta Ads · página do anunciante</option>
               <option value="tiktok">TikTok Ads · top anúncios</option>
@@ -288,8 +298,7 @@ export function SearchManager() {
           {trends ? (
             <div className="col-span-2 md:col-span-1">
               <label className="label" htmlFor="niche">Nicho</label>
-              <select id="niche" className="field" value={form.niche} onChange={set("niche")}
-                title="O Google Trends lista o que o país inteiro está pesquisando; o nicho de cada termo é detectado pelo termo e pelas notícias ligadas a ele">
+              <select id="niche" className="field" value={form.niche} onChange={set("niche")} aria-describedby="mine-hint">
                 <option value="">Todos os nichos</option>
                 {niches.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
               </select>
@@ -297,8 +306,7 @@ export function SearchManager() {
           ) : sites ? null : tiktok ? (
             <div className="col-span-2 md:col-span-1">
               <label className="label" htmlFor="industry">Nicho do TikTok</label>
-              <select id="industry" className="field" value={form.industry} onChange={set("industry")}
-                title="O TikTok não permite busca por palavra-chave nos top anúncios; o filtro é pelo nicho (setor) do anunciante">
+              <select id="industry" className="field" value={form.industry} onChange={set("industry")} aria-describedby="mine-hint">
                 <option value="">Todos os nichos</option>
                 {industries.map((i) => <option key={i.id} value={i.id}>{i.label}</option>)}
               </select>
@@ -324,6 +332,7 @@ export function SearchManager() {
             {submitting ? "Criando..." : "Minerar agora"}
           </button>
         </div>
+        <p id="mine-hint" className="max-w-prose text-xs text-muted">{sourceHint}</p>
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <button type="button" className="btn btn-ghost -ml-2 h-8 text-sm pointer-coarse:h-11" aria-expanded={moreOpen}
@@ -348,8 +357,7 @@ export function SearchManager() {
           {youtube && (
             <div>
               <label className="label" htmlFor="niche">Nicho</label>
-              <select id="niche" className="field" value={form.niche} onChange={set("niche")}
-                title="Sem tema: busca os vídeos em alta do nicho inteiro. Com tema: mostra só os vídeos desse nicho ao abrir a busca">
+              <select id="niche" className="field" value={form.niche} onChange={set("niche")} aria-describedby="mine-hint">
                 <option value="">Todos</option>
                 {niches.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
               </select>
@@ -367,8 +375,7 @@ export function SearchManager() {
               </div>
               <div>
                 <label className="label" htmlFor="niche">Filtrar nicho</label>
-                <select id="niche" className="field" value={form.niche} onChange={set("niche")}
-                  title="Mostra só criativos deste nicho ao abrir a busca; o nicho de cada criativo é detectado automaticamente">
+                <select id="niche" className="field" value={form.niche} onChange={set("niche")} aria-describedby="mine-hint">
                   <option value="">Todos</option>
                   {niches.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
                 </select>
@@ -378,15 +385,12 @@ export function SearchManager() {
           <div hidden={trends}>
             <label className="label" htmlFor="max">{youtube ? "Máx. vídeos" : sites ? "Máx. sites" : "Máx. anúncios"}</label>
             <input id="max" type="number" min={10} max={MAX_BY_SOURCE[form.source]} step={10} className="field" value={form.max_ads}
-              onChange={set("max_ads")} title={youtube ? "Os mais vistos dos últimos 30 dias. O YouTube limita quantos vídeos dá para buscar por dia, então prefira poucos."
-                : tiktok ? "Metade pelos melhores CTRs do nicho, metade pelos mais curtidos, nos últimos 180 dias."
-                : sites ? "Vêm no máximo os 100 primeiros de cada lista." : undefined} />
+              onChange={set("max_ads")} aria-describedby="mine-hint" />
           </div>
           {trends ? (
             <div>
               <span className="label">Recoleta</span>
-              <p className="field flex items-center text-muted"
-                title="O Google Trends mostra só as últimas horas; a coleta roda sozinha a cada hora para não perder termos">
+              <p className="field flex items-center text-muted">
                 A cada hora
               </p>
             </div>

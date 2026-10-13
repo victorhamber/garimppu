@@ -142,8 +142,9 @@ export function HiddenBrandsNote({ count, noun, onShow }: { count: number; noun:
   if (count <= 0) return null;
   return (
     <p className="text-xs text-muted">
-      <span title="Afiliados não podem promover marcas como Boticário, 99 e Amazon">
-        <span className="font-mono tabular-nums text-foreground">{count.toLocaleString("pt-BR")}</span> {noun} de marcas grandes fora do ranking.
+      <span>
+        <span className="font-mono tabular-nums text-foreground">{count.toLocaleString("pt-BR")}</span> {noun} de marcas grandes
+        (Boticário, 99, Amazon...) fora do ranking: afiliados não podem promovê-las.
       </span>{" "}
       <button type="button" onClick={onShow}
         className="text-foreground underline decoration-line underline-offset-2 transition-colors hover:decoration-accent pointer-coarse:min-h-11">

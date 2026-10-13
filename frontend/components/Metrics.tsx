@@ -144,6 +144,11 @@ const FORMULAS = {
   site: "Soma anunciantes (peso maior), anúncios, criativos e dias no ar de todos os produtos do site.",
 };
 
+const GLOSSARY: Partial<Record<keyof typeof FORMULAS, string>> = {
+  video: "Vs. inscritos: quantas vezes as views passam o número de inscritos do canal. Engaj.: curtidas e comentários por view (comentário vale o dobro). Acelerando ou desacelerando: views por dia desde a última coleta contra a média desde a publicação; aparece a partir da 2ª coleta.",
+  tiktok: "CTR top 3%: o CTR do anúncio é melhor que o de 97% dos anúncios do mesmo nicho.",
+};
+
 const HEAT_KEY = (
   <>
     <span className="flex items-center gap-1.5">
@@ -169,6 +174,7 @@ export function ScoreLegend({ kind = "creative" }: { kind?: keyof typeof FORMULA
       <div className="mt-1.5 flex max-w-prose flex-wrap items-center gap-x-3 gap-y-1">
         <span className="flex items-center gap-x-3 sm:hidden">{HEAT_KEY}</span>
         <p>{FORMULAS[kind]} O selo mostra a posição do item neste resultado, do top 1% ao top 50%; &quot;—&quot; fica na metade de baixo.</p>
+        {GLOSSARY[kind] && <p>{GLOSSARY[kind]}</p>}
       </div>
     </details>
   );

@@ -12,7 +12,7 @@ import { ExportCsv } from "./ExportCsv";
 import { CheckToggle, FilterChips, FirstRunNote, FilterSelect, FilterToggle, MoreFilters, ScopeToggle, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
 import { ConfirmMine } from "./ConfirmMine";
 import { COUNTRIES, CountrySelect } from "./CountrySelect";
-import { HEAT_HINT, ScoreBadge } from "./Metrics";
+import { ScoreBadge } from "./Metrics";
 
 const PAGE_SIZE = 50;
 const FILTER_KEYS = ["q", "niche", "geo", "days", "search_id", "scope", "sort", "has_niche"] as const;
@@ -167,9 +167,10 @@ export function KeywordsView() {
         </span>
         <SortSelect id="ksort" value={filters.sort ?? "traffic"} options={SORTS}
           onChange={(v) => update("sort", v === "traffic" ? "" : v)} />
-        <span className="hidden text-xs sm:inline" title={`Destaque do volume: ${HEAT_HINT}`}>
-          <span className="rounded bg-hot px-1 font-mono text-micro font-semibold text-accent-ink">brasa</span> top 5% ·{" "}
+        <span className="text-xs">
+          Volume: <span className="rounded bg-hot px-1 font-mono text-micro font-semibold text-accent-ink">brasa</span> top 5% ·{" "}
           <span className="rounded bg-accent px-1 font-mono text-micro font-semibold text-accent-ink">âmbar</span> top 20%
+          <span className="hidden sm:inline"> deste resultado</span>
         </span>
         <ExportCsv path="/api/keywords/export.csv" filters={filters} disabled={loading || !!error || total === 0} className="ml-auto" />
       </div>
@@ -283,6 +284,7 @@ function KeywordSearch({ nicheLabel }: { nicheLabel: (id: string | null) => stri
           <>
             <p className="text-sm text-muted">
               {items.length} buscas relacionadas a “{result.term}” ({result.country}), das mais para as menos sugeridas pelo Google.
+              A barra compara cada uma com a mais sugerida (100).
             </p>
             <ol className="flex flex-col divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface">
               {items.slice(0, shown).map((s, i) => (
@@ -297,9 +299,7 @@ function KeywordSearch({ nicheLabel }: { nicheLabel: (id: string | null) => stri
                       <span className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-2" aria-hidden="true">
                         <span className="block h-full rounded-full bg-accent" style={{ width: `${s.popularity}%` }} />
                       </span>
-                      <span title="Popularidade relativa: o quanto o Google sugere esta busca, comparada à mais sugerida desta pesquisa">
-                        {s.popularity}
-                      </span>
+                      <span>{s.popularity}</span>
                       {s.niche && <span>· {nicheLabel(s.niche)}</span>}
                     </div>
                   </div>
