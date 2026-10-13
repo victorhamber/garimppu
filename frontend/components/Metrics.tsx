@@ -104,9 +104,9 @@ export function ScoreParts({ parts }: { parts: { label: string; value: string }[
 
 const FORMULAS = {
   creative: "Soma anúncios ativos, dias no ar, plataformas, crescimento e tamanho do anunciante.",
-  offer: "Soma anunciantes (peso maior), anúncios, criativos e dias no ar, com bônus se a oferta também está no TikTok, no YouTube ou no ranking de sites.",
+  offer: "Soma anunciantes (peso maior), anúncios, criativos e dias no ar, com bônus se a oferta também está no TikTok ou no YouTube.",
   video: "Soma views por dia, quanto o vídeo superou o canal, engajamento e aceleração.",
-  tiktok: "Soma o CTR comparado ao nicho (peso maior), curtidas, comentários, compartilhamentos e verba.",
+  tiktok: "Soma a taxa de cliques (CTR) comparada ao nicho (peso maior), curtidas, comentários, compartilhamentos e verba.",
   site: "Soma anunciantes (peso maior), anúncios, criativos e dias no ar de todos os produtos do site.",
 };
 

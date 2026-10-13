@@ -135,7 +135,7 @@ export function OffersView() {
               onChange={(on) => update("active_only", on ? "" : "false")} />
             <CheckToggle label="Incluir marcas grandes" checked={filters.include_brands === "true"}
               onChange={(on) => update("include_brands", on ? "true" : "")} />
-            <CheckToggle label="Também no TikTok, YouTube ou ranking de sites" checked={filters.multi_platform === "true"}
+            <CheckToggle label="Também no TikTok ou no YouTube" checked={filters.multi_platform === "true"}
               onChange={(on) => update("multi_platform", on ? "true" : "")} />
           </MoreFilters>
         </div>
@@ -244,7 +244,7 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
             <span className="font-mono text-xs text-muted">#{rank}</span>
             <h2 className="min-w-0 flex-1 truncate font-medium" title={offer.key}>{offer.label}</h2>
             <ScoreBadge value={offer.score} heat={heat}
-              title="Score de oferta: anunciantes, anúncios, criativos, tempo no ar e +0,75 por plataforma extra" />
+              title="Score da oferta: soma anunciantes, anúncios, criativos e dias no ar, com bônus se também está no TikTok ou no YouTube" />
           </div>
           <p className="flex min-w-0 items-center gap-1.5 text-xs text-muted">
             <span className="shrink-0">{OFFER_KIND_LABEL[offer.kind]}</span>
@@ -269,17 +269,10 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
         </MetricStrip>
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
           {offer.platforms > 1 && (
-            <span title="A oferta aparece em mais de uma plataforma de anúncios"
+            <span title="A mesma oferta também aparece no TikTok ou no YouTube"
               className="rounded-full border border-accent/60 px-2 py-0.5 text-micro font-semibold text-accent">
               {["Meta", offer.tiktok_ads > 0 && "TikTok", offer.videos > 0 && "YouTube"].filter(Boolean).join(" + ")}
             </span>
-          )}
-          {offer.site_rank != null && (
-            <Link href={`/sites?q=${encodeURIComponent(offer.key)}&scope=all`}
-              title={`O site da oferta está em #${offer.site_rank} no ranking "${offer.site_ranking}" do Cloudflare Radar`}
-              className="text-accent hover:underline">
-              Site #{offer.site_rank}
-            </Link>
           )}
           {offer.videos > 0 && (
             <Link href={`/videos?offer=${encodeURIComponent(offer.key)}`} className="text-accent hover:underline">

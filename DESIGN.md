@@ -339,7 +339,7 @@ Um `details` em Micro e Dust Gray logo abaixo da faixa de métricas, fechado por
 Um `details` em texto de 12px: fechado, mostra "brasa top 5% · âmbar top 20% · Como o score é calculado" (no celular, só "Legenda do score"); aberto, a fórmula em uma frase.
 
 ### Linha de oferta
-Três blocos, nesta ordem: **produto** (até 4 miniaturas de 64px, 56px no celular; "#N", nome, selo de score à direita; tipo, chip neutro da plataforma de venda e o link sem "https://"), **sinais** (faixa de métricas de 4 células; abaixo, selo multiplataforma, "Site #N", vídeos e anúncios do TikTok em âmbar, e os anunciantes principais em Dust Gray) e **ações** (coleção e "Ver criativos", alinhadas à direita). A partir de 1280px os três ficam lado a lado; abaixo disso, produto em cima e sinais e ações dividindo a linha de baixo.
+Três blocos, nesta ordem: **produto** (até 4 miniaturas de 64px, 56px no celular; "#N", nome, selo de score à direita; tipo, chip neutro da plataforma de venda e o link sem "https://"), **sinais** (faixa de métricas de 4 células; abaixo, selo multiplataforma, vídeos e anúncios do TikTok em âmbar, e os anunciantes principais em Dust Gray) e **ações** (coleção e "Ver criativos", alinhadas à direita). A partir de 1280px os três ficam lado a lado; abaixo disso, produto em cima e sinais e ações dividindo a linha de baixo.
 
 ### Selo multiplataforma
 Quando uma oferta aparece em mais de uma fonte, uma pílula com borda Lantern Amber a 60% e texto âmbar em 600 lista as fontes ("Meta + TikTok + YouTube"). É sinal acima do limiar, por isso âmbar; nunca Ember.

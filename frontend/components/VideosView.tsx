@@ -307,16 +307,16 @@ export function VideoCard({ video, rank, heat, niche, collections, onCollections
         <MetricStrip className="grid-cols-4">
           <Metric label="views" value={compact.format(video.views)} strong={topMetric(heat, "views", video.views)} />
           <Metric label="por dia" value={compact.format(video.velocity)} strong={topMetric(heat, "velocity", video.velocity)} />
-          <Metric label="x canal" value={video.outlier != null ? formatMultiple(video.outlier) : "—"}
-            strong={topMetric(heat, "outlier", video.outlier)} title="Visualizações ÷ inscritos do canal" />
+          <Metric label="vs. inscritos" value={video.outlier != null ? formatMultiple(video.outlier) : "—"}
+            strong={topMetric(heat, "outlier", video.outlier)} title="Quantas vezes as views passam o número de inscritos do canal" />
           <Metric label="engaj." value={video.engagement != null ? `${(video.engagement * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%` : "—"}
-            strong={topMetric(heat, "engagement", video.engagement)} title="(curtidas + 2×comentários) ÷ visualizações" />
+            strong={topMetric(heat, "engagement", video.engagement)} title="Curtidas e comentários por view (comentário vale o dobro)" />
         </MetricStrip>
         <ScoreParts parts={parts.map((p) => ({ label: p.label, value: fmtPart(p.value) }))} />
 
         <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
           {accel != null ? (
-            <span title="Views por dia desde a coleta anterior ÷ média desde a publicação"
+            <span title="Views por dia desde a última coleta, comparadas à média desde a publicação"
               className={accel >= 1.2 ? "text-accent" : accel < 0.8 ? "text-muted" : "text-foreground"}>
               {accel >= 1.2 ? "Acelerando" : accel < 0.8 ? "Desacelerando" : "Ritmo estável"} {formatMultiple(accel)}
             </span>

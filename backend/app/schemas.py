@@ -187,9 +187,7 @@ class OfferOut(BaseModel):
     collection_ids: list[int] = []
     videos: int = 0
     tiktok_ads: int = 0
-    site_rank: int | None = None  # best position of the offer's site in a collected Cloudflare Radar ranking
-    site_ranking: str | None = None  # label of that ranking, e.g. "Mais acessados"
-    platforms: int = 1  # Meta plus TikTok, YouTube and/or a sites ranking when the offer shows up there too
+    platforms: int = 1  # Meta plus TikTok and/or YouTube when the offer shows up there too
 
 
 class VideoOut(ORM):

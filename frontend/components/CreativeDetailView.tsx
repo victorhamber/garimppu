@@ -102,7 +102,7 @@ export function CreativeDetailView() {
                 <Stat label="Crescimento 7d" value="—" hint="1ª coleta: aparece depois de uma coleta em outro dia" />
               )}
               <Stat label="Plataformas" value={s.platforms_count} hint={creative.platforms.map((p) => PLATFORM_LABELS[p] ?? p).join(", ")} />
-              <Stat label="Ads do anunciante" value={s.page_active_ads} hint="anúncios ativos da página" className="col-span-2 md:col-span-1 lg:max-xl:col-span-2" />
+              <Stat label="Anúncios do anunciante" value={s.page_active_ads} hint="anúncios ativos da página" className="col-span-2 md:col-span-1 lg:max-xl:col-span-2" />
             </dl>
           )}
 

@@ -2,8 +2,7 @@
 
 score = 2.5*log(advertisers) + log(1+ads) + 0.5*log(1+creatives) + min(days,90)/90 + 0.75*other platforms
 Several advertisers on the same offer weighs most: it means affiliates/resellers are scaling it.
-Other platforms: the offer also shows up in TikTok top ads, YouTube videos and/or a collected sites ranking
-(Cloudflare Radar), money and traffic flowing on more than one front.
+Other platforms: the offer also shows up in TikTok top ads and/or YouTube videos.
 """
 
 import math
@@ -16,11 +15,9 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.auth import current_user
-from app.collectors.radar import RANKINGS as SITE_RANKINGS
-from app.collectors.radar import parse_term as parse_site_term
 from app.config import get_settings
 from app.db import get_db
-from app.models import Ad, CollectionOffer, Creative, Page, Source, SourceAd, SourceSite, TikTokAd, User, Video
+from app.models import Ad, CollectionOffer, Creative, Page, SourceAd, TikTokAd, User, Video
 from app.csv_export import EXPORT_LIMIT, csv_response
 from app.pipeline.heat import HOT_SHARE, MIN_DAYS_ACTIVE, WARM_SHARE, metric_cutoffs, rank_cutoff
 from app.pipeline.offers import offer_label
@@ -59,36 +56,6 @@ def _cross_platform_counts(db: Session, keys: list[str]) -> tuple[dict[str, int]
     tiktok = dict(db.execute(
         select(TikTokAd.offer_key, func.count()).where(TikTokAd.offer_key.in_(keys)).group_by(TikTokAd.offer_key)).all())
     return videos, tiktok
-
-
-def _site_candidates(offer_key: str) -> list[str]:
-    """The offer's host and its parent domains: an offer on loja.exemplo.com.br matches exemplo.com.br."""
-    host = offer_key.split("/")[0]
-    if ":" in host or "." not in host:
-        return []
-    parts = host.split(".")
-    return [".".join(parts[i:]) for i in range(len(parts) - 1)]
-
-
-def _site_ranks(db: Session, offers: list[OfferOut]) -> dict[str, tuple[int, str]]:
-    """Best collected Radar position per offer key, with the ranking's label."""
-    wanted = {o.key: _site_candidates(o.key) for o in offers if o.kind in ("site", "loja")}
-    domains = {d for ds in wanted.values() for d in ds}
-    if not domains:
-        return {}
-    best: dict[str, tuple[int, str]] = {}
-    rows = db.execute(select(SourceSite.domain, SourceSite.rank, Source.term)
-                      .join(Source, Source.id == SourceSite.source_id).where(SourceSite.domain.in_(domains)))
-    for domain, rank, term in rows:
-        if domain not in best or rank < best[domain][0]:
-            ranking, _ = parse_site_term(term)
-            best[domain] = (rank, SITE_RANKINGS.get(ranking, ranking))
-    found: dict[str, tuple[int, str]] = {}
-    for key, candidates in wanted.items():
-        hits = [best[d] for d in candidates if d in best]
-        if hits:
-            found[key] = min(hits)
-    return found
 
 
 def _creative_rank(creative: Creative) -> float:
@@ -155,7 +122,7 @@ def list_offers(
     collection_id: int | None = None,
     min_advertisers: int | None = Query(None, ge=0),
     min_ads: int | None = Query(None, ge=0),
-    multi_platform: bool = Query(False, description="Só ofertas que também aparecem no TikTok, no YouTube ou num ranking de sites"),
+    multi_platform: bool = Query(False, description="Só ofertas que também aparecem no TikTok ou no YouTube"),
     active_only: bool = True,
     include_brands: bool = Query(False, description="Inclui páginas de marcas grandes, que afiliados não promovem"),
     scope: Literal["mine", "all"] = Query("mine", description="mine = só anúncios das buscas do usuário"),
@@ -214,13 +181,10 @@ def list_offers(
     today = date.today()
     offers = [_build_offer(key, ads, today) for key, ads in groups.items()]
     videos, tiktok = _cross_platform_counts(db, list(groups))
-    site_ranks = _site_ranks(db, offers)
     for offer in offers:
         offer.videos = videos.get(offer.key, 0)
         offer.tiktok_ads = tiktok.get(offer.key, 0)
-        if offer.key in site_ranks:
-            offer.site_rank, offer.site_ranking = site_ranks[offer.key]
-        offer.platforms = 1 + (offer.videos > 0) + (offer.tiktok_ads > 0) + (offer.site_rank is not None)
+        offer.platforms = 1 + (offer.videos > 0) + (offer.tiktok_ads > 0)
         if offer.platforms > 1:
             offer.score = round(offer.score + PLATFORM_BONUS * (offer.platforms - 1), 4)
     if multi_platform:

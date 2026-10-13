@@ -56,7 +56,7 @@ const DEFAULT_BY_SOURCE = {
 
 const UNIT: Partial<Record<Search["source"], string>> = { youtube: "vídeos", tiktok: "anúncios", sites: "sites", trends: "palavras" };
 const KIND_LABEL: Partial<Record<Search["source"], string>> = {
-  youtube: "YouTube", tiktok: "TikTok Ads", sites: "Sites (Cloudflare)", trends: "Google · em alta",
+  youtube: "YouTube", tiktok: "TikTok Ads", sites: "Sites mais acessados", trends: "Google · em alta",
 };
 
 function creativesHref(search: Search) {
@@ -257,7 +257,7 @@ export function SearchManager() {
             <div className="col-span-2 md:col-span-1">
               <label className="label" htmlFor="page">Link ou ID da página</label>
               <input id="page" className="field" value={form.page} onChange={set("page")} required
-                placeholder="Link da Biblioteca ou ID" />
+                placeholder="Link da Biblioteca de Anúncios ou ID da página" />
             </div>
           )}
           <div>
@@ -322,9 +322,9 @@ export function SearchManager() {
           <div hidden={trends}>
             <label className="label" htmlFor="max">{youtube ? "Máx. vídeos" : sites ? "Máx. sites" : "Máx. anúncios"}</label>
             <input id="max" type="number" min={10} max={MAX_BY_SOURCE[form.source]} step={10} className="field" value={form.max_ads}
-              onChange={set("max_ads")} title={youtube ? "Os mais vistos dos últimos 30 dias. Cada 50 vídeos gastam 100 da cota diária de 10 mil da API do YouTube."
+              onChange={set("max_ads")} title={youtube ? "Os mais vistos dos últimos 30 dias. O YouTube limita quantos vídeos dá para buscar por dia, então prefira poucos."
                 : tiktok ? "Metade pelos melhores CTRs do nicho, metade pelos mais curtidos, nos últimos 180 dias."
-                : sites ? "O Cloudflare Radar entrega no máximo os 100 primeiros de cada ranking." : undefined} />
+                : sites ? "Vêm no máximo os 100 primeiros de cada lista." : undefined} />
           </div>
           {trends ? (
             <div>
@@ -413,7 +413,7 @@ export function SearchManager() {
                       {status ? (
                         <button type="button" onClick={() => setOpenLog(openLog === s.id ? null : s.id)}
                           aria-expanded={openLog === s.id}
-                          className={`inline-flex min-h-6 items-center gap-1.5 whitespace-nowrap rounded px-2 py-1 text-xs font-medium pointer-coarse:min-h-11 ${status.className}`} title="Ver log">
+                          className={`inline-flex min-h-6 items-center gap-1.5 whitespace-nowrap rounded px-2 py-1 text-xs font-medium pointer-coarse:min-h-11 ${status.className}`} title="Ver detalhes da coleta">
                           {status.label}
                           {run?.status === "running" && <span aria-hidden="true" className="size-1.5 rounded-full bg-current motion-safe:animate-pulse" />}
                         </button>
@@ -477,7 +477,7 @@ export function SearchManager() {
                       <td colSpan={6} className="block bg-surface px-4 py-3 lg:table-cell">
                         {run.error && <p className="mb-2 text-sm text-danger">{run.error}</p>}
                         <pre className="max-h-64 overflow-auto whitespace-pre-wrap font-mono text-xs leading-relaxed text-muted">
-                          {run.log || "Sem log ainda."}
+                          {run.log || "Sem detalhes ainda."}
                         </pre>
                       </td>
                     </tr>

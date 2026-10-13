@@ -122,10 +122,7 @@ export type Offer = {
   videos: number;
   /** TikTok Creative Center top ads landing on this offer. */
   tiktok_ads: number;
-  /** Best position of the offer's site in a collected sites ranking, and that ranking's label. */
-  site_rank: number | null;
-  site_ranking: string | null;
-  /** Meta plus TikTok, YouTube and/or a sites ranking when the offer shows up there too. */
+  /** Meta plus TikTok and/or YouTube when the offer shows up there too. */
   platforms: number;
 };
 
