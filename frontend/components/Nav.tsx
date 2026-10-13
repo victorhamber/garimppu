@@ -73,6 +73,13 @@ export function Nav() {
   const mining = isActive("/buscas");
   const source = SOURCES.find((s) => isActive(s.href));
   const running = useMining(!!user);
+  const [seenRunning, setSeenRunning] = useState(running);
+  const [finished, setFinished] = useState(false);
+  if (running !== seenRunning) {
+    setSeenRunning(running);
+    setFinished(seenRunning > 0 && running === 0);
+  }
+  if (finished && mining) setFinished(false);
 
   return (
     <>
@@ -94,6 +101,15 @@ export function Nav() {
                       className="inline-flex min-h-6 items-center gap-1.5 rounded bg-accent/15 px-2 py-1 text-xs font-medium whitespace-nowrap text-accent transition-colors hover:bg-accent/25 pointer-coarse:min-h-11">
                       <span aria-hidden="true" className="size-1.5 rounded-full bg-current motion-safe:animate-pulse" />
                       Coletando{running > 1 && <span className="font-mono tabular-nums">{running}</span>}
+                    </Link>
+                  )}
+                  {finished && (
+                    <Link href="/buscas" title="A coleta terminou. Ver em Minerar" onClick={() => setFinished(false)}
+                      className="inline-flex min-h-6 items-center gap-1.5 rounded bg-ok/15 px-2 py-1 text-xs font-medium whitespace-nowrap text-ok transition-colors hover:bg-ok/25 pointer-coarse:min-h-11">
+                      <svg viewBox="0 0 24 24" className="size-3" fill="none" stroke="currentColor" strokeWidth={3} aria-hidden="true">
+                        <path d="M5 12.5 10 17 19 7" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Pronto
                     </Link>
                   )}
                 </div>

@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useState } from "react";
 import { api, formatDate } from "@/lib/api";
 import { useCollections } from "@/lib/hooks";
+import { ErrorState } from "./ErrorState";
 
 export function CollectionsView() {
   const { collections, reload } = useCollections();
   const [name, setName] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ action: string; message: string } | null>(null);
+  const [removing, setRemoving] = useState<number | null>(null);
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
@@ -19,14 +21,22 @@ export function CollectionsView() {
       setError(null);
       reload();
     } catch (err) {
-      setError((err as Error).message);
+      setError({ action: "criar a coleção", message: (err as Error).message });
     }
   }
 
   async function remove(id: number, collectionName: string) {
     if (!confirm(`Excluir a coleção "${collectionName}"?`)) return;
-    await api(`/api/collections/${id}`, { method: "DELETE" });
-    reload();
+    setError(null);
+    setRemoving(id);
+    try {
+      await api(`/api/collections/${id}`, { method: "DELETE" });
+    } catch (err) {
+      setError({ action: `excluir "${collectionName}"`, message: (err as Error).message });
+    } finally {
+      setRemoving(null);
+      reload();
+    }
   }
 
   return (
@@ -40,7 +50,7 @@ export function CollectionsView() {
         <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da nova coleção" />
         <button type="submit" className="btn btn-primary shrink-0">Criar</button>
       </form>
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <ErrorState action={error.action} error={error.message} compact />}
 
       <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
         {collections.map((c) => (
@@ -51,8 +61,9 @@ export function CollectionsView() {
                 {c.items_count} criativos{c.refs_count > 0 && ` · ${c.refs_count} de outras fontes`} · criada em {formatDate(c.created_at)}</p>
             </Link>
             {c.name !== "Favoritos" && (
-              <button type="button" onClick={() => remove(c.id, c.name)} className="btn btn-ghost h-8 text-xs text-muted hover:text-danger pointer-coarse:h-11">
-                Excluir
+              <button type="button" onClick={() => remove(c.id, c.name)} disabled={removing === c.id}
+                className="btn btn-ghost h-8 text-xs text-muted hover:text-danger pointer-coarse:h-11">
+                {removing === c.id ? "Excluindo..." : "Excluir"}
               </button>
             )}
           </div>

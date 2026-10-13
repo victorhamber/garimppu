@@ -86,6 +86,36 @@ function nextManualRun(search: Search, now: number): number | null {
   return next > now ? next : null;
 }
 
+function waitText(next: number, now: number) {
+  const minutes = Math.ceil((next - now) / 60_000);
+  return minutes < 60 ? `${minutes} min` : `${Math.ceil(minutes / 60)} h`;
+}
+
+const skeletonBlock = "rounded bg-surface-2 motion-safe:animate-pulse";
+
+/** Follows the search just created until its first collection ends. */
+function CreatedNote({ search }: { search: Search }) {
+  const run = search.latest_run;
+  const name = <span className="text-foreground">{search.term || KIND_LABEL[search.source]}</span>;
+  if (run?.status === "done") {
+    return (
+      <p>
+        Busca {name} pronta:{" "}
+        <Link href={creativesHref(search)} className="text-foreground underline underline-offset-2 hover:text-accent">
+          <span className="font-mono tabular-nums">{search.creatives_count}</span> {UNIT[search.source] ?? "criativos"}
+        </Link>
+      </p>
+    );
+  }
+  if (run?.status === "error") return <p>Busca {name} criada, mas a coleta falhou. Clique em Erro na lista para ver o motivo.</p>;
+  return (
+    <p className="flex items-center gap-2">
+      <span aria-hidden="true" className="size-1.5 rounded-full bg-accent motion-safe:animate-pulse" />
+      <span>Busca {name} criada, coletando…</span>
+    </p>
+  );
+}
+
 export function SearchManager() {
   const [searches, setSearches] = useState<Search[]>([]);
   const [now, setNow] = useState(0);
@@ -93,6 +123,8 @@ export function SearchManager() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<{ action: string; message: string } | null>(null);
   const [notice, setNotice] = useState<Search | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [createdId, setCreatedId] = useState<number | null>(null);
   const [openLog, setOpenLog] = useState<number | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const { niches, label } = useNiches();
@@ -106,6 +138,7 @@ export function SearchManager() {
     api<Search[]>("/api/searches")
       .then((data) => {
         setSearches(data);
+        setLoaded(true);
         setNow(Date.now());
         setError((e) => (e?.action === LOAD_ACTION ? null : e));
       })
@@ -121,6 +154,17 @@ export function SearchManager() {
     return () => clearInterval(timer);
   }, [busy, load]);
 
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const fresh = searches.find((s) => s.id === createdId);
+  const createdListed = !!fresh;
+  useEffect(() => {
+    if (createdId != null && createdListed) document.getElementById(`busca-${createdId}`)?.scrollIntoView({ block: "nearest" });
+  }, [createdId, createdListed]);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const youtube = form.source === "youtube";
@@ -132,6 +176,7 @@ export function SearchManager() {
     setSubmitting(true);
     setError(null);
     setNotice(null);
+    setCreatedId(null);
     try {
       const created = await api<Search>("/api/searches", {
         method: "POST",
@@ -151,6 +196,7 @@ export function SearchManager() {
         }),
       });
       if (created.reused) setNotice(created);
+      else setCreatedId(created.id);
       setForm({ ...EMPTY_FORM, source: form.source, mode: form.mode, country: form.country, refresh_hours: form.refresh_hours,
         max_ads: DEFAULT_BY_SOURCE[form.source] });
       load();
@@ -343,20 +389,19 @@ export function SearchManager() {
             </div>
           )}
         </div>
-        {notice && !error && (
-          <div className="flex items-center gap-3">
-            {notice && (
-              <p role="status" className="text-sm text-muted">
-                <span className="text-foreground">{notice.term}</span> já era monitorada desde{" "}
-                {formatDate(notice.monitored_since)}:{" "}
-                <Link href={creativesHref(notice)} className="text-foreground underline underline-offset-2 hover:text-accent">
-                  <span className="font-mono tabular-nums">{notice.creatives_count}</span>{" "}
-                  {UNIT[notice.source] ?? "criativos"} já {notice.source === "trends" ? "coletadas" : "coletados"}
-                </Link>
-              </p>
-            )}
+        <div role="status" className="text-sm text-muted empty:hidden">
+          {notice && !error && (
+            <p>
+              <span className="text-foreground">{notice.term}</span> já era monitorada desde{" "}
+              {formatDate(notice.monitored_since)}:{" "}
+              <Link href={creativesHref(notice)} className="text-foreground underline underline-offset-2 hover:text-accent">
+                <span className="font-mono tabular-nums">{notice.creatives_count}</span>{" "}
+                {UNIT[notice.source] ?? "criativos"} já {notice.source === "trends" ? "coletadas" : "coletados"}
+              </Link>
+            </p>
+          )}
+          {fresh && <CreatedNote search={fresh} />}
         </div>
-        )}
       </form>
 
       {error && (
@@ -366,6 +411,7 @@ export function SearchManager() {
 
       {/* Below 1024px each search is a two-column card; the same markup becomes the table from lg up. */}
       <section className="rounded-lg border border-line">
+        {!loaded && !error && <p role="status" className="sr-only">Carregando suas buscas...</p>}
         <table className="block w-full text-sm lg:table">
           <thead className="hidden bg-surface text-left text-xs uppercase tracking-wider text-muted lg:table-header-group">
             <tr>
@@ -378,7 +424,21 @@ export function SearchManager() {
             </tr>
           </thead>
           <tbody className="block divide-y divide-line lg:table-row-group">
-            {searches.length === 0 && (
+            {!loaded && error?.action !== LOAD_ACTION && [0, 1, 2].map((i) => (
+              <tr key={i} aria-hidden="true" className="block lg:table-row">
+                <td colSpan={6} className="block p-4 lg:table-cell">
+                  <div className="flex items-center gap-4">
+                    <div className="flex min-w-0 flex-1 flex-col gap-2">
+                      <div className={`h-4 w-1/3 ${skeletonBlock}`} />
+                      <div className={`h-3 w-1/2 ${skeletonBlock}`} />
+                    </div>
+                    <div className={`hidden h-6 w-20 sm:block ${skeletonBlock}`} />
+                    <div className={`hidden h-8 w-40 lg:block ${skeletonBlock}`} />
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {loaded && searches.length === 0 && (
               <tr className="block lg:table-row">
                 <td colSpan={6} className="block px-4 py-10 text-center text-muted lg:table-cell">Nenhuma busca criada ainda.</td>
               </tr>
@@ -393,7 +453,8 @@ export function SearchManager() {
               const unit = UNIT[s.source] ?? "anúncios";
               return (
                 <Fragment key={s.id}>
-                  <tr className="grid grid-cols-2 gap-x-4 gap-y-3 p-4 align-top sm:grid-cols-4 lg:table-row lg:p-0">
+                  <tr id={`busca-${s.id}`} className={`grid grid-cols-2 gap-x-4 gap-y-3 p-4 align-top transition-colors duration-500 sm:grid-cols-4 lg:table-row lg:p-0 ${
+                    s.id === createdId ? "bg-accent/10" : ""}`}>
                     <td className="col-span-2 sm:col-span-4 lg:px-4 lg:py-3">
                       <div className="font-medium">
                         {s.page_id ? (
@@ -457,8 +518,9 @@ export function SearchManager() {
                       <div className="flex flex-wrap gap-1 lg:flex-nowrap lg:justify-end">
                         <Link href={creativesHref(s)} className="btn h-8 text-xs pointer-coarse:h-11">{`Ver ${UNIT[s.source] ?? "criativos"}`}</Link>
                         {nextRun ? (
-                          <span title={`Coletada ${s.source === "trends" ? "na última hora" : "nas últimas 24h"}. Nova coleta liberada em ${formatDateTime(new Date(nextRun).toISOString())}`}>
-                            <button type="button" className="btn h-8 text-xs pointer-coarse:h-11" disabled>Coletada</button>
+                          <span className="inline-flex h-8 items-center px-2 text-xs whitespace-nowrap text-muted pointer-coarse:h-11"
+                            title={`Coletada ${s.source === "trends" ? "na última hora" : "nas últimas 24h"}. Liberada em ${formatDateTime(new Date(nextRun).toISOString())}`}>
+                            Nova coleta em {waitText(nextRun, now)}
                           </span>
                         ) : (
                           <button type="button" className="btn h-8 text-xs pointer-coarse:h-11" onClick={() => runNow(s)}
