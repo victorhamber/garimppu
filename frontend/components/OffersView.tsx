@@ -261,6 +261,11 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
           {offer.advertisers > offer.top_advertisers.length && (
             <span>+{offer.advertisers - offer.top_advertisers.length} anunciantes</span>
           )}
+          {offer.videos > 0 && (
+            <Link href={`/videos?offer=${encodeURIComponent(offer.key)}`} className="text-accent hover:underline">
+              {offer.videos} {offer.videos === 1 ? "vídeo" : "vídeos"} no YouTube
+            </Link>
+          )}
         </div>
       </div>
 

@@ -2,6 +2,7 @@ from datetime import date, datetime, timezone
 
 from sqlalchemy import (
     JSON,
+    BigInteger,
     Boolean,
     Date,
     DateTime,
@@ -113,7 +114,7 @@ class Source(Base):
     country: Mapped[str] = mapped_column(String(8), default="BR")
     language: Mapped[str | None] = mapped_column(String(8))
     media_type: Mapped[str] = mapped_column(String(16), default="all")  # all | image | video
-    collector: Mapped[str] = mapped_column(String(16), default="hybrid")  # scraper | api | hybrid
+    collector: Mapped[str] = mapped_column(String(16), default="hybrid")  # scraper | api | hybrid | youtube
     # Derived from the active searches: largest max_ads, most frequent refresh (see pipeline.sources).
     max_ads: Mapped[int] = mapped_column(Integer, default=300)
     refresh_hours: Mapped[int | None] = mapped_column(Integer)
@@ -275,6 +276,65 @@ class CreativeScore(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
     creative: Mapped[Creative] = relationship(back_populates="score")
+
+
+class Video(Base):
+    """An organic video found by a YouTube source; counters are the latest collected values."""
+
+    __tablename__ = "videos"
+
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)  # "<platform>:<external id>"
+    platform: Mapped[str] = mapped_column(String(16), index=True)  # youtube
+    external_id: Mapped[str] = mapped_column(String(64))
+    channel_id: Mapped[str | None] = mapped_column(String(64), index=True)
+    channel_title: Mapped[str | None] = mapped_column(String(255))
+    channel_subscribers: Mapped[int | None] = mapped_column(BigInteger)
+    title: Mapped[str | None] = mapped_column(Text)
+    description: Mapped[str | None] = mapped_column(Text)
+    thumbnail_url: Mapped[str | None] = mapped_column(Text)
+    duration_s: Mapped[int | None] = mapped_column(Integer)
+    is_short: Mapped[bool] = mapped_column(Boolean, default=False)
+    published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    views: Mapped[int] = mapped_column(BigInteger, default=0)
+    likes: Mapped[int | None] = mapped_column(BigInteger)
+    comments: Mapped[int | None] = mapped_column(BigInteger)
+    # Most commercial link in the description (checkout > store > app), classified like ad destinations.
+    link_url: Mapped[str | None] = mapped_column(Text)
+    offer_key: Mapped[str | None] = mapped_column(String(255), index=True)
+    offer_kind: Mapped[str | None] = mapped_column(String(16))
+    offer_platform: Mapped[str | None] = mapped_column(String(32))
+    # Qualification (see pipeline.video_score).
+    score: Mapped[float] = mapped_column(Float, default=0, index=True)
+    velocity: Mapped[float] = mapped_column(Float, default=0)  # views per day since publication
+    outlier: Mapped[float | None] = mapped_column(Float)  # views / channel subscribers
+    engagement: Mapped[float | None] = mapped_column(Float)  # (likes + 2*comments) / views
+    acceleration: Mapped[float | None] = mapped_column(Float)  # recent views/day over lifetime views/day
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    snapshots: Mapped[list["VideoSnapshot"]] = relationship(
+        back_populates="video", cascade="all, delete-orphan", order_by="VideoSnapshot.taken_on"
+    )
+
+
+class VideoSnapshot(Base):
+    __tablename__ = "video_snapshots"
+    __table_args__ = (UniqueConstraint("video_id", "taken_on"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    video_id: Mapped[str] = mapped_column(ForeignKey("videos.id", ondelete="CASCADE"), index=True)
+    taken_on: Mapped[date] = mapped_column(Date)
+    taken_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    views: Mapped[int] = mapped_column(BigInteger)
+
+    video: Mapped[Video] = relationship(back_populates="snapshots")
+
+
+class SourceVideo(Base):
+    __tablename__ = "source_videos"
+
+    source_id: Mapped[int] = mapped_column(ForeignKey("sources.id", ondelete="CASCADE"), primary_key=True)
+    video_id: Mapped[str] = mapped_column(ForeignKey("videos.id", ondelete="CASCADE"), primary_key=True, index=True)
 
 
 class Collection(Base):

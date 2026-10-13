@@ -92,6 +92,22 @@ score_oferta = 2.5*log(anunciantes) + log(1+anúncios) + 0.5*log(1+criativos) + 
 Várias páginas na mesma oferta pesa mais: afiliados e revendedores só entram em massa no que converte.
 As regras ficam em `backend/app/pipeline/offers.py`; depois de alterá-las rode `python -m app.reclassify_offers`.
 
+## Vídeos (YouTube)
+
+Em **Minerar**, *Buscar por: YouTube* coleta pela YouTube Data API v3 (precisa de `YOUTUBE_API_KEY`) os vídeos
+orgânicos mais vistos dos últimos 30 dias para o termo, país e idioma. A aba **Vídeos** ordena por:
+
+```
+score_video = log10(1 + views/dia)
+            + log10(1 + views/inscritos do canal)        # vídeo fora da curva para o tamanho do canal
+            + 0.5*min(engajamento/5%, 1.5)               # engajamento = (curtidas + 2*comentários)/views
+            + bônus de aceleração (views/dia recentes ÷ média, entre -0.5 e +1)
+```
+
+A aceleração aparece a partir da segunda coleta (snapshot diário de views). O link de checkout/loja/app mais
+comercial da descrição é classificado como oferta, igual aos anúncios, e a oferta mostra quantos vídeos a citam.
+Código: `backend/app/collectors/youtube.py`, `backend/app/pipeline/video_score.py` e `video_ingest.py`.
+
 ## Recoleta e crescimento
 
 Buscas com recoleta automática são reexecutadas pelo agendador (a cada 15 min ele verifica o que está vencido). Toda coleta grava um snapshot diário por criativo, que alimenta o crescimento de 7 dias. Diariamente às 03:00 UTC todos os scores são recalculados.

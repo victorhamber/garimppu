@@ -17,8 +17,11 @@ def normalize_term(term: str) -> str:
     return re.sub(r"\s+", " ", term.translate(_QUOTES)).strip().casefold()
 
 
-def source_key(*, term: str, page_id: str | None, country: str, language: str | None, media_type: str) -> str:
+def source_key(*, term: str, page_id: str | None, country: str, language: str | None, media_type: str,
+               collector: str = "hybrid") -> str:
     scope = f"{country.upper()}:{(language or '*').lower()}:{media_type}"
+    if collector == "youtube":
+        return f"yt:{country.upper()}:{(language or '*').lower()}:{normalize_term(term)}"
     if page_id:
         return f"page:{scope}:{page_id}"
     return f"kw:{scope}:{normalize_term(term)}"
@@ -26,7 +29,8 @@ def source_key(*, term: str, page_id: str | None, country: str, language: str | 
 
 def find_or_create_source(db: Session, *, term: str, page_id: str | None, country: str,
                           language: str | None, media_type: str, collector: str) -> tuple[Source, bool]:
-    key = source_key(term=term, page_id=page_id, country=country, language=language, media_type=media_type)
+    key = source_key(term=term, page_id=page_id, country=country, language=language, media_type=media_type,
+                     collector=collector)
     source = db.scalar(select(Source).where(Source.key == key))
     if source is not None:
         return source, False

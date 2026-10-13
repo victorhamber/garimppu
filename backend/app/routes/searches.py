@@ -5,9 +5,10 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.auth import current_user
+from app.config import get_settings
 from app.db import get_db
 from app.jobs import enqueue_source
-from app.models import AdCreative, Page, Run, Search, SourceAd, User
+from app.models import AdCreative, Page, Run, Search, SourceAd, SourceVideo, User
 from app.pipeline.niche import NICHES
 from app.pipeline.sources import find_or_create_source, is_fresh, sync_source
 from app.schemas import RunOut, SearchCreate, SearchOut, SearchUpdate
@@ -18,11 +19,14 @@ router = APIRouter(prefix="/api", tags=["searches"])
 def _search_out(db: Session, search: Search, reused: bool = False) -> SearchOut:
     source = search.source
     latest = db.scalar(select(Run).where(Run.source_id == source.id).order_by(Run.id.desc()).limit(1))
-    creatives = db.scalar(
-        select(func.count(func.distinct(AdCreative.creative_id)))
-        .join(SourceAd, SourceAd.ad_archive_id == AdCreative.ad_archive_id)
-        .where(SourceAd.source_id == source.id)
-    )
+    if source.collector == "youtube":
+        creatives = db.scalar(select(func.count()).select_from(SourceVideo).where(SourceVideo.source_id == source.id))
+    else:
+        creatives = db.scalar(
+            select(func.count(func.distinct(AdCreative.creative_id)))
+            .join(SourceAd, SourceAd.ad_archive_id == AdCreative.ad_archive_id)
+            .where(SourceAd.source_id == source.id)
+        )
     return SearchOut(
         id=search.id,
         term=search.term,
@@ -75,6 +79,13 @@ def create_search(payload: SearchCreate, db: Session = Depends(get_db), user: Us
     _check_niche(payload.niche)
     term = " ".join(payload.term.split())
     page_id = None
+    if payload.source == "youtube":
+        if not get_settings().youtube_api_key:
+            raise HTTPException(503, "Busca no YouTube desativada: falta configurar YOUTUBE_API_KEY no servidor.")
+        if not term:
+            raise HTTPException(422, "Informe um tema ou palavra-chave para buscar no YouTube.")
+        payload.page = None
+        payload.media_type = "video"
     if payload.page and payload.page.strip():
         page_id = parse_page_id(payload.page)
         if page_id is None:

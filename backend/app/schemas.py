@@ -15,7 +15,7 @@ class SearchCreate(BaseModel):
     language: str | None = Field(default=None, max_length=8)
     media_type: Literal["all", "image", "video"] = "all"
     niche: str | None = None
-    source: Literal["scraper", "api", "hybrid"] = "hybrid"
+    source: Literal["scraper", "api", "hybrid", "youtube"] = "hybrid"
     max_ads: int = Field(default=300, ge=10, le=3000)
     refresh_hours: int | None = Field(default=None, ge=24, le=720)
     run_now: bool = True
@@ -185,6 +185,43 @@ class OfferOut(BaseModel):
     top_advertisers: list[OfferAdvertiser]
     previews: list[OfferPreview]
     collection_ids: list[int] = []
+    videos: int = 0
+
+
+class VideoOut(ORM):
+    id: str
+    platform: str
+    external_id: str
+    url: str
+    title: str | None
+    channel_id: str | None
+    channel_title: str | None
+    channel_subscribers: int | None
+    thumbnail_url: str | None
+    duration_s: int | None
+    is_short: bool
+    published_at: datetime
+    views: int
+    likes: int | None
+    comments: int | None
+    link_url: str | None
+    offer_key: str | None
+    offer_label: str | None = None
+    offer_kind: str | None
+    offer_platform: str | None
+    score: float
+    velocity: float
+    outlier: float | None
+    engagement: float | None
+    acceleration: float | None
+    first_seen_at: datetime
+
+
+class VideoPage(BaseModel):
+    total: int
+    items: list[VideoOut]
+    heat: ScoreHeat = ScoreHeat()
+    enabled: bool = True
 
 
 class OfferPage(BaseModel):

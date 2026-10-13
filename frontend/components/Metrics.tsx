@@ -48,10 +48,14 @@ export function MetricRow({ score, heat, hasHistory }: { score: Score | null; he
 }
 
 /** Always-visible reading key for the score badge; the badge itself carries no words. */
-export function ScoreLegend({ kind = "creative" }: { kind?: "creative" | "offer" }) {
-  const formula = kind === "offer"
-    ? "Score de oferta: soma anunciantes (peso maior), anúncios, criativos e tempo no ar."
-    : "Score de escala: soma anúncios ativos, dias no ar, plataformas, crescimento e tamanho do anunciante.";
+const FORMULAS = {
+  creative: "Score de escala: soma anúncios ativos, dias no ar, plataformas, crescimento e tamanho do anunciante.",
+  offer: "Score de oferta: soma anunciantes (peso maior), anúncios, criativos e tempo no ar.",
+  video: "Score de vídeo: soma visualizações por dia, quanto superou o tamanho do canal, engajamento e aceleração.",
+};
+
+export function ScoreLegend({ kind = "creative" }: { kind?: keyof typeof FORMULAS }) {
+  const formula = FORMULAS[kind];
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
       <span>{formula}</span>

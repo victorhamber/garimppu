@@ -10,13 +10,13 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.auth import current_user
 from app.config import get_settings
 from app.db import get_db
-from app.models import Ad, CollectionOffer, Creative, Page, SourceAd, User
+from app.models import Ad, CollectionOffer, Creative, Page, SourceAd, User, Video
 from app.pipeline.heat import HOT_SHARE, WARM_SHARE, rank_cutoff
 from app.pipeline.offers import offer_label
 from app.pipeline.scoring import MAX_LONGEVITY_DAYS, count_duplicates, days_running
@@ -181,5 +181,10 @@ def list_offers(
     )
     for offer_key, cid in saved:
         by_key[offer_key].collection_ids.append(cid)
+    video_counts = db.execute(
+        select(Video.offer_key, func.count()).where(Video.offer_key.in_(by_key)).group_by(Video.offer_key)
+    )
+    for offer_key, count in video_counts:
+        by_key[offer_key].videos = count
     return OfferPage(total=len(offers), items=page, platforms=platforms, heat=heat,
                      hidden_brands=len(brand_keys - groups.keys()))

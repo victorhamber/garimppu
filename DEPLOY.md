@@ -52,6 +52,7 @@ Não precisa criar tabelas: a API cria e atualiza tudo sozinha ao iniciar.
    Opcional: `META_ACCESS_TOKEN=` (token da API da Biblioteca de Anúncios).
    Opcional: `ADMIN_EMAIL=` e `ADMIN_PASSWORD=`. A cada início, a API garante essa conta de administrador
    com essa senha. Para trocar a senha, mude a variável e clique em **Deploy**.
+   Opcional: `YOUTUBE_API_KEY=` para a aba **Vídeos** (veja [YouTube](#youtube)).
 5. **Mounts → Add Volume**: nome `garimppu-media`, **Mount Path** `/app/data`.
    Sem esse volume, as imagens dos anúncios somem a cada deploy.
 6. **Domains**: `api.garimppu.com`, porta **8000**, HTTPS ligado.
@@ -119,6 +120,19 @@ Entre como administrador e abra **Licenças** (menu da conta, canto superior dir
 2. **Webhook de compra**: clique em **Gerar URL do webhook**, preencha os códigos do produto e os dias de acesso,
    e cadastre a URL na Hotmart, Kiwify ou Cakto (o passo a passo está na própria tela).
 3. Use o botão de teste da plataforma e confira o evento em **Últimas notificações recebidas**.
+
+## YouTube
+
+A aba **Vídeos** usa a API oficial do YouTube (grátis, 10.000 unidades de cota por dia).
+
+1. Em [console.cloud.google.com](https://console.cloud.google.com), crie um projeto (ou use um existente).
+2. **APIs e serviços → Biblioteca**: procure **YouTube Data API v3** e clique em **Ativar**.
+3. **APIs e serviços → Credenciais → Criar credenciais → Chave de API**. Copie a chave.
+   Recomendado: em **Restrições de API**, deixe a chave liberada só para a YouTube Data API v3.
+4. No EasyPanel, serviço `garimppu-api` → **Environment**: `YOUTUBE_API_KEY=<a chave>` → **Deploy**.
+
+Cada coleta de 100 vídeos gasta cerca de 200 unidades, então dá para ~50 coletas por dia somando todos os clientes.
+Se a cota acabar, a coleta mostra o aviso e volta a funcionar quando o Google zera a cota (4h ou 5h em Brasília).
 
 ## Atualizações
 

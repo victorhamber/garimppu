@@ -10,6 +10,7 @@ from sqlalchemy import select
 from app.collectors.base import RawAd, SearchQuery
 from app.collectors.library_scraper import scrape_library
 from app.collectors.official_api import OfficialApiError, fetch_official
+from app.collectors.youtube import YouTubeError, collect_videos
 from app.config import get_settings
 from app.db import SessionLocal
 from app.models import Creative, Run
@@ -17,6 +18,7 @@ from app.pipeline.ingest import ingest_ads
 from app.pipeline.normalize import merge_sources
 from app.pipeline.scoring import recompute_scores
 from app.pipeline.sources import last_good_run
+from app.pipeline.video_ingest import ingest_videos, rescore_videos
 
 logger = logging.getLogger(__name__)
 MAX_LOG_CHARS = 20_000
@@ -55,6 +57,11 @@ def run_source(run_id: int) -> None:
     db.commit()
 
     try:
+        if source.collector == "youtube":
+            run.ads_found, run.creatives_found = _collect_youtube(db, source, log)
+            run.status = "done"
+            log(f"Concluído: {run.ads_found} vídeos, {run.creatives_found} novos")
+            return
         query = SearchQuery(term=source.term, country=source.country, language=source.language,
                             media_type=source.media_type, max_ads=source.max_ads, page_id=source.page_id)
         scraped: list[RawAd] = []
@@ -102,7 +109,8 @@ def run_source(run_id: int) -> None:
         run.creatives_found = len(creative_ids)
         run.status = "done"
         log(f"Concluído: {ads_count} anúncios, {len(creative_ids)} criativos")
-    except EmptyCollection as exc:
+    except (EmptyCollection, YouTubeError) as exc:
+        db.rollback()
         log(str(exc))
         run.status = "error"
         run.error = str(exc)
@@ -118,6 +126,18 @@ def run_source(run_id: int) -> None:
         db.close()
 
 
+def _collect_youtube(db, source, log) -> tuple[int, int]:
+    settings = get_settings()
+    if not settings.youtube_api_key:
+        raise YouTubeError("YOUTUBE_API_KEY não configurada no servidor.")
+    videos, _ = collect_videos(
+        source.term, country=source.country, language=source.language,
+        max_results=min(source.max_ads, settings.youtube_max_results),
+        window_days=settings.youtube_window_days, api_key=settings.youtube_api_key, log=log,
+    )
+    return ingest_videos(db, source, videos, log)
+
+
 def rescore_all() -> int:
     """Daily refresh so longevity/growth stay current even for searches not re-run."""
     db = SessionLocal()
@@ -125,6 +145,6 @@ def rescore_all() -> int:
         ids = list(db.scalars(select(Creative.id)))
         count = recompute_scores(db, ids)
         db.commit()
-        return count
+        return count + rescore_videos(db)
     finally:
         db.close()

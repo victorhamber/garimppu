@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     meta_access_token: str | None = None
     meta_graph_version: str = "v21.0"
 
+    # YouTube Data API v3 key (Google Cloud). The free quota is 10,000 units/day; a search page costs 100.
+    youtube_api_key: str | None = None
+    youtube_window_days: int = 30  # only videos published this recently are collected
+    youtube_max_results: int = 150
+
     scraper_headless: bool = True
     scraper_min_delay: float = 1.5
     scraper_max_delay: float = 3.5

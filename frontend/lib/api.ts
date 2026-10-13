@@ -20,7 +20,7 @@ export type Search = {
   language: string | null;
   media_type: "all" | "image" | "video";
   niche: string | null;
-  source: "scraper" | "api" | "hybrid";
+  source: "scraper" | "api" | "hybrid" | "youtube";
   max_ads: number;
   refresh_hours: number | null;
   is_active: boolean;
@@ -118,7 +118,45 @@ export type Offer = {
   top_advertisers: { page_id: string; name: string | null; ads: number }[];
   previews: { creative_id: number; media_type: string; image: string | null; text: string | null }[];
   collection_ids: number[];
+  /** Organic videos (YouTube) whose description links to this offer. */
+  videos: number;
 };
+
+export type Video = {
+  id: string;
+  platform: "youtube";
+  external_id: string;
+  url: string;
+  title: string | null;
+  channel_id: string | null;
+  channel_title: string | null;
+  channel_subscribers: number | null;
+  thumbnail_url: string | null;
+  duration_s: number | null;
+  is_short: boolean;
+  published_at: string;
+  views: number;
+  likes: number | null;
+  comments: number | null;
+  link_url: string | null;
+  offer_key: string | null;
+  offer_label: string | null;
+  offer_kind: OfferKind | null;
+  offer_platform: string | null;
+  score: number;
+  /** Views per day since publication. */
+  velocity: number;
+  /** Views ÷ channel subscribers; null when the channel hides them. */
+  outlier: number | null;
+  /** (likes + 2×comments) ÷ views. */
+  engagement: number | null;
+  /** Recent views/day ÷ lifetime views/day; needs two collections a day apart. */
+  acceleration: number | null;
+  first_seen_at: string;
+};
+
+/** `enabled`: false while the server has no YOUTUBE_API_KEY. */
+export type VideoPage = { total: number; items: Video[]; heat: ScoreHeat; enabled: boolean };
 
 /** Cutoffs relative to the current result set; null when the set is too small to rank. */
 export type ScoreHeat = { hot: number | null; warm: number | null };
