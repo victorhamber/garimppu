@@ -323,6 +323,9 @@ Um rótulo de 4px a 12px em peso 500, com no mínimo 24px de altura, fundo da co
 ### Indicador "Coletando" (navegação)
 Enquanto alguma busca do usuário está na fila ou coletando, o cabeçalho mostra, antes de Minerar, o Status Pill âmbar "Coletando" (com a contagem quando são várias) e o ponto que pulsa só sem reduced-motion. Leva a Minerar. Consulta a cada 5s enquanto há coleta e a cada 60s sem coleta, pausa em aba oculta e reconsulta na hora quando uma busca é criada ou executada. Aparece também no celular, ao lado do avatar. Quando a última coleta termina, vira "Pronto" (Vein Green, com um check desenhado) e fica até o usuário abrir Minerar.
 
+### Excluir com desfazer
+Nenhuma exclusão usa a caixa de confirmação do navegador. Buscas, coleções e licenças somem da lista na hora, e um aviso fixo embaixo (Ledge Slate, borda Seam Line, `role="status"`, acima da barra do celular) diz o que saiu e oferece "Desfazer" por 8 s; o foco vai para o botão. Só depois disso o pedido vai ao servidor. Uma segunda exclusão confirma a anterior na hora. Se o servidor recusar, o item volta e o `ErrorState` compacto diz por quê. Bloquear acesso e gerar nova senha continuam com confirmação, porque agem na hora.
+
 ### Retorno da mineração
 Ao criar uma busca, a linha de status do formulário diz "Busca X criada, coletando…" e acompanha a coleta até "Busca X pronta: N anúncios" (link para os resultados) ou o aviso de falha. A linha nova fica em Lantern Amber a 10% e rola para a vista. Uma busca coletada há menos de 24h (1h no Google Trends) mostra no lugar de Coletar o texto "Nova coleta em 14 h" (minutos abaixo de 1 h), atualizado a cada minuto. A tabela abre com 3 linhas de esqueleto e só diz "Nenhuma busca criada ainda." depois de carregar.
 

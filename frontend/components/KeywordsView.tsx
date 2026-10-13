@@ -10,7 +10,8 @@ import { ErrorState } from "./ErrorState";
 import { ListSkeleton } from "./Skeleton";
 import { ExportCsv } from "./ExportCsv";
 import { CheckToggle, FilterChips, FirstRunNote, FilterSelect, FilterToggle, MoreFilters, ScopeToggle, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
-import { CountrySelect } from "./CountrySelect";
+import { ConfirmMine } from "./ConfirmMine";
+import { COUNTRIES, CountrySelect } from "./CountrySelect";
 import { HEAT_HINT, ScoreBadge } from "./Metrics";
 
 const PAGE_SIZE = 50;
@@ -321,23 +322,16 @@ function KeywordSearch({ nicheLabel }: { nicheLabel: (id: string | null) => stri
 type KeywordActionsProps = { term: string; geo: string; metaAds: number | null; children?: ReactNode };
 
 function KeywordActions({ term: raw, geo, metaAds, children }: KeywordActionsProps) {
-  const [mining, setMining] = useState<"idle" | "busy" | "done" | "error">("idle");
-  const [mineError, setMineError] = useState<string | null>(null);
+  const [mined, setMined] = useState(false);
   const term = encodeURIComponent(raw);
+  const country = COUNTRIES.find((c) => c.id === geo)?.label ?? geo;
 
   async function mineMeta() {
-    setMining("busy");
-    setMineError(null);
-    try {
-      await api<Search>("/api/searches", {
-        method: "POST",
-        body: JSON.stringify({ term: raw, country: geo, source: "hybrid", refresh_hours: 24 }),
-      });
-      setMining("done");
-    } catch (e) {
-      setMining("error");
-      setMineError((e as Error).message);
-    }
+    await api<Search>("/api/searches", {
+      method: "POST",
+      body: JSON.stringify({ term: raw, country: geo, source: "hybrid", refresh_hours: 24 }),
+    });
+    setMined(true);
   }
 
   return (
@@ -356,16 +350,17 @@ function KeywordActions({ term: raw, geo, metaAds, children }: KeywordActionsPro
         Google
       </a>
       <Link href={`/criativos?q=${term}&scope=all`} className={LINK_CLASS} title="Criativos já coletados com o termo">Criativos</Link>
-      {mining === "done" ? (
+      {mined ? (
         <Link href="/buscas" className="rounded-full border border-ok/40 px-2 py-0.5 text-micro text-ok pointer-coarse:py-2">
           Busca criada no Meta
         </Link>
       ) : (
-        <button type="button" onClick={mineMeta} disabled={mining === "busy"}
-          className="rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent transition-colors hover:bg-accent/10 disabled:opacity-60 pointer-coarse:py-2"
-          title={mineError ?? "Cria uma busca de anúncios no Meta com este termo"}>
-          {mining === "busy" ? "Criando..." : mining === "error" ? "Erro, tentar de novo" : "Minerar no Meta"}
-        </button>
+        <ConfirmMine
+          label="Minerar no Meta"
+          consequence={`Cria a busca "${raw}" e coleta até 300 anúncios ativos em ${country} da Biblioteca de Anúncios da Meta. A coleta roda em segundo plano e leva alguns minutos; você acompanha em Minerar.`}
+          onConfirm={mineMeta}
+          openerClassName="rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent transition-colors hover:bg-accent/10 pointer-coarse:py-2"
+        />
       )}
       {children}
     </div>

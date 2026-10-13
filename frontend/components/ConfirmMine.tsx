@@ -11,10 +11,12 @@ type Props = {
   confirmLabel?: string;
   onConfirm: () => Promise<void>;
   className?: string;
+  /** Replaces the primary-button look of the opener, for rows where a full button is too loud. */
+  openerClassName?: string;
 };
 
 /** Mining scrapes Meta's Ad Library for minutes and counts against rate limits, so it is never one click. */
-export function ConfirmMine({ label, consequence, confirmLabel = "Minerar agora", onConfirm, className = "" }: Props) {
+export function ConfirmMine({ label, consequence, confirmLabel = "Minerar agora", onConfirm, className = "", openerClassName }: Props) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +47,7 @@ export function ConfirmMine({ label, consequence, confirmLabel = "Minerar agora"
 
   if (!confirming) {
     return (
-      <button ref={openerRef} type="button" className={`btn btn-primary ${className}`} onClick={() => setConfirming(true)}>
+      <button ref={openerRef} type="button" className={openerClassName ?? `btn btn-primary ${className}`} onClick={() => setConfirming(true)}>
         {label}
       </button>
     );

@@ -13,6 +13,7 @@ import {
   type LicenseStatus,
 } from "@/lib/api";
 import { useAuth } from "./AuthProvider";
+import { UndoToast, useUndoableDelete } from "./UndoToast";
 
 const STATUS: Record<LicenseStatus, { label: string; className: string }> = {
   ativa: { label: "Ativa", className: "bg-ok/15 text-ok" },
@@ -61,6 +62,8 @@ function Licenses({ selfId }: { selfId: number }) {
   const [error, setError] = useState<string | null>(null);
   const [issued, setIssued] = useState<AccessIssued | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const deletion = useUndoableDelete<number>();
+  const listed = users.filter((u) => !deletion.isHidden(u.id));
 
   const load = useCallback(() => {
     const params = new URLSearchParams();
@@ -110,8 +113,14 @@ function Licenses({ selfId }: { selfId: number }) {
   }
 
   function remove(u: AdminUser) {
-    if (!confirm(`Excluir a licença de ${u.email}? As buscas e coleções dele são apagadas; os anúncios coletados continuam na base.`)) return;
-    act(u.id, () => api(`/api/admin/users/${u.id}`, { method: "DELETE" }));
+    setError(null);
+    deletion.remove(u.id, `Licença de ${u.email} excluída, com as buscas e coleções dele. Os anúncios coletados continuam na base.`, () =>
+      api(`/api/admin/users/${u.id}`, { method: "DELETE" })
+        .catch((e: Error) => {
+          setError(e.message);
+          throw e;
+        })
+        .finally(load));
   }
 
   const counts = users.reduce<Record<string, number>>((acc, u) => ({ ...acc, [u.status]: (acc[u.status] ?? 0) + 1 }), {});
@@ -183,12 +192,12 @@ function Licenses({ selfId }: { selfId: number }) {
               </tr>
             </thead>
             <tbody className="block divide-y divide-line lg:table-row-group">
-              {users.length === 0 && (
+              {listed.length === 0 && (
                 <tr className="block lg:table-row">
                   <td colSpan={6} className="block px-4 py-10 text-center text-muted lg:table-cell">Nenhuma licença encontrada.</td>
                 </tr>
               )}
-              {users.map((u) => {
+              {listed.map((u) => {
                 const st = STATUS[u.status];
                 const self = u.id === selfId;
                 const busy = busyId === u.id;
@@ -276,6 +285,7 @@ function Licenses({ selfId }: { selfId: number }) {
           </ul>
         </section>
       )}
+      <UndoToast message={deletion.message} onUndo={deletion.undo} />
     </div>
   );
 }

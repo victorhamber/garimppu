@@ -6,6 +6,7 @@ import { api, formatDate, formatDateTime, type Run, type Search, type TikTokIndu
 import { useNiches } from "@/lib/hooks";
 import { CountrySelect } from "./CountrySelect";
 import { ErrorState } from "./ErrorState";
+import { UndoToast, useUndoableDelete } from "./UndoToast";
 
 const REFRESH_OPTIONS = [
   { value: "", label: "Manual" },
@@ -66,7 +67,7 @@ function creativesHref(search: Search) {
   if (search.source === "sites") return `/sites?${params}`;
   if (search.source === "trends") return `/palavras-chave?${params}`;
   if (search.niche) params.set("niche", search.niche);
-  return `/?${params}`;
+  return `/criativos?${params}`;
 }
 
 /** The source row is created a few ms before the search, so only a gap of minutes means it was already monitored. */
@@ -125,6 +126,7 @@ export function SearchManager() {
   const [notice, setNotice] = useState<Search | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [createdId, setCreatedId] = useState<number | null>(null);
+  const deletion = useUndoableDelete<number>();
   const [openLog, setOpenLog] = useState<number | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const { niches, label } = useNiches();
@@ -159,6 +161,7 @@ export function SearchManager() {
     return () => clearInterval(timer);
   }, []);
 
+  const visible = searches.filter((s) => !deletion.isHidden(s.id));
   const fresh = searches.find((s) => s.id === createdId);
   const createdListed = !!fresh;
   useEffect(() => {
@@ -228,9 +231,16 @@ export function SearchManager() {
     }));
 
   function remove(search: Search) {
-    const kept = `Os ${UNIT[search.source] ?? "criativos"} coletados`;
-    if (!confirm(`Excluir a busca "${search.term}"? ${kept} continuam salvos.`)) return;
-    attempt(`excluir "${search.term}"`, () => api(`/api/searches/${search.id}`, { method: "DELETE" }));
+    const name = search.term || KIND_LABEL[search.source];
+    setError(null);
+    if (createdId === search.id) setCreatedId(null);
+    deletion.remove(search.id, `Busca "${name}" excluída. Os ${UNIT[search.source] ?? "criativos"} coletados continuam salvos.`, () =>
+      api(`/api/searches/${search.id}`, { method: "DELETE" })
+        .catch((err: Error) => {
+          setError({ action: `excluir "${name}"`, message: err.message });
+          throw err;
+        })
+        .finally(load));
   }
 
   const set = (key: keyof typeof EMPTY_FORM) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -438,12 +448,12 @@ export function SearchManager() {
                 </td>
               </tr>
             ))}
-            {loaded && searches.length === 0 && (
+            {loaded && visible.length === 0 && (
               <tr className="block lg:table-row">
                 <td colSpan={6} className="block px-4 py-10 text-center text-muted lg:table-cell">Nenhuma busca criada ainda.</td>
               </tr>
             )}
-            {searches.map((s) => {
+            {visible.map((s) => {
               const run = s.latest_run;
               const nextRun = nextManualRun(s, now);
               const status = run ? STATUS[run.status] : null;
@@ -550,6 +560,7 @@ export function SearchManager() {
           </tbody>
         </table>
       </section>
+      <UndoToast message={deletion.message} onUndo={deletion.undo} />
     </div>
   );
 }
