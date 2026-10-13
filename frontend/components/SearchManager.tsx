@@ -199,30 +199,7 @@ export function SearchManager() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Minerar anúncios</h1>
-        <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted">
-          Cada busca coleta anúncios ativos da Biblioteca de Anúncios, agrupa criativos repetidos e calcula o score de
-          escala. Use aspas para frase exata (ex.: <span className="font-mono text-foreground">&quot;secar barriga&quot;</span>).
-          Buscas com recoleta automática medem o crescimento dos criativos ao longo do tempo. Para acompanhar um
-          concorrente, busque por <span className="text-foreground">Página</span>: abra a página dele na Biblioteca de
-          Anúncios e cole o link (contém <span className="font-mono text-foreground">view_all_page_id</span>).
-          Buscas iguais compartilham a mesma coleta: se o termo já é monitorado, os criativos aparecem na hora.
-          Buscando por <span className="text-foreground">YouTube</span>, a coleta traz os vídeos orgânicos mais vistos dos
-          últimos 30 dias e mede quais pegaram tração rápido; sem tema, escolha um nicho para ver o que está em alta nele
-          (resultado em{" "}
-          <Link href="/videos" className="text-foreground underline underline-offset-2 hover:text-accent">Vídeos</Link>).
-          Com <span className="text-foreground">TikTok Ads</span>, escolha um nicho: a coleta traz os anúncios que o TikTok
-          aponta como os de melhor CTR e mais curtidos nos últimos 180 dias (resultado em{" "}
-          <Link href="/tiktok" className="text-foreground underline underline-offset-2 hover:text-accent">TikTok</Link>).
-          Com <span className="text-foreground">Sites</span>, escolha uma categoria: a coleta traz o ranking dos sites mais
-          acessados (ou que mais estão subindo) no país, segundo o Cloudflare Radar (resultado em{" "}
-          <Link href="/sites" className="text-foreground underline underline-offset-2 hover:text-accent">Sites</Link>).
-          Com <span className="text-foreground">Palavras-chave em alta</span>, a coleta acompanha a cada hora o que o país
-          está pesquisando no Google (Google Trends), separado por nicho (resultado em{" "}
-          <Link href="/palavras-chave" className="text-foreground underline underline-offset-2 hover:text-accent">Palavras-chave</Link>).
-        </p>
-      </div>
+      <h1 className="text-2xl font-semibold tracking-tight">Minerar</h1>
 
       <form onSubmit={submit} className="grid grid-cols-2 gap-3 rounded-lg border border-line bg-surface p-4 md:grid-cols-4 xl:grid-cols-9">
         <div>
