@@ -3,6 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+Scope = Literal["mine", "all"]  # what a list actually covered; with no scope asked it depends on having searches
+
 
 class ORM(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -155,6 +157,7 @@ class CreativePage(BaseModel):
     heat: ScoreHeat = ScoreHeat()
     has_history: bool = False
     hidden_brands: int = 0
+    scope: Scope = "mine"
 
 
 class OfferPreview(BaseModel):
@@ -227,6 +230,7 @@ class VideoPage(BaseModel):
     items: list[VideoOut]
     heat: ScoreHeat = ScoreHeat()
     enabled: bool = True
+    scope: Scope = "mine"
 
 
 class TikTokAdOut(BaseModel):
@@ -257,6 +261,7 @@ class TikTokAdPage(BaseModel):
     total: int
     items: list[TikTokAdOut]
     heat: ScoreHeat = ScoreHeat()
+    scope: Scope = "mine"
 
 
 class TikTokIndustry(BaseModel):
@@ -290,6 +295,7 @@ class SitePage(BaseModel):
     items: list[SiteOut]
     heat: ScoreHeat = ScoreHeat()
     hidden_brands: int = 0
+    scope: Scope = "mine"
 
 
 class TrendNews(BaseModel):
@@ -322,6 +328,7 @@ class KeywordPage(BaseModel):
     items: list[KeywordOut]
     heat: ScoreHeat = ScoreHeat()
     countries: list[str] = []
+    scope: Scope = "mine"
 
 
 class KeywordSuggestion(BaseModel):
@@ -345,6 +352,7 @@ class OfferPage(BaseModel):
     platforms: list[str]
     heat: ScoreHeat = ScoreHeat()
     hidden_brands: int = 0
+    scope: Scope = "mine"
 
 
 class CollectionCreate(BaseModel):

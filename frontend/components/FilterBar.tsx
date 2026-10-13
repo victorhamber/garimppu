@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect } from "react";
+import type { Scope } from "@/lib/api";
 
 export type FilterChip<K extends string = string> = { key: K; label: string; title?: string };
 
@@ -101,18 +103,36 @@ export function CheckToggle({ label, checked, onChange }: { label: string; check
   );
 }
 
-/** Whose ads to rank: the user's own searches (default) or everything any customer has mined. */
-export function ScopeToggle({ value, onChange }: { value?: string; onChange: (value: string) => void }) {
-  const all = value === "all";
+/**
+ * Whose items to rank: the user's own searches or everything any customer has mined. With no choice in the URL,
+ * `effective` is what the server picked ("all" until the user has a search), so "Minhas buscas" sets "mine" explicitly.
+ */
+export function ScopeToggle({ value, effective, onChange }: { value?: string; effective?: Scope; onChange: (value: string) => void }) {
+  const all = (value || effective) === "all";
   const option = (active: boolean) =>
     `rounded px-2.5 py-1 transition-colors pointer-coarse:min-h-11 ${active ? "bg-surface-2 text-foreground" : "text-muted hover:text-foreground"}`;
   return (
     <div role="group" aria-label="Origem dos anúncios" className="flex items-center gap-0.5 rounded-md border border-line p-0.5 text-sm">
-      <button type="button" aria-pressed={!all} className={option(!all)} onClick={() => onChange("")}>Minhas buscas</button>
+      <button type="button" aria-pressed={!all} className={option(!all)} onClick={() => onChange(effective === "all" ? "mine" : "")}>
+        Minhas buscas
+      </button>
       <button type="button" aria-pressed={all} className={option(all)} onClick={() => onChange("all")}
         title="Inclui o que outros clientes já mineraram">
         Toda a base
       </button>
+    </div>
+  );
+}
+
+/** First visit, no search yet: the list fell back to the whole base; says so once and points at Minerar. */
+export function FirstRunNote({ show }: { show: boolean }) {
+  if (!show) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm text-muted">
+      <p className="min-w-0 flex-1 basis-64">
+        Você ainda não tem buscas: isto é <span className="text-foreground">toda a base</span>, minerada por outros clientes.
+      </p>
+      <Link href="/buscas" className="btn btn-primary h-8 pointer-coarse:h-11">Minerar meu nicho</Link>
     </div>
   );
 }

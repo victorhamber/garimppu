@@ -9,7 +9,7 @@ import { CollectionMenu } from "./CollectionMenu";
 import { ErrorState } from "./ErrorState";
 import { ListSkeleton } from "./Skeleton";
 import { ExportCsv } from "./ExportCsv";
-import { CheckToggle, FilterChips, FilterSelect, FilterToggle, MoreFilters, ScopeToggle, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
+import { CheckToggle, FilterChips, FirstRunNote, FilterSelect, FilterToggle, MoreFilters, ScopeToggle, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
 import { CountrySelect } from "./CountrySelect";
 import { HEAT_HINT, ScoreBadge } from "./Metrics";
 
@@ -119,6 +119,7 @@ export function KeywordsView() {
         <h1 className="text-2xl font-semibold tracking-tight">Palavras-chave</h1>
         <p className="mt-1 text-sm text-muted">Termos que as pessoas mais buscam no Google.</p>
       </div>
+      <FirstRunNote show={!filters.scope && data?.scope === "all"} />
 
       <KeywordSearch nicheLabel={label} />
 
@@ -139,7 +140,7 @@ export function KeywordsView() {
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <FilterToggle open={panelOpen} count={panelCount} controls="keywords-panel" onToggle={() => setPanelOpen((v) => !v)} />
           <MoreFilters open={panelOpen}>
-            {!filters.search_id && <ScopeToggle value={filters.scope} onChange={(v) => update("scope", v)} />}
+            {!filters.search_id && <ScopeToggle value={filters.scope} effective={data?.scope} onChange={(v) => update("scope", v)} />}
             <CheckToggle label="Só com nicho identificado" checked={filters.has_niche === "true"}
               onChange={(on) => update("has_niche", on ? "true" : "")} />
           </MoreFilters>

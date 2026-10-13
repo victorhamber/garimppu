@@ -4,12 +4,12 @@ import Link from "next/link";
 import { BackLink } from "./BackLink";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api, offerTag, timeAgo, toQuery, type CreativeFilters, type Offer, type OfferPage, type Search } from "@/lib/api";
+import { api, offerTag, timeAgo, toQuery, type CreativeFilters, type Offer, type OfferPage, type Scope, type Search } from "@/lib/api";
 import { useNiches } from "@/lib/hooks";
 import { digitsOnly, useUrlFilters } from "@/lib/useUrlFilters";
 import { ConfirmMine } from "./ConfirmMine";
 import { CreativeGrid } from "./CreativeGrid";
-import { CheckToggle, FilterChips, FilterSelect, FilterToggle, MoreFilters, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
+import { CheckToggle, FilterChips, FilterSelect, FirstRunNote, FilterToggle, MoreFilters, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
 const FILTER_KEYS: (keyof CreativeFilters)[] = [
   "q", "search_id", "offer", "country", "niche", "media_type", "min_days", "min_duplicates", "active_only",
   "include_brands", "scope", "sort",
@@ -39,6 +39,7 @@ export function Explorer() {
   }, []);
 
   const [hasHistory, setHasHistory] = useState(false);
+  const [scope, setScope] = useState<Scope>();
   const sorts = SORTS.filter((s) => s.id !== "growth" || hasHistory || filters.sort === "growth");
 
   const [offerInfo, setOfferInfo] = useState<{ key: string; offer: Offer | null } | null>(null);
@@ -141,6 +142,7 @@ export function Explorer() {
           </p>
         </div>
       )}
+      <FirstRunNote show={scoped && !filters.scope && scope === "all"} />
 
       <form
         role="search"
@@ -163,7 +165,7 @@ export function Explorer() {
           </div>
           <FilterToggle open={panelOpen} count={panelCount} controls="explorer-panel" onToggle={() => setPanelOpen((v) => !v)} />
           <MoreFilters open={panelOpen}>
-            {scoped && <ScopeToggle value={filters.scope} onChange={(v) => update("scope", v)} />}
+            {scoped && <ScopeToggle value={filters.scope} effective={scope} onChange={(v) => update("scope", v)} />}
             <CheckToggle label="Somente ativos" checked={filters.active_only !== "false"}
               onChange={(on) => update("active_only", on ? "" : "false")} />
             {!filters.offer && (
@@ -197,6 +199,7 @@ export function Explorer() {
         filters={filters}
         emptyMessage={emptyMessage}
         onHistoryChange={setHasHistory}
+        onScopeChange={setScope}
         onShowBrands={() => update("include_brands", "true")}
         toolbar={
           <SortSelect id="sort" value={filters.sort ?? "score"} options={sorts}

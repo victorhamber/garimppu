@@ -52,6 +52,17 @@ def user_source_ids(user_id: int):
     return select(Search.source_id).where(Search.user_id == user_id)
 
 
+SCOPE_HELP = "mine = só o que veio das buscas do usuário; vazio = mine se ele já tem buscas, senão all"
+
+
+def resolve_scope(db: Session, user_id: int, scope: str | None) -> str:
+    """No scope asked: "mine" once the user has a search, "all" before that so a first visit isn't empty."""
+    if scope:
+        return scope
+    has_search = db.scalar(select(Search.id).where(Search.user_id == user_id).limit(1)) is not None
+    return "mine" if has_search else "all"
+
+
 def user_search_source(user_id: int, search_id: int):
     """The source behind one of the user's searches (empty for someone else's search)."""
     return select(Search.source_id).where(Search.id == search_id, Search.user_id == user_id).scalar_subquery()

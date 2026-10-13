@@ -15,7 +15,7 @@ from app.csv_export import EXPORT_LIMIT, csv_response
 from app.pipeline.heat import HOT_SHARE, WARM_SHARE, metric_cutoffs, rank_cutoff
 from app.pipeline.niche import NICHES
 from app.pipeline.offers import offer_label
-from app.pipeline.sources import user_search_source, user_source_ids
+from app.pipeline.sources import SCOPE_HELP, resolve_scope, user_search_source, user_source_ids
 from app.routes.collections import collections_by_ref, saved_refs
 from app.schemas import ScoreHeat, VideoOut, VideoPage
 
@@ -50,7 +50,7 @@ def list_videos(
     q: str | None = None,
     search_id: int | None = None,
     collection_id: int | None = None,
-    scope: Literal["mine", "all"] = Query("mine", description="mine = só vídeos das buscas do usuário"),
+    scope: Literal["mine", "all"] | None = Query(None, description=SCOPE_HELP),
     offer: str | None = Query(None, description="Uma oferta exata (offer_key)"),
     niche: str | None = None,
     has_offer: bool = False,
@@ -63,6 +63,7 @@ def list_videos(
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
 ):
+    scope = resolve_scope(db, user.id, scope)
     stmt = select(Video)
     if collection_id:
         stmt = stmt.where(Video.id.in_(saved_refs(collection_id, "video", user)))
@@ -113,7 +114,7 @@ def list_videos(
     saved_in = collections_by_ref(db, "video", [v.id for v in items], user)
     for item in items:
         item.collection_ids = saved_in.get(item.id, [])
-    return VideoPage(total=total, items=items, heat=heat, enabled=bool(get_settings().youtube_api_key))
+    return VideoPage(total=total, items=items, heat=heat, enabled=bool(get_settings().youtube_api_key), scope=scope)
 
 
 VIDEO_CSV = ["titulo", "url", "canal", "inscritos", "nicho", "short", "publicado", "score", "views", "views_por_dia",

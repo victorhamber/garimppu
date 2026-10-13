@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, toQuery, type Creative, type CreativeFilters, type CreativePage, type ScoreHeat } from "@/lib/api";
+import { api, toQuery, type Creative, type CreativeFilters, type CreativePage, type Scope, type ScoreHeat } from "@/lib/api";
 import { useCollections, useNiches } from "@/lib/hooks";
 import { useViewPreference, type GridView } from "@/lib/useViewPreference";
 import { CreativeCard, CreativeRow } from "./CreativeCard";
@@ -17,6 +17,7 @@ type Props = {
   filters: CreativeFilters;
   emptyMessage?: React.ReactNode;
   onHistoryChange?: (hasHistory: boolean) => void;
+  onScopeChange?: (scope: Scope) => void;
   /** Result-level controls shown beside the count (e.g. sort). */
   toolbar?: React.ReactNode;
   /** Offered when big brands were left out of the result. */
@@ -36,7 +37,7 @@ const VIEWS: { id: GridView; label: string; icon: React.ReactNode }[] = [
   },
 ];
 
-export function CreativeGrid({ filters, emptyMessage, onHistoryChange, toolbar, onShowBrands }: Props) {
+export function CreativeGrid({ filters, emptyMessage, onHistoryChange, onScopeChange, toolbar, onShowBrands }: Props) {
   const [view, setView] = useViewPreference();
   const [attempt, setAttempt] = useState(0);
   const filtersKey = JSON.stringify(filters);
@@ -64,6 +65,7 @@ export function CreativeGrid({ filters, emptyMessage, onHistoryChange, toolbar, 
         setHiddenBrands(page.hidden_brands);
         setError(null);
         onHistoryChange?.(page.has_history);
+        onScopeChange?.(page.scope);
       })
       .catch((e: Error) => {
         if (cancelled) return;

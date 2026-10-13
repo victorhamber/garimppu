@@ -15,7 +15,7 @@ from app.models import Ad, Search, SourceTrend, TrendKeyword, TrendSnapshot, Use
 from app.csv_export import EXPORT_LIMIT, csv_response
 from app.pipeline.heat import HOT_SHARE, WARM_SHARE, rank_cutoff
 from app.pipeline.niche import NICHES, NicheSignals, classify_signals
-from app.pipeline.sources import as_utc, user_search_source, user_source_ids
+from app.pipeline.sources import SCOPE_HELP, as_utc, resolve_scope, user_search_source, user_source_ids
 from app.routes.collections import collections_by_ref, saved_refs
 from app.routes.searches import COUNTRY_LANGUAGE
 from app.schemas import KeywordOut, KeywordPage, KeywordSuggestion, KeywordSuggestions, ScoreHeat, TrendNews
@@ -77,7 +77,7 @@ def list_keywords(
     q: str | None = None,
     search_id: int | None = None,
     collection_id: int | None = None,
-    scope: Literal["mine", "all"] = Query("mine", description="mine = só termos das buscas do usuário"),
+    scope: Literal["mine", "all"] | None = Query(None, description=SCOPE_HELP),
     niche: str | None = None,
     has_niche: bool = Query(False, description="Só termos com nicho identificado"),
     geo: str | None = None,
@@ -88,6 +88,7 @@ def list_keywords(
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
 ):
+    scope = resolve_scope(db, user.id, scope)
     trend_days = (select(TrendSnapshot.keyword_id, func.count().label("n"))
                   .group_by(TrendSnapshot.keyword_id).subquery())
     days_col = func.coalesce(trend_days.c.n, 0)
@@ -155,7 +156,7 @@ def list_keywords(
     for item in items:
         item.collection_ids = saved_in.get(str(item.id), [])
     countries = sorted(db.scalars(select(TrendKeyword.geo).distinct()))
-    return KeywordPage(total=total, items=items, heat=heat, countries=countries)
+    return KeywordPage(total=total, items=items, heat=heat, countries=countries, scope=scope)
 
 
 KEYWORD_CSV = ["termo", "pais", "nicho", "pico_buscas", "buscas_ultimo_dia", "dias_em_alta", "em_alta_agora",

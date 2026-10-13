@@ -11,7 +11,7 @@ import { ErrorState } from "./ErrorState";
 import { ListSkeleton } from "./Skeleton";
 import { ExportCsv } from "./ExportCsv";
 import { Metric, MetricStrip, ScoreBadge, ScoreLegend, topMetric } from "./Metrics";
-import { CheckToggle, FilterChips, FilterSelect, FilterToggle, HiddenBrandsNote, MoreFilters, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
+import { CheckToggle, FilterChips, FirstRunNote, FilterSelect, FilterToggle, HiddenBrandsNote, MoreFilters, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
 
 const PAGE_SIZE = 30;
 const FILTER_KEYS = ["q", "niche", "search_id", "active_only", "include_brands", "scope", "sort"] as const;
@@ -106,6 +106,7 @@ export function SitesView() {
         <h1 className="text-2xl font-semibold tracking-tight">Sites de venda</h1>
         <p className="mt-1 text-sm text-muted">Sites dos concorrentes que mais anunciam.</p>
       </div>
+      <FirstRunNote show={!filters.scope && data?.scope === "all"} />
 
       <form
         role="search"
@@ -128,7 +129,7 @@ export function SitesView() {
           </div>
           <FilterToggle open={panelOpen} count={panelCount} controls="sites-panel" onToggle={() => setPanelOpen((v) => !v)} />
           <MoreFilters open={panelOpen}>
-            {!filters.search_id && <ScopeToggle value={filters.scope} onChange={(v) => update("scope", v)} />}
+            {!filters.search_id && <ScopeToggle value={filters.scope} effective={data?.scope} onChange={(v) => update("scope", v)} />}
             <CheckToggle label="Somente ativos" checked={filters.active_only !== "false"}
               onChange={(on) => update("active_only", on ? "" : "false")} />
           </MoreFilters>

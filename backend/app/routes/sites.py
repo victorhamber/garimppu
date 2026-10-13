@@ -20,7 +20,7 @@ from app.models import Ad, Creative, SourceAd, TikTokAd, User, Video
 from app.csv_export import EXPORT_LIMIT, csv_response
 from app.pipeline.niche import NICHES
 from app.pipeline.scoring import count_duplicates, days_running
-from app.pipeline.sources import user_search_source, user_source_ids
+from app.pipeline.sources import SCOPE_HELP, resolve_scope, user_search_source, user_source_ids
 from app.routes.collections import collections_by_ref, saved_refs
 from app.routes.offers import offer_heat, offer_score
 from app.schemas import OfferAdvertiser, OfferPreview, SiteOut, SitePage
@@ -120,7 +120,7 @@ def list_sites(
     niche: str | None = None,
     search_id: int | None = None,
     collection_id: int | None = None,
-    scope: Literal["mine", "all"] = Query("mine", description="mine = só anúncios das buscas do usuário"),
+    scope: Literal["mine", "all"] | None = Query(None, description=SCOPE_HELP),
     active_only: bool = True,
     include_brands: bool = Query(False, description="Inclui páginas de marcas grandes"),
     sort: SiteSort = "score",
@@ -129,6 +129,7 @@ def list_sites(
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
 ):
+    scope = resolve_scope(db, user.id, scope)
     stmt = select(Ad).where(Ad.offer_kind.in_(SITE_KINDS), Ad.offer_key.is_not(None)).options(
         selectinload(Ad.page), selectinload(Ad.creatives).selectinload(Creative.score)
     )
@@ -174,7 +175,7 @@ def list_sites(
     for site in page:
         site.collection_ids = saved_in.get(site.domain, [])
     return SitePage(total=len(sites), items=page, heat=offer_heat(sites),
-                    hidden_brands=len(brand_sites - groups.keys()))
+                    hidden_brands=len(brand_sites - groups.keys()), scope=scope)
 
 
 SITE_CSV = ["site", "url", "nicho", "plataforma", "score", "anunciantes", "anuncios", "criativos", "produtos",

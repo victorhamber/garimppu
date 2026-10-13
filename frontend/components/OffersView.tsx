@@ -10,7 +10,7 @@ import { CoverImage, VideoFallback } from "./CoverImage";
 import { ErrorState } from "./ErrorState";
 import { ListSkeleton } from "./Skeleton";
 import { ExportCsv } from "./ExportCsv";
-import { CheckToggle, FilterChips, FilterSelect, FilterToggle, HiddenBrandsNote, MoreFilters, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
+import { CheckToggle, FilterChips, FirstRunNote, FilterSelect, FilterToggle, HiddenBrandsNote, MoreFilters, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
 import { Metric, MetricStrip, ScoreBadge, ScoreLegend, topMetric } from "./Metrics";
 
 const PAGE_SIZE = 30;
@@ -109,6 +109,7 @@ export function OffersView() {
         <h1 className="text-2xl font-semibold tracking-tight">Ofertas</h1>
         <p className="mt-1 text-sm text-muted">Produtos com mais anunciantes e anúncios rodando.</p>
       </div>
+      <FirstRunNote show={!filters.scope && data?.scope === "all"} />
 
       <form
         role="search"
@@ -131,7 +132,7 @@ export function OffersView() {
           </div>
           <FilterToggle open={panelOpen} count={panelCount} controls="offers-panel" onToggle={() => setPanelOpen((v) => !v)} />
           <MoreFilters open={panelOpen}>
-            {!filters.search_id && <ScopeToggle value={filters.scope} onChange={(v) => update("scope", v)} />}
+            {!filters.search_id && <ScopeToggle value={filters.scope} effective={data?.scope} onChange={(v) => update("scope", v)} />}
             <CheckToggle label="Somente ativos" checked={filters.active_only !== "false"}
               onChange={(on) => update("active_only", on ? "" : "false")} />
             <CheckToggle label="Incluir marcas grandes" checked={filters.include_brands === "true"}

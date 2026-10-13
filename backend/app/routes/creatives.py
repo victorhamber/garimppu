@@ -24,7 +24,7 @@ from app.models import (
 )
 from app.pipeline.heat import HOT_SHARE, MIN_DAYS_ACTIVE, MIN_DUPLICATES, WARM_SHARE, metric_cutoffs, rank_cutoff
 from app.pipeline.niche import NICHES
-from app.pipeline.sources import user_search_source, user_source_ids
+from app.pipeline.sources import SCOPE_HELP, resolve_scope, user_search_source, user_source_ids
 from app.routes.collections import user_collection_ids
 from app.schemas import CreativeDetail, CreativePage, ScoreHeat
 from app.serializers import creative_card, creative_detail
@@ -55,7 +55,7 @@ class CreativeFilters:
     min_duplicates: int | None = Query(None, ge=0)
     active_only: bool = True
     include_brands: bool = Query(False, description="Inclui páginas de marcas grandes, que afiliados não promovem")
-    scope: Literal["mine", "all"] = Query("mine", description="mine = só anúncios das buscas do usuário")
+    scope: Literal["mine", "all"] | None = Query(None, description=SCOPE_HELP)
     sort: SortKey = "score"
 
     @property
@@ -161,6 +161,7 @@ def list_creatives(
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
 ):
+    f.scope = resolve_scope(db, user.id, f.scope)
     stmt = build_query(f, user)
     signals = db.execute(
         stmt.order_by(None).with_only_columns(
@@ -181,6 +182,7 @@ def list_creatives(
         heat=creative_heat(signals),
         has_history=db.scalar(_history_query().limit(1)) is not None,
         hidden_brands=hidden,
+        scope=f.scope,
     )
 
 
@@ -216,6 +218,7 @@ CSV_COLUMNS = [
 @router.get("/export.csv")
 def export_csv(f: CreativeFilters = Depends(), limit: int = Query(5000, ge=1, le=50000),
                db: Session = Depends(get_db), user: User = Depends(current_user)):
+    f.scope = resolve_scope(db, user.id, f.scope)
     creatives = list(db.scalars(build_query(f, user).options(*_load_options()).limit(limit)))
 
     def rows():

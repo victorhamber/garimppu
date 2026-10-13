@@ -10,7 +10,7 @@ import { CoverImage, VideoFallback } from "./CoverImage";
 import { ErrorState } from "./ErrorState";
 import { ListSkeleton } from "./Skeleton";
 import { ExportCsv } from "./ExportCsv";
-import { CheckToggle, FilterChips, FilterSelect, FilterToggle, MoreFilters, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
+import { CheckToggle, FilterChips, FirstRunNote, FilterSelect, FilterToggle, MoreFilters, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
 import { Metric, MetricStrip, ScoreBadge, ScoreLegend, ScoreParts, topMetric } from "./Metrics";
 
 const PAGE_SIZE = 30;
@@ -137,6 +137,7 @@ export function VideosView() {
         <h1 className="text-2xl font-semibold tracking-tight">Vídeos do YouTube</h1>
         <p className="mt-1 text-sm text-muted">Vídeos ganhando views mais rápido que o normal.</p>
       </div>
+      <FirstRunNote show={!filters.scope && data?.scope === "all"} />
 
       {data && !data.enabled && (
         <p role="note" className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-foreground">
@@ -166,7 +167,7 @@ export function VideosView() {
           </div>
           <FilterToggle open={panelOpen} count={panelCount} controls="videos-panel" onToggle={() => setPanelOpen((v) => !v)} />
           <MoreFilters open={panelOpen}>
-            {!filters.search_id && <ScopeToggle value={filters.scope} onChange={(v) => update("scope", v)} />}
+            {!filters.search_id && <ScopeToggle value={filters.scope} effective={data?.scope} onChange={(v) => update("scope", v)} />}
             <CheckToggle label="Só com link de oferta" checked={filters.has_offer === "true"}
               onChange={(on) => update("has_offer", on ? "true" : "")} />
           </MoreFilters>

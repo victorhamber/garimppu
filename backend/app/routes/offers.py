@@ -22,7 +22,7 @@ from app.csv_export import EXPORT_LIMIT, csv_response
 from app.pipeline.heat import HOT_SHARE, MIN_DAYS_ACTIVE, WARM_SHARE, metric_cutoffs, rank_cutoff
 from app.pipeline.offers import offer_label
 from app.pipeline.scoring import MAX_LONGEVITY_DAYS, count_duplicates, days_running
-from app.pipeline.sources import user_search_source, user_source_ids
+from app.pipeline.sources import SCOPE_HELP, resolve_scope, user_search_source, user_source_ids
 from app.routes.collections import user_collection_ids
 from app.schemas import OfferAdvertiser, OfferOut, OfferPage, OfferPreview, ScoreHeat
 from app.serializers import media_path
@@ -125,13 +125,14 @@ def list_offers(
     multi_platform: bool = Query(False, description="Só ofertas que também aparecem no TikTok ou no YouTube"),
     active_only: bool = True,
     include_brands: bool = Query(False, description="Inclui páginas de marcas grandes, que afiliados não promovem"),
-    scope: Literal["mine", "all"] = Query("mine", description="mine = só anúncios das buscas do usuário"),
+    scope: Literal["mine", "all"] | None = Query(None, description=SCOPE_HELP),
     sort: OfferSort = "score",
     limit: int = Query(30, ge=1, le=EXPORT_LIMIT),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
 ):
+    scope = resolve_scope(db, user.id, scope)
     stmt = select(Ad).where(Ad.offer_key.is_not(None)).options(
         selectinload(Ad.page), selectinload(Ad.creatives).selectinload(Creative.score)
     )
@@ -206,7 +207,7 @@ def list_offers(
     for offer_key, cid in saved:
         by_key[offer_key].collection_ids.append(cid)
     return OfferPage(total=len(offers), items=page, platforms=platforms, heat=offer_heat(offers),
-                     hidden_brands=len(brand_keys - groups.keys()))
+                     hidden_brands=len(brand_keys - groups.keys()), scope=scope)
 
 
 def offer_heat(rows) -> ScoreHeat:

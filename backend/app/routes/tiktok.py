@@ -13,7 +13,7 @@ from app.models import SourceTikTokAd, TikTokAd, User
 from app.csv_export import EXPORT_LIMIT, csv_response
 from app.pipeline.heat import HOT_SHARE, WARM_SHARE, metric_cutoffs, rank_cutoff
 from app.pipeline.offers import offer_label
-from app.pipeline.sources import user_search_source, user_source_ids
+from app.pipeline.sources import SCOPE_HELP, resolve_scope, user_search_source, user_source_ids
 from app.routes.collections import collections_by_ref, saved_refs
 from app.schemas import ScoreHeat, TikTokAdOut, TikTokAdPage, TikTokIndustry
 from app.serializers import media_path
@@ -53,7 +53,7 @@ def list_ads(
     q: str | None = None,
     search_id: int | None = None,
     collection_id: int | None = None,
-    scope: Literal["mine", "all"] = Query("mine", description="mine = só anúncios das buscas do usuário"),
+    scope: Literal["mine", "all"] | None = Query(None, description=SCOPE_HELP),
     industry: int | None = None,
     objective: str | None = None,
     offer: str | None = Query(None, description="Uma oferta exata (offer_key)"),
@@ -64,6 +64,7 @@ def list_ads(
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
 ):
+    scope = resolve_scope(db, user.id, scope)
     stmt = select(TikTokAd)
     if collection_id:
         stmt = stmt.where(TikTokAd.id.in_(saved_refs(collection_id, "tiktok", user)))
@@ -107,7 +108,7 @@ def list_ads(
     saved_in = collections_by_ref(db, "tiktok", [a.id for a in items], user)
     for item in items:
         item.collection_ids = saved_in.get(item.id, [])
-    return TikTokAdPage(total=total, items=items, heat=heat)
+    return TikTokAdPage(total=total, items=items, heat=heat, scope=scope)
 
 
 TIKTOK_CSV = ["texto", "url", "marca", "pais", "nicho", "objetivo", "score", "ctr_top", "curtidas", "comentarios",

@@ -163,7 +163,10 @@ export type Video = {
 };
 
 /** `enabled`: false while the server has no YOUTUBE_API_KEY. */
-export type VideoPage = { total: number; items: Video[]; heat: ScoreHeat; enabled: boolean };
+/** What a list actually covered; with no scope asked, "all" until the user has a search. */
+export type Scope = "mine" | "all";
+
+export type VideoPage = { total: number; items: Video[]; heat: ScoreHeat; enabled: boolean; scope: Scope };
 
 /** A TikTok Creative Center top ad (auction ads TikTok itself ranks as top performers). */
 export type TikTokAd = {
@@ -193,7 +196,7 @@ export type TikTokAd = {
   collection_ids: number[];
 };
 
-export type TikTokAdPage = { total: number; items: TikTokAd[]; heat: ScoreHeat };
+export type TikTokAdPage = { total: number; items: TikTokAd[]; heat: ScoreHeat; scope: Scope };
 
 /** A sales site (the advertiser's own domain) found behind the collected ads. */
 export type Site = {
@@ -217,7 +220,7 @@ export type Site = {
   collection_ids: number[];
 };
 
-export type SitePage = { total: number; items: Site[]; heat: ScoreHeat; hidden_brands: number };
+export type SitePage = { total: number; items: Site[]; heat: ScoreHeat; hidden_brands: number; scope: Scope };
 export type TikTokIndustry = { id: number; label: string };
 
 /** A term from Google Trends "trending now"; traffic is Google's approximate search count ("20000+"). */
@@ -241,7 +244,7 @@ export type Keyword = {
   last_seen_at: string;
   collection_ids: number[];
 };
-export type KeywordPage = { total: number; items: Keyword[]; heat: ScoreHeat; countries: string[] };
+export type KeywordPage = { total: number; items: Keyword[]; heat: ScoreHeat; countries: string[]; scope: Scope };
 
 export type KeywordSuggestion = {
   term: string;
@@ -260,8 +263,8 @@ export type KeywordSuggestions = { term: string; country: string; items: Keyword
 export type ScoreHeat = { hot: number | null; warm: number | null; metrics?: Record<string, number> };
 
 /** `hidden_brands`: results left out because they belong to big brands (0 when they're included). */
-export type CreativePage = { total: number; items: Creative[]; heat: ScoreHeat; has_history: boolean; hidden_brands: number };
-export type OfferPage = { total: number; items: Offer[]; platforms: string[]; heat: ScoreHeat; hidden_brands: number };
+export type CreativePage = { total: number; items: Creative[]; heat: ScoreHeat; has_history: boolean; hidden_brands: number; scope: Scope };
+export type OfferPage = { total: number; items: Offer[]; platforms: string[]; heat: ScoreHeat; hidden_brands: number; scope: Scope };
 
 export const OFFER_KINDS: { id: OfferKind; label: string }[] = [
   { id: "infoproduto", label: "Infoproduto" },
