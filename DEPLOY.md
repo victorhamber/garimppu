@@ -134,6 +134,12 @@ A aba **Vídeos** usa a API oficial do YouTube (grátis, 10.000 unidades de cota
 Cada coleta de 100 vídeos gasta cerca de 200 unidades, então dá para ~50 coletas por dia somando todos os clientes.
 Se a cota acabar, a coleta mostra o aviso e volta a funcionar quando o Google zera a cota (4h ou 5h em Brasília).
 
+## TikTok
+
+A aba **TikTok** não precisa de chave: usa o Chromium do Playwright, que já vem na imagem da API, para abrir o
+TikTok Creative Center e depois consulta os Top Ads por HTTP. `TIKTOK_MAX_RESULTS` (padrão 200) limita cada coleta.
+Se o TikTok mudar a página, a coleta termina em erro com a mensagem no log da busca.
+
 ## Atualizações
 
 Cada `git push` na branch `main` pode disparar o deploy automático (ative **Auto Deploy** nos dois apps).

@@ -339,6 +339,41 @@ class SourceVideo(Base):
     video_id: Mapped[str] = mapped_column(ForeignKey("videos.id", ondelete="CASCADE"), primary_key=True, index=True)
 
 
+class TikTokAd(Base):
+    """A TikTok Creative Center "Top Ad"; metrics are TikTok's own, refreshed on each collection."""
+
+    __tablename__ = "tiktok_ads"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)  # Creative Center material id
+    country: Mapped[str] = mapped_column(String(8))
+    title: Mapped[str | None] = mapped_column(Text)
+    brand: Mapped[str | None] = mapped_column(String(255))
+    industry_id: Mapped[int | None] = mapped_column(BigInteger)  # sub-industry
+    industry_parent: Mapped[int | None] = mapped_column(BigInteger, index=True)
+    objective: Mapped[str | None] = mapped_column(String(64))
+    ctr_rank: Mapped[float | None] = mapped_column(Float)  # CTR percentile in its industry: 0.05 = top 5%
+    likes: Mapped[int] = mapped_column(BigInteger, default=0)
+    comments: Mapped[int | None] = mapped_column(BigInteger)
+    shares: Mapped[int | None] = mapped_column(BigInteger)
+    budget: Mapped[int | None] = mapped_column(Integer)  # 0 low, 1 medium, 2 high
+    duration_s: Mapped[float | None] = mapped_column(Float)
+    cover_path: Mapped[str | None] = mapped_column(Text)  # under media_dir; TikTok's cover URLs expire in a day
+    landing_page: Mapped[str | None] = mapped_column(Text)
+    offer_key: Mapped[str | None] = mapped_column(String(255), index=True)
+    offer_kind: Mapped[str | None] = mapped_column(String(16))
+    offer_platform: Mapped[str | None] = mapped_column(String(32))
+    score: Mapped[float] = mapped_column(Float, default=0, index=True)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class SourceTikTokAd(Base):
+    __tablename__ = "source_tiktok_ads"
+
+    source_id: Mapped[int] = mapped_column(ForeignKey("sources.id", ondelete="CASCADE"), primary_key=True)
+    ad_id: Mapped[str] = mapped_column(ForeignKey("tiktok_ads.id", ondelete="CASCADE"), primary_key=True, index=True)
+
+
 class Collection(Base):
     __tablename__ = "collections"
     __table_args__ = (UniqueConstraint("user_id", "name", name="uq_collections_user_name"),)

@@ -52,6 +52,7 @@ const FORMULAS = {
   creative: "Score de escala: soma anúncios ativos, dias no ar, plataformas, crescimento e tamanho do anunciante.",
   offer: "Score de oferta: soma anunciantes (peso maior), anúncios, criativos e tempo no ar.",
   video: "Score de vídeo: soma visualizações por dia, quanto superou o tamanho do canal, engajamento e aceleração.",
+  tiktok: "Score TikTok: soma o CTR comparado ao nicho (peso maior), curtidas, comentários e compartilhamentos, e a faixa de verba.",
 };
 
 export function ScoreLegend({ kind = "creative" }: { kind?: keyof typeof FORMULAS }) {

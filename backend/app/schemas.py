@@ -15,7 +15,8 @@ class SearchCreate(BaseModel):
     language: str | None = Field(default=None, max_length=8)
     media_type: Literal["all", "image", "video"] = "all"
     niche: str | None = None
-    source: Literal["scraper", "api", "hybrid", "youtube"] = "hybrid"
+    source: Literal["scraper", "api", "hybrid", "youtube", "tiktok"] = "hybrid"
+    tiktok_industry: int | None = None  # TikTok top-level industry id; None = all
     max_ads: int = Field(default=300, ge=10, le=3000)
     refresh_hours: int | None = Field(default=None, ge=24, le=720)
     run_now: bool = True
@@ -224,6 +225,40 @@ class VideoPage(BaseModel):
     items: list[VideoOut]
     heat: ScoreHeat = ScoreHeat()
     enabled: bool = True
+
+
+class TikTokAdOut(BaseModel):
+    id: str
+    url: str
+    country: str
+    title: str | None
+    brand: str | None
+    industry: str | None
+    industry_id: int | None
+    objective: str | None
+    ctr_rank: float | None
+    likes: int
+    comments: int | None
+    shares: int | None
+    budget: int | None
+    duration_s: float | None
+    cover: str | None
+    landing_page: str | None
+    offer_key: str | None
+    offer_label: str | None
+    score: float
+    first_seen_at: datetime
+
+
+class TikTokAdPage(BaseModel):
+    total: int
+    items: list[TikTokAdOut]
+    heat: ScoreHeat = ScoreHeat()
+
+
+class TikTokIndustry(BaseModel):
+    id: int
+    label: str
 
 
 class OfferPage(BaseModel):

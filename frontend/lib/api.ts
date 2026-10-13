@@ -20,7 +20,7 @@ export type Search = {
   language: string | null;
   media_type: "all" | "image" | "video";
   niche: string | null;
-  source: "scraper" | "api" | "hybrid" | "youtube";
+  source: "scraper" | "api" | "hybrid" | "youtube" | "tiktok";
   max_ads: number;
   refresh_hours: number | null;
   is_active: boolean;
@@ -159,6 +159,36 @@ export type Video = {
 
 /** `enabled`: false while the server has no YOUTUBE_API_KEY. */
 export type VideoPage = { total: number; items: Video[]; heat: ScoreHeat; enabled: boolean };
+
+/** A TikTok Creative Center top ad (auction ads TikTok itself ranks as top performers). */
+export type TikTokAd = {
+  id: string;
+  /** Creative Center detail page, where the video plays. */
+  url: string;
+  country: string;
+  title: string | null;
+  brand: string | null;
+  industry: string | null;
+  industry_id: number | null;
+  objective: string | null;
+  /** CTR percentile within the industry: 0.05 = top 5%. */
+  ctr_rank: number | null;
+  likes: number;
+  comments: number | null;
+  shares: number | null;
+  /** TikTok's spend band: 0 low, 1 medium, 2 high. */
+  budget: number | null;
+  duration_s: number | null;
+  cover: string | null;
+  landing_page: string | null;
+  offer_key: string | null;
+  offer_label: string | null;
+  score: number;
+  first_seen_at: string;
+};
+
+export type TikTokAdPage = { total: number; items: TikTokAd[]; heat: ScoreHeat };
+export type TikTokIndustry = { id: number; label: string };
 
 /** Cutoffs relative to the current result set; null when the set is too small to rank. */
 export type ScoreHeat = { hot: number | null; warm: number | null };

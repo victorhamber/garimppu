@@ -10,6 +10,7 @@ from sqlalchemy import select
 from app.collectors.base import RawAd, SearchQuery
 from app.collectors.library_scraper import scrape_library
 from app.collectors.official_api import OfficialApiError, fetch_official
+from app.collectors.tiktok_ads import TikTokError, collect_tiktok_ads, session_headers
 from app.collectors.youtube import YouTubeError, collect_videos
 from app.config import get_settings
 from app.db import SessionLocal
@@ -18,6 +19,7 @@ from app.pipeline.ingest import ingest_ads
 from app.pipeline.normalize import merge_sources
 from app.pipeline.scoring import recompute_scores
 from app.pipeline.sources import last_good_run
+from app.pipeline.tiktok_ingest import ingest_tiktok_ads, known_ids
 from app.pipeline.video_ingest import ingest_videos, rescore_videos
 
 logger = logging.getLogger(__name__)
@@ -61,6 +63,11 @@ def run_source(run_id: int) -> None:
             run.ads_found, run.creatives_found = _collect_youtube(db, source, log)
             run.status = "done"
             log(f"Concluído: {run.ads_found} vídeos, {run.creatives_found} novos")
+            return
+        if source.collector == "tiktok":
+            run.ads_found, run.creatives_found = _collect_tiktok(db, source, log)
+            run.status = "done"
+            log(f"Concluído: {run.ads_found} anúncios do TikTok, {run.creatives_found} novos")
             return
         query = SearchQuery(term=source.term, country=source.country, language=source.language,
                             media_type=source.media_type, max_ads=source.max_ads, page_id=source.page_id)
@@ -109,7 +116,7 @@ def run_source(run_id: int) -> None:
         run.creatives_found = len(creative_ids)
         run.status = "done"
         log(f"Concluído: {ads_count} anúncios, {len(creative_ids)} criativos")
-    except (EmptyCollection, YouTubeError) as exc:
+    except (EmptyCollection, YouTubeError, TikTokError) as exc:
         db.rollback()
         log(str(exc))
         run.status = "error"
@@ -136,6 +143,17 @@ def _collect_youtube(db, source, log) -> tuple[int, int]:
         window_days=settings.youtube_window_days, api_key=settings.youtube_api_key, log=log,
     )
     return ingest_videos(db, source, videos, log)
+
+
+def _collect_tiktok(db, source, log) -> tuple[int, int]:
+    log("Abrindo o Creative Center do TikTok")
+    headers = _run_async(session_headers(source.country))
+    ads = collect_tiktok_ads(
+        source.term, country=source.country, language=source.language,
+        max_results=min(source.max_ads, get_settings().tiktok_max_results),
+        known=lambda ids: known_ids(db, ids), log=log, headers=headers,
+    )
+    return ingest_tiktok_ads(db, source, ads, log)
 
 
 def rescore_all() -> int:

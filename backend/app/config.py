@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     youtube_api_key: str | None = None
     youtube_window_days: int = 30  # only videos published this recently are collected
     youtube_max_results: int = 150
+    tiktok_max_results: int = 200
 
     scraper_headless: bool = True
     scraper_min_delay: float = 1.5

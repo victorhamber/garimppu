@@ -5,11 +5,12 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.auth import current_user
+from app.collectors.tiktok_ads import INDUSTRIES as TIKTOK_INDUSTRIES, PREFIX as TIKTOK_PREFIX
 from app.collectors.youtube import NICHE_PREFIX
 from app.config import get_settings
 from app.db import get_db
 from app.jobs import enqueue_source
-from app.models import AdCreative, Page, Run, Search, SourceAd, SourceVideo, User
+from app.models import AdCreative, Page, Run, Search, SourceAd, SourceTikTokAd, SourceVideo, User
 from app.pipeline.niche import NICHES
 from app.pipeline.sources import find_or_create_source, is_fresh, sync_source
 from app.schemas import RunOut, SearchCreate, SearchOut, SearchUpdate
@@ -22,6 +23,8 @@ def _search_out(db: Session, search: Search, reused: bool = False) -> SearchOut:
     latest = db.scalar(select(Run).where(Run.source_id == source.id).order_by(Run.id.desc()).limit(1))
     if source.collector == "youtube":
         creatives = db.scalar(select(func.count()).select_from(SourceVideo).where(SourceVideo.source_id == source.id))
+    elif source.collector == "tiktok":
+        creatives = db.scalar(select(func.count()).select_from(SourceTikTokAd).where(SourceTikTokAd.source_id == source.id))
     else:
         creatives = db.scalar(
             select(func.count(func.distinct(AdCreative.creative_id)))
@@ -98,6 +101,16 @@ def create_search(payload: SearchCreate, db: Session = Depends(get_db), user: Us
             # The niche is the query itself; filtering results by it again would hide off-label hits.
             payload.niche = None
         payload.page = None
+        payload.media_type = "video"
+        payload.language = payload.language or COUNTRY_LANGUAGE.get(payload.country.upper())
+    if payload.source == "tiktok":
+        industry = payload.tiktok_industry
+        if industry is not None and industry not in TIKTOK_INDUSTRIES:
+            raise HTTPException(422, f"Nicho do TikTok desconhecido: {industry}")
+        source_term = f"{TIKTOK_PREFIX}{industry or 'all'}"
+        term = f"TikTok Ads: {TIKTOK_INDUSTRIES[industry] if industry else 'todos os nichos'}"
+        payload.page = None
+        payload.niche = None
         payload.media_type = "video"
         payload.language = payload.language or COUNTRY_LANGUAGE.get(payload.country.upper())
     if payload.page and payload.page.strip():

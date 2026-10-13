@@ -111,6 +111,25 @@ A aceleração aparece a partir da segunda coleta (snapshot diário de views). O
 comercial da descrição é classificado como oferta, igual aos anúncios, e a oferta mostra quantos vídeos a citam.
 Código: `backend/app/collectors/youtube.py`, `backend/app/pipeline/video_score.py` e `video_ingest.py`.
 
+## TikTok (Top Ads)
+
+Em **Minerar**, *Buscar por: TikTok Ads* coleta os "Top Ads" do TikTok Creative Center (anúncios de leilão que o
+TikTok aponta como os de melhor desempenho) dos últimos 180 dias, por país, idioma e nicho (setor do anunciante).
+Não há busca por palavra-chave nem vídeos orgânicos em alta para o Brasil no Creative Center. Cada coleta pega metade
+pelos melhores CTRs do nicho e metade pelos mais curtidos (o TikTok limita cada lista a 500). Comentários,
+compartilhamentos e página de destino vêm do detalhe de cada anúncio, buscado só uma vez. A aba **TikTok** ordena por:
+
+```
+score_tiktok = 3*(1 - percentil do CTR no nicho)          # top 1% -> ~3
+             + 0.5*log10(1 + curtidas)
+             + 0.5*log10(1 + comentários + 2*compartilhamentos)
+             + 0.25*faixa de verba (0 baixa, 1 média, 2 alta)
+```
+
+O Creative Center não tem API pública: uma visita com o Playwright captura a assinatura de sessão da própria página e
+as consultas seguem por HTTP, com pausa entre requisições. A página de destino vira oferta, igual aos anúncios da Meta.
+Código: `backend/app/collectors/tiktok_ads.py` e `backend/app/pipeline/tiktok_ingest.py`.
+
 ## Recoleta e crescimento
 
 Buscas com recoleta automática são reexecutadas pelo agendador (a cada 15 min ele verifica o que está vencido). Toda coleta grava um snapshot diário por criativo, que alimenta o crescimento de 7 dias. Diariamente às 03:00 UTC todos os scores são recalculados.

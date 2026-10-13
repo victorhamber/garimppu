@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { api, formatDate, formatDateTime, type Run, type Search } from "@/lib/api";
+import { api, formatDate, formatDateTime, type Run, type Search, type TikTokIndustry } from "@/lib/api";
 import { useNiches } from "@/lib/hooks";
 
 const REFRESH_OPTIONS = [
@@ -20,7 +20,7 @@ const STATUS: Record<Run["status"], { label: string; className: string }> = {
 };
 
 const EMPTY_FORM = {
-  source: "meta" as "meta" | "youtube",
+  source: "meta" as "meta" | "youtube" | "tiktok",
   mode: "keyword" as "keyword" | "page",
   term: "",
   page: "",
@@ -28,6 +28,7 @@ const EMPTY_FORM = {
   language: "",
   media_type: "all",
   niche: "",
+  industry: "",
   max_ads: "300",
   refresh_hours: "24",
 };
@@ -35,10 +36,16 @@ const EMPTY_FORM = {
 /** Each search page costs 100 of the 10,000 daily YouTube API units, so keep collections small. */
 const YOUTUBE_MAX = 150;
 const YOUTUBE_DEFAULT = "100";
+/** TikTok lists top ads 20 at a page and each new ad needs one more request for its details. */
+const TIKTOK_MAX = 200;
+const TIKTOK_DEFAULT = "100";
+const MAX_BY_SOURCE = { meta: 3000, youtube: YOUTUBE_MAX, tiktok: TIKTOK_MAX };
+const DEFAULT_BY_SOURCE = { meta: EMPTY_FORM.max_ads, youtube: YOUTUBE_DEFAULT, tiktok: TIKTOK_DEFAULT };
 
 function creativesHref(search: Search) {
   const params = new URLSearchParams({ search_id: String(search.id) });
   if (search.source === "youtube") return `/videos?${params}`;
+  if (search.source === "tiktok") return `/tiktok?${params}`;
   if (search.niche) params.set("niche", search.niche);
   return `/?${params}`;
 }
@@ -67,6 +74,11 @@ export function SearchManager() {
   const [notice, setNotice] = useState<Search | null>(null);
   const [openLog, setOpenLog] = useState<number | null>(null);
   const { niches, label } = useNiches();
+  const [industries, setIndustries] = useState<TikTokIndustry[]>([]);
+
+  useEffect(() => {
+    api<TikTokIndustry[]>("/api/tiktok/industries").then(setIndustries).catch(() => setIndustries([]));
+  }, []);
 
   const load = useCallback(() => {
     api<Search[]>("/api/searches")
@@ -90,8 +102,9 @@ export function SearchManager() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const youtube = form.source === "youtube";
-    const byPage = !youtube && form.mode === "page";
-    if (!(byPage ? form.page : form.term).trim() && !(youtube && form.niche)) return;
+    const tiktok = form.source === "tiktok";
+    const byPage = form.source === "meta" && form.mode === "page";
+    if (!tiktok && !(byPage ? form.page : form.term).trim() && !(youtube && form.niche)) return;
     setSubmitting(true);
     setError(null);
     setNotice(null);
@@ -99,20 +112,21 @@ export function SearchManager() {
       const created = await api<Search>("/api/searches", {
         method: "POST",
         body: JSON.stringify({
-          term: byPage ? "" : form.term,
+          term: byPage || tiktok ? "" : form.term,
           page: byPage ? form.page : null,
           country: form.country,
           language: form.language || null,
-          media_type: youtube ? "video" : form.media_type,
-          niche: form.niche || null,
-          source: youtube ? "youtube" : "hybrid",
-          max_ads: youtube ? Math.min(Number(form.max_ads), YOUTUBE_MAX) : Number(form.max_ads),
+          media_type: form.source === "meta" ? form.media_type : "video",
+          niche: tiktok ? null : form.niche || null,
+          tiktok_industry: tiktok && form.industry ? Number(form.industry) : null,
+          source: form.source === "meta" ? "hybrid" : form.source,
+          max_ads: Math.min(Number(form.max_ads), MAX_BY_SOURCE[form.source]),
           refresh_hours: form.refresh_hours ? Number(form.refresh_hours) : null,
         }),
       });
       if (created.reused) setNotice(created);
       setForm({ ...EMPTY_FORM, source: form.source, mode: form.mode, country: form.country, refresh_hours: form.refresh_hours,
-        max_ads: youtube ? YOUTUBE_DEFAULT : EMPTY_FORM.max_ads });
+        max_ads: DEFAULT_BY_SOURCE[form.source] });
       load();
     } catch (err) {
       setError((err as Error).message);
@@ -139,7 +153,8 @@ export function SearchManager() {
   }
 
   async function remove(search: Search) {
-    const kept = search.source === "youtube" ? "Os vídeos coletados" : "Os criativos coletados";
+    const kept = search.source === "youtube" ? "Os vídeos coletados"
+      : search.source === "tiktok" ? "Os anúncios coletados" : "Os criativos coletados";
     if (!confirm(`Excluir a busca "${search.term}"? ${kept} continuam salvos.`)) return;
     await api(`/api/searches/${search.id}`, { method: "DELETE" });
     load();
@@ -148,11 +163,12 @@ export function SearchManager() {
   const set = (key: keyof typeof EMPTY_FORM) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
   const youtube = form.source === "youtube";
+  const tiktok = form.source === "tiktok";
   const setKind = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     setForm((f) => {
-      const source = value === "youtube" ? "youtube" : "meta";
-      const max_ads = source === f.source ? f.max_ads : source === "youtube" ? YOUTUBE_DEFAULT : EMPTY_FORM.max_ads;
+      const source = value === "youtube" || value === "tiktok" ? value : "meta";
+      const max_ads = source === f.source ? f.max_ads : DEFAULT_BY_SOURCE[source];
       return { ...f, source, mode: value === "page" ? "page" : "keyword", max_ads };
     });
   };
@@ -172,19 +188,32 @@ export function SearchManager() {
           últimos 30 dias e mede quais pegaram tração rápido; sem tema, escolha um nicho para ver o que está em alta nele
           (resultado em{" "}
           <Link href="/videos" className="text-foreground underline underline-offset-2 hover:text-accent">Vídeos</Link>).
+          Com <span className="text-foreground">TikTok Ads</span>, escolha um nicho: a coleta traz os anúncios que o TikTok
+          aponta como os de melhor CTR e mais curtidos nos últimos 180 dias (resultado em{" "}
+          <Link href="/tiktok" className="text-foreground underline underline-offset-2 hover:text-accent">TikTok</Link>).
         </p>
       </div>
 
       <form onSubmit={submit} className="grid grid-cols-2 gap-3 rounded-lg border border-line bg-surface p-4 md:grid-cols-4 xl:grid-cols-9">
         <div>
           <label className="label" htmlFor="mode">Buscar por</label>
-          <select id="mode" className="field" value={youtube ? "youtube" : form.mode} onChange={setKind}>
+          <select id="mode" className="field" value={form.source === "meta" ? form.mode : form.source} onChange={setKind}>
             <option value="keyword">Palavra-chave</option>
             <option value="page">Página</option>
             <option value="youtube">YouTube</option>
+            <option value="tiktok">TikTok Ads</option>
           </select>
         </div>
-        {youtube || form.mode === "keyword" ? (
+        {tiktok ? (
+          <div className="col-span-2 xl:col-span-2">
+            <label className="label" htmlFor="industry">Nicho do TikTok</label>
+            <select id="industry" className="field" value={form.industry} onChange={set("industry")}
+              title="O TikTok não permite busca por palavra-chave nos top anúncios; o filtro é pelo nicho (setor) do anunciante">
+              <option value="">Todos os nichos</option>
+              {industries.map((i) => <option key={i.id} value={i.id}>{i.label}</option>)}
+            </select>
+          </div>
+        ) : youtube || form.mode === "keyword" ? (
           <div className="col-span-2 xl:col-span-2">
             <label className="label" htmlFor="term">Tema ou palavra-chave</label>
             <input id="term" className="field" value={form.term} onChange={set("term")} required={!youtube || !form.niche}
@@ -204,7 +233,7 @@ export function SearchManager() {
         <div>
           <label className="label" htmlFor="language">Idioma</label>
           <select id="language" className="field" value={form.language} onChange={set("language")}>
-            <option value="">{youtube ? "Do país" : "Todos"}</option>
+            <option value="">{form.source === "meta" ? "Todos" : "Do país"}</option>
             <option value="pt">Português</option>
             <option value="es">Espanhol</option>
             <option value="en">Inglês</option>
@@ -220,7 +249,7 @@ export function SearchManager() {
             </select>
           </div>
         )}
-        {!youtube && (
+        {form.source === "meta" && (
           <>
             <div>
               <label className="label" htmlFor="media">Mídia</label>
@@ -242,8 +271,9 @@ export function SearchManager() {
         )}
         <div>
           <label className="label" htmlFor="max">{youtube ? "Máx. vídeos" : "Máx. anúncios"}</label>
-          <input id="max" type="number" min={10} max={youtube ? YOUTUBE_MAX : 3000} step={10} className="field" value={form.max_ads}
-            onChange={set("max_ads")} title={youtube ? "Os mais vistos dos últimos 30 dias. Cada 50 vídeos gastam 100 da cota diária de 10 mil da API do YouTube." : undefined} />
+          <input id="max" type="number" min={10} max={MAX_BY_SOURCE[form.source]} step={10} className="field" value={form.max_ads}
+            onChange={set("max_ads")} title={youtube ? "Os mais vistos dos últimos 30 dias. Cada 50 vídeos gastam 100 da cota diária de 10 mil da API do YouTube."
+              : tiktok ? "Metade pelos melhores CTRs do nicho, metade pelos mais curtidos, nos últimos 180 dias." : undefined} />
         </div>
         <div>
           <label className="label" htmlFor="refresh">Recoleta</label>
@@ -259,7 +289,7 @@ export function SearchManager() {
               {formatDate(notice.monitored_since)}:{" "}
               <Link href={creativesHref(notice)} className="text-foreground underline underline-offset-2 hover:text-accent">
                 <span className="font-mono tabular-nums">{notice.creatives_count}</span>{" "}
-                {notice.source === "youtube" ? "vídeos" : "criativos"} já coletados
+                {notice.source === "youtube" ? "vídeos" : notice.source === "tiktok" ? "anúncios" : "criativos"} já coletados
               </Link>
             </p>
           )}
@@ -293,6 +323,7 @@ export function SearchManager() {
               const nextRun = nextManualRun(s, now);
               const status = run ? STATUS[run.status] : null;
               const yt = s.source === "youtube";
+              const tt = s.source === "tiktok";
               const unit = yt ? "vídeos" : "anúncios";
               return (
                 <Fragment key={s.id}>
@@ -304,8 +335,8 @@ export function SearchManager() {
                         ) : s.term}
                       </div>
                       <div className="mt-0.5 text-xs text-muted">
-                        {yt ? "YouTube" : s.page_id ? "Página" : "Palavra-chave"} · {s.country} · até {s.max_ads} {unit}
-                        {!yt && s.media_type !== "all" && ` · ${s.media_type === "image" ? "imagens" : "vídeos"}`}
+                        {yt ? "YouTube" : tt ? "TikTok Ads" : s.page_id ? "Página" : "Palavra-chave"} · {s.country} · até {s.max_ads} {unit}
+                        {!yt && !tt && s.media_type !== "all" && ` · ${s.media_type === "image" ? "imagens" : "vídeos"}`}
                         {s.niche && ` · só ${label(s.niche)}`}
                         {joinedLater(s) && ` · base desde ${formatDate(s.monitored_since)}`}
                       </div>
@@ -329,7 +360,7 @@ export function SearchManager() {
                     <td className="lg:px-4 lg:py-3">
                       <span className="label lg:hidden">Resultados</span>
                       <span className="font-mono tabular-nums">{s.creatives_count}</span>{" "}
-                      <span className="text-xs text-muted">{yt ? "vídeos" : "criativos"}</span>
+                      <span className="text-xs text-muted">{yt ? "vídeos" : tt ? "anúncios" : "criativos"}</span>
                     </td>
                     <td className="text-muted lg:px-4 lg:py-3">
                       <span className="label lg:hidden">Última coleta</span>
@@ -348,7 +379,7 @@ export function SearchManager() {
                     </td>
                     <td className="col-span-2 sm:col-span-4 lg:px-4 lg:py-3">
                       <div className="flex flex-wrap gap-1 lg:flex-nowrap lg:justify-end">
-                        <Link href={creativesHref(s)} className="btn h-8 text-xs pointer-coarse:h-11">{yt ? "Ver vídeos" : "Ver criativos"}</Link>
+                        <Link href={creativesHref(s)} className="btn h-8 text-xs pointer-coarse:h-11">{yt ? "Ver vídeos" : tt ? "Ver anúncios" : "Ver criativos"}</Link>
                         {nextRun ? (
                           <span title={`Coletada nas últimas 24h. Nova coleta liberada em ${formatDateTime(new Date(nextRun).toISOString())}`}>
                             <button type="button" className="btn h-8 text-xs pointer-coarse:h-11" disabled>Coletada</button>
