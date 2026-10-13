@@ -216,8 +216,8 @@ Uma paleta de mina: ardósias quase pretas, um branco de quartzo quente e uma lu
 **Character:** Geist é neutra e técnica, sem personalidade decorativa; Geist Mono dá aos números o peso de leitura de instrumento. O par soa como um laudo, não como marketing.
 
 ### Hierarchy
-- **Headline** (600, 1.5rem, tracking -0.025em): título da página ("Ofertas mais escaladas", "Criativos mais escalados"; no detalhe do criativo, o nome do anunciante). Um `h1` por tela.
-- **Section** (600, 1.125rem): títulos de seção dentro da tela ("Ofertas em alta", "Anúncios com este criativo").
+- **Headline** (600, 1.5rem, tracking -0.025em): título da página, igual ao nome da aba ("Ofertas", "Criativos"; no detalhe do criativo, o nome do anunciante). Um `h1` por tela.
+- **Section** (600, 1.125rem): títulos de seção dentro da tela ("Em alta no Google agora", "Anúncios com este criativo").
 - **Title** (500, 1rem; 0.875rem nos cartões): nome da oferta e do anunciante.
 - **Body** (400, 0.875rem): texto de interface. Textos corridos ficam em até 65 caracteres por linha (`max-w-prose`) com entrelinha 1.625; copy de anúncio nos cartões usa entrelinha 1.5 (texto claro sobre escuro pede mais ar). No detalhe do criativo, a copy é o conteúdo e fica em Quartz White, não em Dust Gray.
 - **Label** (500, 0.75rem, caixa alta, tracking 0.05em): rótulos de campo, cabeçalhos de tabela e legendas das estatísticas do detalhe, em Dust Gray.
@@ -283,11 +283,11 @@ Quando a imagem falha ou é um quadro preto (amostra de 8×8 com brilho máximo 
 - **Placeholder:** Dust Gray pleno (5:1 sobre Ledge Slate).
 
 ### Focus Ring
-Todo elemento interativo (links, botões, campos, selects, caixas) mostra, só em foco por teclado (`:focus-visible`), um contorno Lantern Amber de 2px afastado 2px. Campos usam afastamento de 1px; elementos encostados numa borda que corta (mídia do cartão, itens de Ofertas em alta) desenham o anel para dentro (-2px). É o único uso do âmbar que não sinaliza ação primária ou limiar: estado ativo de foco.
+Todo elemento interativo (links, botões, campos, selects, caixas) mostra, só em foco por teclado (`:focus-visible`), um contorno Lantern Amber de 2px afastado 2px. Campos usam afastamento de 1px; elementos encostados numa borda que corta (mídia do cartão) desenham o anel para dentro (-2px). É o único uso do âmbar que não sinaliza ação primária ou limiar: estado ativo de foco.
 - **Labels:** sempre acima, no estilo Label (caixa alta, Dust Gray).
 
 ### Navigation
-Uma faixa fixa de 56px sobre Mine Black a 90%, com desfoque e borda inferior Seam Line. A marca é um quadrado âmbar de 28px com a inicial em Geist Mono negrito, o nome em 600 e uma descrição em Dust Gray (só a partir de 1280px). São oito abas, nesta ordem: Explorar, Ofertas, Vídeos, TikTok, Sites, Palavras, Minerar, Coleções. Abaixo de 1024px elas descem para uma linha própria em grade de largura igual: 4 colunas (duas linhas) no celular e 8 colunas a partir de 640px; a partir de 1024px ficam em linha ao lado da marca. A conta fica num menu à direita. Os itens usam texto de 14px: o ativo tem fundo Ledge Slate e texto Quartz White; os inativos têm texto Dust Gray, que clareia no hover.
+Uma faixa fixa de 56px sobre Mine Black a 90%, com desfoque e borda inferior Seam Line. A marca é um quadrado âmbar de 28px com a inicial em Geist Mono negrito, o nome em 600 e uma descrição em Dust Gray (só a partir de 1280px). A tela inicial (`/`) é Ofertas, porque oferta vem primeiro. São quatro abas, nesta ordem: Ofertas, Criativos (`/criativos`), Fontes ▾ e Coleções. Fontes é um menu (clique, Esc fecha) com Vídeos do YouTube, Anúncios do TikTok, Sites de venda e Palavras-chave; numa dessas telas a aba fica ativa e mostra "Fontes · TikTok" (o sufixo só a partir de 640px). Minerar não é aba: é o único botão primário âmbar da barra, à direita, ao lado do menu da conta, com anel âmbar quando a tela está aberta. O nome de cada aba ou item é o título da página. Abaixo de 1024px as abas descem para uma linha própria de 4 colunas iguais; a partir de 1024px ficam em linha ao lado da marca. `/ofertas` e `/?offer=` antigos redirecionam. Os itens usam texto de 14px: o ativo tem fundo Ledge Slate e texto Quartz White; os inativos têm texto Dust Gray, que clareia no hover.
 
 ### Score Badge (signature)
 Um selo Geist Mono de 12px com cantos de 4px, que funciona como termômetro de escala:
@@ -302,9 +302,6 @@ Uma faixa de 3 a 5 células iguais, com divisórias de 1px desenhadas pelo gap s
 
 ### Offer Line (cartão de criativo)
 Logo abaixo da faixa de métricas: um chip neutro (borda Seam Line, texto Quartz White, 11px) com a plataforma de venda ou o tipo de oferta, seguido do nome curto em Dust Gray. A linha inteira leva aos criativos daquela oferta. O chip é neutro de propósito: âmbar em todos os cartões quebraria The One Lantern Rule.
-
-### Hot Offers Strip (Ofertas em alta)
-Faixa com as 5 ofertas de maior score entre a área de filtros e a grade, seguindo a busca e o texto filtrados e excluindo WhatsApp/perfil. Cada item: miniatura de 48px, nome, selo de score relativo, plataforma ou tipo e "N anunciantes · N anúncios" (anunciantes em âmbar a partir de 2). Em 5 colunas no desktop, 3 no tablet e rolagem horizontal com snap no celular. Some quando há filtro de oferta.
 
 ### Filtros (um modelo só)
 Todo filtro vive na URL e se aplica sozinho: selects e caixas na hora, campos digitados (texto e mínimos numéricos) 400ms depois da última tecla. Enter aplica tudo o que foi digitado sem esperar. Campos numéricos aceitam só dígitos. Durante a recarga, a lista anterior fica a 60% de opacidade, com `aria-busy`, e uma região `role="status"` oculta anuncia "Carregando…" e depois "N criativos encontrados" (ou "Nenhum…").

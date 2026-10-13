@@ -39,7 +39,7 @@ export function CreativeDetailView() {
 
   return (
     <div className="flex flex-col gap-8">
-      <BackLink href="/">Voltar para criativos</BackLink>
+      <BackLink href="/criativos">Voltar para criativos</BackLink>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,460px)_1fr]">
         <div className="overflow-hidden rounded-lg border border-line bg-surface-2">

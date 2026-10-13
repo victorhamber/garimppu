@@ -44,7 +44,7 @@ export function AdvertiserView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <BackLink href="/">Voltar para criativos</BackLink>
+      <BackLink href="/criativos">Voltar para criativos</BackLink>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           {page?.profile_picture_url && (

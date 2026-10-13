@@ -129,7 +129,7 @@ export function VideosView() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Vídeos em alta no YouTube</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Vídeos do YouTube</h1>
         <p className="mt-1 text-sm text-muted">Vídeos ganhando views mais rápido que o normal.</p>
       </div>
 
@@ -313,7 +313,7 @@ function VideoCard({ video, rank, heat, niche }: { video: Video; rank: number; h
             <span className="text-muted" title="A aceleração aparece a partir da segunda coleta, um dia depois">Aceleração na próxima coleta</span>
           )}
           {video.offer_key && (
-            <Link href={`/?offer=${encodeURIComponent(video.offer_key)}`} title={`Ver anúncios desta oferta (${video.link_url ?? video.offer_key})`}
+            <Link href={`/criativos?offer=${encodeURIComponent(video.offer_key)}`} title={`Ver anúncios desta oferta (${video.link_url ?? video.offer_key})`}
               className="ml-auto max-w-full truncate rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent hover:bg-accent/10">
               {video.offer_label ?? video.offer_key}
             </Link>

@@ -140,7 +140,7 @@ export function TikTokView() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Top anúncios do TikTok</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Anúncios do TikTok</h1>
         <p className="mt-1 text-sm text-muted">Anúncios com melhor desempenho no TikTok.</p>
       </div>
 
@@ -306,7 +306,7 @@ function TikTokCard({ ad, rank, heat }: { ad: TikTokAd; rank: number; heat?: Sco
             </a>
           )}
           {ad.offer_key && (
-            <Link href={`/?offer=${encodeURIComponent(ad.offer_key)}`} title={`Ver anúncios desta oferta no Meta (${ad.offer_key})`}
+            <Link href={`/criativos?offer=${encodeURIComponent(ad.offer_key)}`} title={`Ver anúncios desta oferta no Meta (${ad.offer_key})`}
               className="ml-auto max-w-full truncate rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent hover:bg-accent/10">
               {ad.offer_label ?? ad.offer_key}
             </Link>

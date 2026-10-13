@@ -1,10 +1,10 @@
 import { Suspense } from "react";
-import { Explorer } from "@/components/Explorer";
+import { OffersView } from "@/components/OffersView";
 
 export default function Home() {
   return (
     <Suspense fallback={<p className="text-muted">Carregando...</p>}>
-      <Explorer />
+      <OffersView />
     </Suspense>
   );
 }

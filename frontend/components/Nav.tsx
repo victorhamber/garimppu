@@ -5,21 +5,23 @@ import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { useAuth } from "./AuthProvider";
 
-const LINKS = [
-  { href: "/", label: "Explorar" },
-  { href: "/ofertas", label: "Ofertas" },
-  { href: "/videos", label: "Vídeos" },
-  { href: "/tiktok", label: "TikTok" },
-  { href: "/sites", label: "Sites" },
-  { href: "/palavras-chave", label: "Palavras" },
-  { href: "/buscas", label: "Minerar" },
-  { href: "/colecoes", label: "Coleções" },
+const SOURCES = [
+  { href: "/videos", label: "Vídeos do YouTube", short: "YouTube" },
+  { href: "/tiktok", label: "Anúncios do TikTok", short: "TikTok" },
+  { href: "/sites", label: "Sites de venda", short: "Sites" },
+  { href: "/palavras-chave", label: "Palavras-chave", short: "Palavras" },
 ];
+
+const tabClass = (active: boolean) =>
+  `flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-sm lg:px-3 whitespace-nowrap transition-colors pointer-coarse:min-h-11 ${
+    active ? "bg-surface-2 text-foreground" : "text-muted hover:text-foreground"
+  }`;
 
 export function Nav() {
   const pathname = usePathname();
   const { user } = useAuth();
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  const mining = isActive("/buscas");
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-background/90 backdrop-blur">
@@ -33,27 +35,91 @@ export function Nav() {
         </Link>
         {user && (
           <>
-            <div className="ml-auto lg:order-last">
+            <div className="ml-auto flex items-center gap-2 lg:order-last">
+              <Link
+                href="/buscas"
+                aria-current={mining ? "page" : undefined}
+                className={`btn btn-primary h-8 pointer-coarse:h-11 ${mining ? "ring-2 ring-accent/50 ring-offset-2 ring-offset-background" : ""}`}
+              >
+                Minerar
+              </Link>
               <AccountMenu />
             </div>
-            <nav className="-mx-1 grid w-full grid-cols-4 gap-1 pb-2 sm:grid-cols-8 lg:mx-0 lg:flex lg:w-auto lg:items-center lg:pb-0">
-              {LINKS.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  aria-current={isActive(link.href) ? "page" : undefined}
-                  className={`flex items-center justify-center rounded-md px-2 py-1.5 text-sm lg:px-3 whitespace-nowrap transition-colors pointer-coarse:min-h-11 ${
-                    isActive(link.href) ? "bg-surface-2 text-foreground" : "text-muted hover:text-foreground"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
+            <nav aria-label="Principal" className="-mx-1 grid w-full grid-cols-4 gap-1 pb-2 lg:mx-0 lg:flex lg:w-auto lg:items-center lg:pb-0">
+              <Link href="/" aria-current={isActive("/") ? "page" : undefined} className={tabClass(isActive("/"))}>Ofertas</Link>
+              <Link href="/criativos" aria-current={isActive("/criativos") ? "page" : undefined} className={tabClass(isActive("/criativos"))}>
+                Criativos
+              </Link>
+              <SourcesMenu current={SOURCES.find((s) => isActive(s.href))} />
+              <Link href="/colecoes" aria-current={isActive("/colecoes") ? "page" : undefined} className={tabClass(isActive("/colecoes"))}>
+                Coleções
+              </Link>
             </nav>
           </>
         )}
       </div>
     </header>
+  );
+}
+
+function SourcesMenu({ current }: { current?: (typeof SOURCES)[number] }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const menuId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  return (
+    <div
+      ref={ref}
+      className="relative"
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && open) {
+          setOpen(false);
+          toggleRef.current?.focus();
+        }
+      }}
+    >
+      <button
+        ref={toggleRef}
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls={menuId}
+        className={`${tabClass(!!current)} w-full`}
+      >
+        Fontes
+        {current && <span className="hidden text-muted sm:inline">· {current.short}</span>}
+        <svg viewBox="0 0 24 24" className={`size-3.5 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} fill="none"
+          stroke="currentColor" strokeWidth={2} aria-hidden="true">
+          <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open && (
+        <div id={menuId} onClick={() => setOpen(false)} className="absolute right-0 top-full z-40 mt-1 w-56 lg:right-auto lg:left-0 rounded-md border border-line bg-surface p-1 shadow-xl">
+          {SOURCES.map((s) => (
+            <Link
+              key={s.href}
+              href={s.href}
+              aria-current={current?.href === s.href ? "page" : undefined}
+              className={`flex w-full items-center rounded px-2 py-1.5 text-sm hover:bg-surface-2 pointer-coarse:py-3 ${
+                current?.href === s.href ? "bg-surface-2 text-foreground" : "text-muted hover:text-foreground"
+              }`}
+            >
+              {s.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

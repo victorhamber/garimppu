@@ -43,7 +43,7 @@ npm install
 npm run dev
 ```
 
-Abra http://localhost:3000, entre com o e-mail e a senha provisória, vá em **Minerar**, crie uma busca e acompanhe o status. Os criativos aparecem em **Explorar**. Licenças, webhook de compra e e-mail ficam em **Licenças** (menu da conta).
+Abra http://localhost:3000, entre com o e-mail e a senha provisória, vá em **Minerar**, crie uma busca e acompanhe o status. As ofertas aparecem na tela inicial (**Ofertas**) e os criativos em **Criativos**. Licenças, webhook de compra e e-mail ficam em **Licenças** (menu da conta).
 
 Use `python -m uvicorn` / `python -m alembic` em vez dos executáveis da venv caso o Windows bloqueie os `.exe`.
 

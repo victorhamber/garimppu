@@ -233,7 +233,7 @@ function SiteRow({ site, rank, nicheLabel }: { site: Site; rank: number; nicheLa
           {site.videos > 0 && <span className="text-accent">{site.videos} no YouTube</span>}
         </div>
         <div className="flex flex-wrap gap-1.5">
-          <Link href={`/ofertas?q=${domain}&scope=all`}
+          <Link href={`/?q=${domain}&scope=all`}
             className="rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent hover:bg-accent/10 pointer-coarse:py-2">
             Ver ofertas e anúncios
           </Link>

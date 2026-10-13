@@ -331,7 +331,7 @@ function KeywordActions({ term: raw, geo, metaAds }: { term: string; geo: string
   return (
     <div className="col-start-2 flex flex-wrap items-center gap-1.5 lg:col-start-3 lg:max-w-80 lg:justify-end">
       {metaAds != null && metaAds > 0 && (
-        <Link href={`/?q=${term}&scope=all`} className="rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent hover:bg-accent/10 pointer-coarse:py-2"
+        <Link href={`/criativos?q=${term}&scope=all`} className="rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent hover:bg-accent/10 pointer-coarse:py-2"
           title="Anúncios do Meta já coletados que citam o termo">
           {metaAds > 99 ? "99+" : metaAds} {metaAds === 1 ? "anúncio" : "anúncios"} no Meta
         </Link>
@@ -343,7 +343,7 @@ function KeywordActions({ term: raw, geo, metaAds }: { term: string; geo: string
       <a href={`https://www.google.com/search?q=${term}`} target="_blank" rel="noreferrer" className={LINK_CLASS}>
         Google
       </a>
-      <Link href={`/?q=${term}&scope=all`} className={LINK_CLASS} title="Criativos já coletados com o termo">Explorar</Link>
+      <Link href={`/criativos?q=${term}&scope=all`} className={LINK_CLASS} title="Criativos já coletados com o termo">Criativos</Link>
       {mining === "done" ? (
         <Link href="/buscas" className="rounded-full border border-ok/40 px-2 py-0.5 text-micro text-ok pointer-coarse:py-2">
           Busca criada no Meta

@@ -103,7 +103,7 @@ export function OffersView() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Ofertas mais escaladas</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Ofertas</h1>
         <p className="mt-1 text-sm text-muted">Produtos com mais anunciantes e anúncios rodando.</p>
       </div>
 
@@ -302,7 +302,7 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
           <div className="flex items-center gap-1">
             <CollectionMenu target={{ offerKey: offer.key }} selected={offer.collection_ids} collections={collections}
               onChange={onCollectionsChange} />
-            <Link href={`/?offer=${encodeURIComponent(offer.key)}`} className="btn h-8 whitespace-nowrap text-xs pointer-coarse:h-11">
+            <Link href={`/criativos?offer=${encodeURIComponent(offer.key)}`} className="btn h-8 whitespace-nowrap text-xs pointer-coarse:h-11">
               Ver criativos
             </Link>
           </div>

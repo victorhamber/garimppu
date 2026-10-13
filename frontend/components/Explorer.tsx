@@ -10,8 +10,6 @@ import { digitsOnly, useUrlFilters } from "@/lib/useUrlFilters";
 import { ConfirmMine } from "./ConfirmMine";
 import { CreativeGrid } from "./CreativeGrid";
 import { CheckToggle, FilterChips, FilterSelect, FilterToggle, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
-import { HotOffers } from "./HotOffers";
-
 const FILTER_KEYS: (keyof CreativeFilters)[] = [
   "q", "search_id", "offer", "country", "niche", "media_type", "min_days", "min_duplicates", "active_only",
   "include_brands", "scope", "sort",
@@ -121,7 +119,7 @@ export function Explorer() {
     <div className="flex flex-col gap-6">
       {filters.offer ? (
         <div>
-          <BackLink href="/ofertas">Ofertas</BackLink>
+          <BackLink href="/">Ofertas</BackLink>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-balance">
             Criativos da oferta {offerName && <span className="break-all">{offerName}</span>}
           </h1>
@@ -137,7 +135,7 @@ export function Explorer() {
         </div>
       ) : (
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Criativos mais escalados</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Criativos</h1>
           <p className="mt-1 text-sm text-muted">
             Anúncios do Meta que mais estão escalando.{lastRunAgo && ` Última coleta ${lastRunAgo}.`}
           </p>
@@ -192,11 +190,6 @@ export function Explorer() {
 
         <FilterChips chips={chips} onRemove={(key) => update(key, "")} onClear={hasFilters ? clear : undefined} />
       </form>
-
-      {!filters.offer && (
-        <HotOffers q={filters.q} searchId={filters.search_id} activeOnly={filters.active_only} includeBrands={filters.include_brands}
-          scope={filters.scope} />
-      )}
 
       <CreativeGrid
         filters={filters}
