@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     scraper_headless: bool = True
     scraper_min_delay: float = 1.5
     scraper_max_delay: float = 3.5
-    scraper_max_idle_scrolls: int = 4
+    scraper_max_idle_scrolls: int = 6
     scraper_timeout_seconds: int = 600
 
     download_videos: bool = False

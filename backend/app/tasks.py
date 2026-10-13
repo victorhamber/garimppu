@@ -16,7 +16,7 @@ from app.collectors.tiktok_ads import TikTokError, collect_tiktok_ads, session_h
 from app.collectors.youtube import YouTubeError, collect_videos
 from app.config import get_settings
 from app.db import SessionLocal
-from app.models import Creative, Run
+from app.models import Creative, Run, SourceAd
 from app.pipeline.ingest import ingest_ads
 from app.pipeline.normalize import merge_sources
 from app.pipeline.scoring import recompute_scores
@@ -91,7 +91,8 @@ def run_source(run_id: int) -> None:
 
         if source.collector in ("scraper", "hybrid"):
             try:
-                scraped = _run_async(scrape_library(query, log))
+                known = set(db.scalars(select(SourceAd.ad_archive_id).where(SourceAd.source_id == source.id)))
+                scraped = _run_async(scrape_library(query, log, known=known))
             except Exception as exc:
                 if source.collector == "scraper":
                     raise

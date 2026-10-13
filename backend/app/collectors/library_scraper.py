@@ -196,12 +196,26 @@ async def _dismiss_cookie_banner(page) -> None:
             continue
 
 
-async def scrape_library(query: SearchQuery, log: Callable[[str], None] = logger.info) -> list[RawAd]:
+async def _scroll(page, idle: int) -> None:
+    """Bottom of the page; when nothing new came, back up a little first so the infinite list re-triggers."""
+    if idle:
+        await page.evaluate("window.scrollBy(0, -1200)")
+        await asyncio.sleep(0.5)
+    await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+    await page.mouse.wheel(0, 2500)
+
+
+async def scrape_library(query: SearchQuery, log: Callable[[str], None] = logger.info,
+                         known: set[str] | frozenset[str] = frozenset()) -> list[RawAd]:
+    """Scrolls until ``max_ads`` ads not in ``known`` came in; known ads seen on the way are returned too."""
     from playwright.async_api import async_playwright
 
     settings = get_settings()
     found: dict[str, RawAd] = {}
     pending: list[asyncio.Task] = []
+
+    def new_count() -> int:
+        return sum(1 for ad_id in found if ad_id not in known)
 
     def ingest(nodes: Iterator[dict]) -> None:
         for node in nodes:
@@ -234,29 +248,41 @@ async def scrape_library(query: SearchQuery, log: Callable[[str], None] = logger
             await _dismiss_cookie_banner(page)
             await asyncio.sleep(random.uniform(2.5, 4.0))
             ingest(extract_ad_nodes_from_html(await page.content()))
-            log(f"Carga inicial: {len(found)} anúncios")
+            if known:
+                log(f"Carga inicial: {len(found)} anúncios ({new_count()} novos; esta busca já tem {len(known)})")
+            else:
+                log(f"Carga inicial: {len(found)} anúncios")
 
             deadline = time.monotonic() + settings.scraper_timeout_seconds
             idle = 0
-            while len(found) < query.max_ads and idle < settings.scraper_max_idle_scrolls:
+            scrolls = 0
+            while new_count() < query.max_ads:
                 if time.monotonic() > deadline:
                     log("Tempo limite do scraper atingido")
                     break
+                if idle >= settings.scraper_max_idle_scrolls:
+                    log(f"A Biblioteca parou de mandar anúncios após {scrolls} rolagens")
+                    if "login" in page.url:
+                        log(f"A página pediu login: {page.url}")
+                    break
                 before = len(found)
-                await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                await asyncio.sleep(random.uniform(settings.scraper_min_delay, settings.scraper_max_delay))
+                await _scroll(page, idle)
+                scrolls += 1
+                # Each empty scroll waits longer: slow pages often answer on the second or third try.
+                await asyncio.sleep(random.uniform(settings.scraper_min_delay, settings.scraper_max_delay) + idle)
                 if pending:
                     await asyncio.gather(*pending, return_exceptions=True)
                     pending.clear()
                 idle = idle + 1 if len(found) == before else 0
                 if len(found) != before:
-                    log(f"{len(found)} anúncios coletados")
+                    log(f"{len(found)} anúncios vistos, {new_count()} novos")
         finally:
             if pending:
                 await asyncio.gather(*pending, return_exceptions=True)
             await context.close()
             await browser.close()
 
-    ads = list(found.values())[: query.max_ads]
-    log(f"Scraper finalizado: {len(ads)} anúncios")
-    return ads
+    fresh = [ad for ad in found.values() if ad.ad_archive_id not in known][: query.max_ads]
+    seen = [ad for ad in found.values() if ad.ad_archive_id in known]
+    log(f"Scraper finalizado: {len(fresh)} anúncios novos" + (f", {len(seen)} já conhecidos" if known else ""))
+    return fresh + seen
