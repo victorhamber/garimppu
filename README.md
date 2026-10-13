@@ -135,14 +135,16 @@ O Creative Center não tem API pública: uma visita com o Playwright captura a a
 as consultas seguem por HTTP, com pausa entre requisições. A página de destino vira oferta, igual aos anúncios da Meta.
 Código: `backend/app/collectors/tiktok_ads.py` e `backend/app/pipeline/tiktok_ingest.py`.
 
-## Sites (Cloudflare Radar)
+## Sites de venda
 
-Em **Minerar**, *Buscar por: Sites* coleta pela API do Cloudflare Radar (precisa de `CLOUDFLARE_API_TOKEN`) o
-ranking dos domínios no país, por categoria: *Mais acessados* (volume de tráfego), *Subindo agora* e *Crescimento
-constante* (os que mais ganharam posições). O Radar dá a posição, não o número de visitas, e no máximo 100 domínios
-por ranking. A aba **Sites** mostra a posição, quanto o site subiu ou caiu desde a coleta anterior e quantos anúncios
-do Meta e do TikTok já coletados levam para ele. As categorias ficam em `CATEGORIES` em `collectors/radar.py`.
-Código: `backend/app/collectors/radar.py`, `backend/app/pipeline/site_ingest.py` e `backend/app/routes/sites.py`.
+A aba **Sites** lista os sites próprios dos anunciantes (lojas e páginas de venda) para onde apontam os anúncios do
+Meta já coletados, agrupados por domínio: anunciantes, anúncios, produtos, dias no ar, nicho (o mais comum entre os
+criativos) e se o mesmo site aparece em top anúncios do TikTok ou em vídeos do YouTube. Checkouts (Hotmart, Kiwify...),
+marketplaces, apps, WhatsApp e encurtadores ficam de fora. O score é o mesmo das ofertas, somando o site inteiro.
+Código: `backend/app/routes/sites.py`.
+
+O ranking do Cloudflare Radar (`collectors/radar.py`) não é mais criado em Minerar: o filtro de categoria do Radar só
+olha os 100 domínios mais acessados do país, dominados por Google, Facebook e afins.
 
 ## Palavras-chave em alta (Google Trends)
 

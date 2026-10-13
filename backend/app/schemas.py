@@ -268,33 +268,29 @@ class TikTokIndustry(BaseModel):
 
 
 class SiteOut(BaseModel):
+    """A sales site (the advertiser's own domain) found behind the collected ads."""
     domain: str
     url: str
-    rank: int
-    previous_rank: int | None
-    pct_rank_change: float | None
-    ranking: str
-    ranking_label: str
-    category: str | None
-    category_label: str | None
-    categories: list[str]
-    country: str
-    search_term: str | None
-    offer_key: str | None
-    meta_ads: int = 0
-    tiktok_ads: int = 0
+    niche: str | None
+    platform: str | None  # store platform, e.g. Shopify
+    score: float
+    advertisers: int
+    ads: int
+    creatives: int
+    products: int
+    days_active: int
     first_seen_at: datetime
+    last_seen_at: datetime
+    tiktok_ads: int = 0
+    videos: int = 0
+    top_advertisers: list[OfferAdvertiser]
+    previews: list[OfferPreview]
 
 
 class SitePage(BaseModel):
     total: int
     items: list[SiteOut]
-    enabled: bool = True
-
-
-class SiteOption(BaseModel):
-    id: str
-    label: str
+    hidden_brands: int = 0
 
 
 class TrendNews(BaseModel):

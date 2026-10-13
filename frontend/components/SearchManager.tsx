@@ -205,7 +205,6 @@ export function SearchManager() {
             <option value="page">Página</option>
             <option value="youtube">YouTube</option>
             <option value="tiktok">TikTok Ads</option>
-            <option value="sites">Sites</option>
             <option value="trends">Palavras-chave em alta</option>
           </select>
         </div>

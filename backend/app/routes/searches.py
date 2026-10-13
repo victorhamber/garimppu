@@ -5,8 +5,6 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.auth import current_user
-from app.collectors.radar import MAX_LIMIT as SITE_MAX, RANKINGS as SITE_RANKINGS
-from app.collectors.radar import source_term as site_source_term
 from app.collectors.google_trends import source_term as trends_source_term
 from app.collectors.tiktok_ads import INDUSTRIES as TIKTOK_INDUSTRIES, PREFIX as TIKTOK_PREFIX
 from app.collectors.youtube import NICHE_PREFIX
@@ -138,17 +136,7 @@ def create_search(payload: SearchCreate, db: Session = Depends(get_db), user: Us
         payload.media_type = "video"
         payload.language = payload.language or COUNTRY_LANGUAGE.get(payload.country.upper())
     if payload.source == "sites":
-        if not get_settings().cloudflare_api_token:
-            raise HTTPException(503, "Busca de sites desativada: falta configurar CLOUDFLARE_API_TOKEN no servidor.")
-        # Radar applies the category filter after its top-100 cut and its trending lists ignore the
-        # country, so only the plain popularity ranking is useful.
-        source_term = site_source_term("POPULAR", None)
-        term = f"Sites: {SITE_RANKINGS['POPULAR'].lower()} ({payload.country.upper()})"
-        payload.page = None
-        payload.niche = None
-        payload.language = None
-        payload.media_type = "all"
-        payload.max_ads = min(payload.max_ads, SITE_MAX)
+        raise HTTPException(422, "Os sites de venda vêm dos anúncios coletados: crie uma busca de anúncios no Meta.")
     if payload.source == "trends":
         country = payload.country.upper()
         source_term = trends_source_term(country)

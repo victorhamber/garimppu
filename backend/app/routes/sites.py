@@ -1,107 +1,168 @@
-"""Most visited / rising sites collected from Cloudflare Radar rankings, with the ads running on each one."""
+"""Sales sites: the advertisers' own domains behind the collected ads, grouped by site and niche.
 
+An offer on a site ("site") or a store product ("loja", "host/produto") belongs to the site's host.
+Checkout platforms, marketplaces, apps and chat links are not the advertiser's site and are left out.
+Score: same formula as offers, on the whole site (all of its products together).
+"""
+
+from collections import Counter
+from datetime import date, datetime, timedelta, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
 
 from app.auth import current_user
-from app.collectors.radar import CATEGORIES, PREFIX, RANKINGS, parse_term
 from app.config import get_settings
 from app.db import get_db
-from app.models import Ad, Search, Site, Source, SourceSite, TikTokAd, User
+from app.models import Ad, Creative, SourceAd, TikTokAd, User, Video
+from app.pipeline.scoring import count_duplicates, days_running
 from app.pipeline.sources import user_search_source, user_source_ids
-from app.schemas import SiteOption, SiteOut, SitePage
+from app.routes.offers import offer_score
+from app.schemas import OfferAdvertiser, OfferPreview, SiteOut, SitePage
+from app.serializers import media_path
 
 router = APIRouter(prefix="/api/sites", tags=["sites"])
 
-SiteSort = Literal["rank", "rise", "ads", "recent"]
+SiteSort = Literal["score", "advertisers", "ads", "products", "days_active", "recent"]
+SITE_KINDS = ("site", "loja")
+# Link hubs, shorteners and social/content hosts: never the advertiser's sales site.
+NOT_SALES_SITES = (
+    "linktr.ee", "bit.ly", "beacons.ai", "linkin.bio", "tinyurl.com", "google.com", "forms.gle", "youtube.com",
+    "youtu.be", "tiktok.com", "t.me", "telegram.me", "x.com", "twitter.com", "linkedin.com", "pinterest.com",
+    "threads.net", "spotify.com", "canva.site", "wix.com", "blogspot.com",
+)
+MAX_PREVIEWS = 4
+MAX_ADVERTISERS = 3
 
 
-def offer_counts(db: Session, offer_keys: set[str]) -> tuple[dict[str, int], dict[str, int]]:
-    """Meta and TikTok ads per site offer key; store offers ("host/produto") count for their host."""
-    if not offer_keys:
-        return {}, {}
-    result: list[dict[str, int]] = []
-    for column in (Ad.offer_key, TikTokAd.offer_key):
-        match = or_(column.in_(offer_keys), *[column.like(f"{key}/%") for key in offer_keys])
-        counts: dict[str, int] = {}
-        for key, n in db.execute(select(column, func.count()).where(match).group_by(column)):
-            host = key.split("/")[0]
-            counts[host] = counts.get(host, 0) + n
-        result.append(counts)
-    return result[0], result[1]
+def site_domain(offer_key: str | None) -> str | None:
+    if not offer_key or ":" in offer_key:
+        return None
+    host = offer_key.split("/")[0]
+    if "." not in host or any(host == h or host.endswith("." + h) for h in NOT_SALES_SITES):
+        return None
+    return host
 
 
-@router.get("/options")
-def list_options(db: Session = Depends(get_db)):
-    seen = {c.strip() for row in db.scalars(select(Site.categories).where(Site.categories.is_not(None)))
-            for c in row.split(",") if c.strip()}
-    return {
-        "categories": sorted((SiteOption(id=c, label=CATEGORIES.get(c, c)) for c in seen), key=lambda o: o.label),
-        "rankings": [SiteOption(id=k, label=v) for k, v in RANKINGS.items()],
-    }
+def _other_platforms(db: Session, domains: set[str]) -> tuple[Counter[str], Counter[str]]:
+    """TikTok top ads and YouTube videos pointing at each site."""
+    tiktok: Counter[str] = Counter()
+    videos: Counter[str] = Counter()
+    for model, counts in ((TikTokAd, tiktok), (Video, videos)):
+        for key in db.scalars(select(model.offer_key).where(model.offer_key.is_not(None), model.offer_kind.in_(SITE_KINDS))):
+            domain = site_domain(key)
+            if domain in domains:
+                counts[domain] += 1
+    return tiktok, videos
+
+
+def _creative_rank(creative: Creative) -> float:
+    return creative.score.score if creative.score else 0.0
+
+
+def _build_site(domain: str, ads: list[Ad], today: date) -> SiteOut:
+    pages: Counter[str] = Counter(a.page_id for a in ads if a.page_id)
+    names = {a.page_id: a.page.name for a in ads if a.page}
+    creatives = {c.id: c for a in ads for c in a.creatives}
+    niches = Counter(c.niche for c in creatives.values() if c.niche)
+    platforms = Counter(a.offer_platform for a in ads if a.offer_platform)
+    previews = sorted(creatives.values(), key=_creative_rank, reverse=True)[:MAX_PREVIEWS]
+    ad_by_creative = {c.id: a for a in ads for c in a.creatives}
+    duplicates = count_duplicates(ads)
+    days = days_running(ads, today)
+    url = Counter(a.link_url for a in ads if a.link_url).most_common(1)
+    return SiteOut(
+        domain=domain,
+        url=url[0][0] if url else f"https://{domain}",
+        niche=niches.most_common(1)[0][0] if niches else None,
+        platform=platforms.most_common(1)[0][0] if platforms else None,
+        score=offer_score(len(pages), duplicates, len(creatives), days),
+        advertisers=len(pages),
+        ads=duplicates,
+        creatives=len(creatives),
+        products=len({a.offer_key for a in ads}),
+        days_active=days,
+        first_seen_at=min(a.first_seen_at for a in ads),
+        last_seen_at=max(a.last_seen_at for a in ads),
+        top_advertisers=[
+            OfferAdvertiser(page_id=pid, name=names.get(pid), ads=n) for pid, n in pages.most_common(MAX_ADVERTISERS)
+        ],
+        previews=[
+            OfferPreview(
+                creative_id=c.id,
+                media_type=c.media_type,
+                image=media_path(c.local_path, c.thumbnail_url),
+                text=ad_by_creative[c.id].body or ad_by_creative[c.id].title,
+            )
+            for c in previews
+        ],
+    )
+
+
+SORT_KEYS = {
+    "score": lambda s: s.score,
+    "advertisers": lambda s: (s.advertisers, s.score),
+    "ads": lambda s: (s.ads, s.score),
+    "products": lambda s: (s.products, s.score),
+    "days_active": lambda s: (s.days_active, s.score),
+    "recent": lambda s: s.first_seen_at,
+}
 
 
 @router.get("", response_model=SitePage)
 def list_sites(
     q: str | None = None,
+    niche: str | None = None,
     search_id: int | None = None,
-    scope: Literal["mine", "all"] = Query("mine", description="mine = só sites das buscas do usuário"),
-    category: str | None = None,
-    ranking: Literal["POPULAR", "TRENDING_RISE", "TRENDING_STEADY"] | None = None,
-    has_ads: bool = Query(False, description="Só sites com anúncios no Meta ou no TikTok já coletados"),
-    sort: SiteSort = "rank",
-    limit: int = Query(50, ge=1, le=200),
+    scope: Literal["mine", "all"] = Query("mine", description="mine = só anúncios das buscas do usuário"),
+    active_only: bool = True,
+    include_brands: bool = Query(False, description="Inclui páginas de marcas grandes"),
+    sort: SiteSort = "score",
+    limit: int = Query(30, ge=1, le=200),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
 ):
-    stmt = select(SourceSite, Site, Source).join(Site, Site.domain == SourceSite.domain).join(
-        Source, Source.id == SourceSite.source_id)
+    stmt = select(Ad).where(Ad.offer_kind.in_(SITE_KINDS), Ad.offer_key.is_not(None)).options(
+        selectinload(Ad.page), selectinload(Ad.creatives).selectinload(Creative.score)
+    )
+    if active_only:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=get_settings().stale_ad_days)
+        stmt = stmt.where(Ad.is_active.is_(True), Ad.last_seen_at >= cutoff)
     if search_id:
-        stmt = stmt.where(SourceSite.source_id == user_search_source(user.id, search_id))
+        source_id = user_search_source(user.id, search_id)
+        stmt = stmt.where(Ad.ad_archive_id.in_(select(SourceAd.ad_archive_id).where(SourceAd.source_id == source_id)))
     elif scope == "mine":
-        stmt = stmt.where(SourceSite.source_id.in_(user_source_ids(user.id)))
-    if category:
-        stmt = stmt.where(Site.categories.like(f"%{category}%"))
-    if ranking:
-        stmt = stmt.where(Source.term.like(f"{PREFIX}{ranking}:%"))
-    if q:
-        stmt = stmt.where(or_(Site.domain.ilike(f"%{q.strip()}%"), Site.categories.ilike(f"%{q.strip()}%")))
-
-    rows = db.execute(stmt).all()
-    meta, tiktok = offer_counts(db, {site.offer_key for _, site, _ in rows if site.offer_key})
-    terms = dict(db.execute(select(Search.source_id, Search.term).where(Search.user_id == user.id)).all())
-
-    items: list[SiteOut] = []
-    for link, site, source in rows:
-        rank_type, cat = parse_term(source.term)
-        key = site.offer_key
-        items.append(SiteOut(
-            domain=site.domain, url=f"https://{site.domain}", rank=link.rank, previous_rank=link.previous_rank,
-            pct_rank_change=link.pct_rank_change, ranking=rank_type, ranking_label=RANKINGS.get(rank_type, rank_type),
-            category=cat, category_label=CATEGORIES.get(cat, cat) if cat else None,
-            categories=[CATEGORIES.get(c.strip(), c.strip()) for c in (site.categories or "").split(",") if c.strip()],
-            country=source.country, search_term=terms.get(source.id), offer_key=key,
-            meta_ads=meta.get(key, 0) if key else 0, tiktok_ads=tiktok.get(key, 0) if key else 0,
-            first_seen_at=link.first_seen_at,
+        stmt = stmt.where(Ad.ad_archive_id.in_(
+            select(SourceAd.ad_archive_id).where(SourceAd.source_id.in_(user_source_ids(user.id)))
         ))
-    if has_ads:
-        items = [s for s in items if s.meta_ads or s.tiktok_ads]
 
-    def climb(s: SiteOut) -> float:
-        if s.previous_rank is not None:
-            return s.previous_rank - s.rank
-        return s.pct_rank_change or 0
+    groups: dict[str, list[Ad]] = {}
+    brand_sites: set[str] = set()
+    for ad in db.scalars(stmt):
+        domain = site_domain(ad.offer_key)
+        if not domain:
+            continue
+        if not include_brands and ad.page and ad.page.big_brand:
+            brand_sites.add(domain)
+            continue
+        groups.setdefault(domain, []).append(ad)
 
-    sorters = {
-        "rank": lambda s: (s.rank, s.domain),
-        "rise": lambda s: (-climb(s), s.rank),
-        "ads": lambda s: (-(s.meta_ads + s.tiktok_ads), s.rank),
-        "recent": lambda s: (-s.first_seen_at.timestamp(), s.rank),
-    }
-    items.sort(key=sorters[sort])
-    return SitePage(total=len(items), items=items[offset:offset + limit],
-                    enabled=bool(get_settings().cloudflare_api_token))
+    today = date.today()
+    sites = [_build_site(domain, ads, today) for domain, ads in groups.items()]
+    if niche:
+        sites = [s for s in sites if s.niche == niche]
+    if q:
+        needle = q.strip().lower()
+        sites = [s for s in sites if needle in s.domain
+                 or any(needle in (a.name or "").lower() for a in s.top_advertisers)]
+
+    tiktok, videos = _other_platforms(db, {s.domain for s in sites})
+    for site in sites:
+        site.tiktok_ads = tiktok.get(site.domain, 0)
+        site.videos = videos.get(site.domain, 0)
+    sites.sort(key=SORT_KEYS[sort], reverse=True)
+    return SitePage(total=len(sites), items=sites[offset:offset + limit],
+                    hidden_brands=len(brand_sites - groups.keys()))

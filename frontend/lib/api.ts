@@ -196,31 +196,28 @@ export type TikTokAd = {
 
 export type TikTokAdPage = { total: number; items: TikTokAd[]; heat: ScoreHeat };
 
-/** A domain's position in a collected Cloudflare Radar ranking (country + category + ranking type). */
+/** A sales site (the advertiser's own domain) found behind the collected ads. */
 export type Site = {
   domain: string;
   url: string;
-  rank: number;
-  /** Position in the previous collection, when it changed. */
-  previous_rank: number | null;
-  /** Radar's own rank change, only in trending rankings. */
-  pct_rank_change: number | null;
-  ranking: "POPULAR" | "TRENDING_RISE" | "TRENDING_STEADY";
-  ranking_label: string;
-  category: string | null;
-  category_label: string | null;
-  categories: string[];
-  country: string;
-  search_term: string | null;
-  offer_key: string | null;
-  meta_ads: number;
-  tiktok_ads: number;
+  niche: string | null;
+  /** Store platform, e.g. Shopify. */
+  platform: string | null;
+  score: number;
+  advertisers: number;
+  ads: number;
+  creatives: number;
+  products: number;
+  days_active: number;
   first_seen_at: string;
+  last_seen_at: string;
+  tiktok_ads: number;
+  videos: number;
+  top_advertisers: Offer["top_advertisers"];
+  previews: Offer["previews"];
 };
 
-/** `enabled`: false while the server has no CLOUDFLARE_API_TOKEN. */
-export type SitePage = { total: number; items: Site[]; enabled: boolean };
-export type SiteOptions = { categories: { id: string; label: string }[]; rankings: { id: string; label: string }[] };
+export type SitePage = { total: number; items: Site[]; hidden_brands: number };
 export type TikTokIndustry = { id: number; label: string };
 
 /** A term from Google Trends "trending now"; traffic is Google's approximate search count ("20000+"). */
