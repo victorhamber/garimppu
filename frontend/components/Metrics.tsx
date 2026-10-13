@@ -11,6 +11,27 @@ function heatClass(score: number, heat?: ScoreHeat | null): string {
 
 export const HEAT_HINT = "brasa = top 5% deste resultado, âmbar = top 20%";
 
+/** What a badge's position is measured against: the list on screen, or every active item in the base. */
+export type RankReference = "result" | "base";
+const REFERENCE_TEXT: Record<RankReference, string> = { result: "deste resultado", base: "da base" };
+
+/**
+ * Relative position as text: "top 5%" for the tightest step the value reaches, "fora do top 50%" below them all,
+ * null when the set is too small to rank (the server sends no steps).
+ */
+export function rankText(value: number, heat?: ScoreHeat | null): string | null {
+  const steps = heat?.ranks ?? [];
+  if (steps.length === 0) return null;
+  const hit = steps.find(([, cutoff]) => value >= cutoff);
+  return hit ? `top ${Math.round(hit[0] * 100)}%` : `fora do top ${Math.round(steps.at(-1)![0] * 100)}%`;
+}
+
+/** The badge's full reading, for tooltips and accessible names: "top 5% deste resultado". */
+export function rankPhrase(value: number, heat?: ScoreHeat | null, reference: RankReference = "result"): string {
+  const text = rankText(value, heat);
+  return text ? `${text} ${REFERENCE_TEXT[reference]}` : "sem comparação: poucos itens";
+}
+
 /** Whether a metric is in the top 10% of the current result, by the server's cutoff (`ctr_rank`: lower wins). */
 export function topMetric(heat: ScoreHeat | null | undefined, name: string, value: number | null | undefined): boolean {
   const cutoff = heat?.metrics?.[name];
@@ -21,21 +42,34 @@ export function topMetric(heat: ScoreHeat | null | undefined, name: string, valu
 type ScoreBadgeProps = {
   value: number;
   heat?: ScoreHeat | null;
-  /** What the number is, for the tooltip, e.g. "Score de oferta". */
+  /** What is being ranked, for the tooltip, e.g. "Score de oferta". */
   title?: string;
-  /** Shown instead of the number (keywords show the search volume). */
+  /** "result" in lists (the legend says so on screen), "base" on a detail page, where the badge spells it out. */
+  reference?: RankReference;
+  /** Shown instead of the position (keywords show the search volume); the position still reaches screen readers. */
   children?: ReactNode;
   className?: string;
 };
 
-/** The one score badge: neutral, amber in the top 20% of the result, ember in the top 5%. */
-export function ScoreBadge({ value, heat, title = "Score de escala", children, className = "" }: ScoreBadgeProps) {
+/**
+ * The one score badge: the item's relative position ("top 5%"), never the raw score.
+ * Neutral, amber in the top 20% of the reference, ember in the top 5%.
+ */
+export function ScoreBadge({ value, heat, title = "Score de escala", reference = "result", children, className = "" }: ScoreBadgeProps) {
+  const phrase = rankPhrase(value, heat, reference);
+  const text = rankText(value, heat);
+  const ranked = text != null && !text.startsWith("fora");
+  const shown = !ranked ? "—" : reference === "base" ? phrase : text;
   return (
     <span
-      title={`${title} (${HEAT_HINT})`}
+      title={`${phrase[0].toUpperCase()}${phrase.slice(1)} · ${title}`}
       className={`shrink-0 rounded px-1.5 py-0.5 font-mono text-xs font-semibold whitespace-nowrap tabular-nums ${heatClass(value, heat)} ${className}`}
     >
-      {children ?? value.toFixed(2)}
+      {children != null ? (
+        <>{children}<span className="sr-only"> ({phrase})</span></>
+      ) : (
+        <><span aria-hidden="true">{shown}</span><span className="sr-only">{phrase}</span></>
+      )}
     </span>
   );
 }
@@ -116,7 +150,7 @@ const HEAT_KEY = (
       <span className="rounded bg-hot px-1 font-mono text-micro font-semibold text-accent-ink">brasa</span>top 5%
     </span>
     <span className="flex items-center gap-1.5">
-      <span className="rounded bg-accent px-1 font-mono text-micro font-semibold text-accent-ink">âmbar</span>top 20%
+      <span className="rounded bg-accent px-1 font-mono text-micro font-semibold text-accent-ink">âmbar</span>top 20% deste resultado
     </span>
   </>
 );
@@ -134,7 +168,7 @@ export function ScoreLegend({ kind = "creative" }: { kind?: keyof typeof FORMULA
       </summary>
       <div className="mt-1.5 flex max-w-prose flex-wrap items-center gap-x-3 gap-y-1">
         <span className="flex items-center gap-x-3 sm:hidden">{HEAT_KEY}</span>
-        <p>{FORMULAS[kind]} Cores relativas a este resultado.</p>
+        <p>{FORMULAS[kind]} O selo mostra a posição do item neste resultado, do top 1% ao top 50%; &quot;—&quot; fica na metade de baixo.</p>
       </div>
     </details>
   );

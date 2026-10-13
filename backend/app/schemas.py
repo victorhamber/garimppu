@@ -148,6 +148,7 @@ class ScoreHeat(BaseModel):
     """Score cutoffs (hot = top 5%, warm = top 20%) and per-metric cutoffs (top 10%) of the current result."""
     hot: float | None = None
     warm: float | None = None
+    ranks: list[tuple[float, float]] = []  # (share, score cutoff) for top 1/5/10/20/50%: the badge's "top N%"
     metrics: dict[str, float] = {}
 
 

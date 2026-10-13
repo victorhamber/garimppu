@@ -41,7 +41,7 @@ export function CreativeDetailView() {
   }, [id, attempt]);
 
   useEffect(() => {
-    api<CreativePage>("/api/creatives?limit=1").then((page) => setHeat(page.heat)).catch(() => setHeat(null));
+    api<CreativePage>("/api/creatives?limit=1&scope=all").then((page) => setHeat(page.heat)).catch(() => setHeat(null));
   }, []);
 
   if (error) return <ErrorState action="abrir o criativo" error={error} onRetry={() => setAttempt((n) => n + 1)} />;
@@ -84,7 +84,7 @@ export function CreativeDetailView() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <ScoreBadge value={s?.score ?? 0} heat={heat} />
+              <ScoreBadge value={s?.score ?? 0} heat={heat} reference="base" />
               <div className="rounded-md border border-line">
                 <CollectionMenu target={{ creativeId: creative.id }} selected={creative.collection_ids} collections={collections}
                   onChange={(ids) => { setCreative({ ...creative, collection_ids: ids }); reload(); }} />

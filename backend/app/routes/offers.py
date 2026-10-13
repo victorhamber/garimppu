@@ -19,7 +19,7 @@ from app.config import get_settings
 from app.db import get_db
 from app.models import Ad, CollectionOffer, Creative, Page, SourceAd, TikTokAd, User, Video
 from app.csv_export import EXPORT_LIMIT, csv_response
-from app.pipeline.heat import HOT_SHARE, MIN_DAYS_ACTIVE, WARM_SHARE, metric_cutoffs, rank_cutoff
+from app.pipeline.heat import HOT_SHARE, MIN_DAYS_ACTIVE, WARM_SHARE, metric_cutoffs, rank_cutoff, rank_cutoffs
 from app.pipeline.offers import offer_label
 from app.pipeline.scoring import MAX_LONGEVITY_DAYS, count_duplicates, days_running
 from app.pipeline.sources import SCOPE_HELP, resolve_scope, user_search_source, user_source_ids
@@ -218,6 +218,7 @@ def offer_heat(rows) -> ScoreHeat:
     return ScoreHeat(
         hot=rank_cutoff(scores, HOT_SHARE),
         warm=rank_cutoff(scores, WARM_SHARE),
+        ranks=rank_cutoffs(scores),
         metrics=metric_cutoffs(columns, {"advertisers": 2, "ads": 2, "creatives": 2, "products": 2,
                                          "days_active": MIN_DAYS_ACTIVE}),
     )

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { offerTag, type Collection, type Creative, type ScoreHeat } from "@/lib/api";
 import { CollectionMenu } from "./CollectionMenu";
 import { CreativeMedia } from "./CreativeMedia";
-import { MetricRow, Platforms, ScoreBadge } from "./Metrics";
+import { MetricRow, Platforms, rankPhrase, ScoreBadge } from "./Metrics";
 
 type Props = {
   creative: Creative;
@@ -15,11 +15,10 @@ type Props = {
   onCollectionsChange: (ids: number[]) => void;
 };
 
-function mediaName(creative: Creative, rank: number) {
+function mediaName(creative: Creative, rank: number, heat: ScoreHeat | null) {
   const advertiser = creative.page?.name ?? creative.page?.page_id;
   const kind = creative.media_type === "video" ? "Vídeo" : creative.media_type === "image" ? "Imagem" : "Anúncio só texto";
-  const score = (creative.score?.score ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return `${kind} #${rank}${advertiser ? ` de ${advertiser}` : ""}, score ${score}: ver detalhes`;
+  return `${kind} #${rank}${advertiser ? ` de ${advertiser}` : ""}, ${rankPhrase(creative.score?.score ?? 0, heat)}: ver detalhes`;
 }
 
 function Advertiser({ creative }: { creative: Creative }) {
@@ -93,7 +92,7 @@ function Actions({ creative, collections, onCollectionsChange, external = true }
 export function CreativeCard({ creative, rank, heat, collections, nicheLabel, onCollectionsChange }: Props) {
   return (
     <article className="group flex flex-col overflow-hidden rounded-lg border border-line bg-surface transition-colors hover:border-muted/60">
-      <Link href={`/criativos/${creative.id}`} aria-label={mediaName(creative, rank)}
+      <Link href={`/criativos/${creative.id}`} aria-label={mediaName(creative, rank, heat)}
         className="relative block aspect-square overflow-hidden bg-surface-2 focus-visible:-outline-offset-2">
         <CreativeMedia creative={creative} className="transition-transform duration-300 motion-safe:group-hover:scale-[1.02]" />
         <span className="absolute top-2 left-2 rounded border border-line bg-background/85 px-1.5 py-0.5 font-mono text-xs text-foreground tabular-nums">#{rank}</span>
@@ -133,7 +132,7 @@ export function CreativeRow({ creative, rank, heat, collections, nicheLabel, onC
   return (
     <article className="flex items-center gap-3 rounded-lg border border-line bg-surface p-2 transition-colors hover:border-muted/60 sm:gap-4">
       <span className="hidden w-8 shrink-0 text-right font-mono text-xs text-muted tabular-nums sm:block" aria-hidden="true">#{rank}</span>
-      <Link href={`/criativos/${creative.id}`} aria-label={mediaName(creative, rank)}
+      <Link href={`/criativos/${creative.id}`} aria-label={mediaName(creative, rank, heat)}
         className="relative size-14 shrink-0 overflow-hidden rounded-md bg-surface-2 sm:size-16">
         <CreativeMedia creative={creative} compact />
         {creative.media_type === "video" && (

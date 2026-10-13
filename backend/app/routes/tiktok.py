@@ -11,7 +11,7 @@ from app.collectors.tiktok_ads import INDUSTRIES, OBJECTIVES, detail_url
 from app.db import get_db
 from app.models import SourceTikTokAd, TikTokAd, User
 from app.csv_export import EXPORT_LIMIT, csv_response
-from app.pipeline.heat import HOT_SHARE, WARM_SHARE, metric_cutoffs, rank_cutoff
+from app.pipeline.heat import HOT_SHARE, WARM_SHARE, metric_cutoffs, rank_cutoff, rank_cutoffs
 from app.pipeline.offers import offer_label
 from app.pipeline.sources import SCOPE_HELP, resolve_scope, user_search_source, user_source_ids
 from app.routes.collections import collections_by_ref, saved_refs
@@ -95,6 +95,7 @@ def list_ads(
     heat = ScoreHeat(
         hot=rank_cutoff([s[0] for s in signals], HOT_SHARE),
         warm=rank_cutoff([s[0] for s in signals], WARM_SHARE),
+        ranks=rank_cutoffs([s[0] for s in signals]),
         metrics=metric_cutoffs(
             {"ctr_rank": [s[1] for s in signals], "likes": [s[2] for s in signals],
              "comments": [s[3] for s in signals], "shares": [s[4] for s in signals]},

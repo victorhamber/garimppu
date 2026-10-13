@@ -12,7 +12,7 @@ from app.config import get_settings
 from app.db import get_db
 from app.models import SourceVideo, User, Video
 from app.csv_export import EXPORT_LIMIT, csv_response
-from app.pipeline.heat import HOT_SHARE, WARM_SHARE, metric_cutoffs, rank_cutoff
+from app.pipeline.heat import HOT_SHARE, WARM_SHARE, metric_cutoffs, rank_cutoff, rank_cutoffs
 from app.pipeline.niche import NICHES
 from app.pipeline.offers import offer_label
 from app.pipeline.sources import SCOPE_HELP, resolve_scope, user_search_source, user_source_ids
@@ -100,6 +100,7 @@ def list_videos(
     heat = ScoreHeat(
         hot=rank_cutoff([s[0] for s in signals], HOT_SHARE),
         warm=rank_cutoff([s[0] for s in signals], WARM_SHARE),
+        ranks=rank_cutoffs([s[0] for s in signals]),
         metrics=metric_cutoffs(
             {"views": [s[1] for s in signals], "velocity": [s[2] for s in signals],
              "outlier": [s[3] for s in signals], "engagement": [s[4] for s in signals]},

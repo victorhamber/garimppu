@@ -22,7 +22,7 @@ from app.models import (
     SourceAd,
     User,
 )
-from app.pipeline.heat import HOT_SHARE, MIN_DAYS_ACTIVE, MIN_DUPLICATES, WARM_SHARE, metric_cutoffs, rank_cutoff
+from app.pipeline.heat import HOT_SHARE, MIN_DAYS_ACTIVE, MIN_DUPLICATES, WARM_SHARE, metric_cutoffs, rank_cutoff, rank_cutoffs
 from app.pipeline.niche import NICHES
 from app.pipeline.sources import SCOPE_HELP, resolve_scope, user_search_source, user_source_ids
 from app.routes.collections import user_collection_ids
@@ -202,6 +202,7 @@ def creative_heat(signals) -> ScoreHeat:
     return ScoreHeat(
         hot=rank_cutoff(scores, HOT_SHARE),
         warm=rank_cutoff(scores, WARM_SHARE),
+        ranks=rank_cutoffs(scores),
         metrics=metric_cutoffs(
             {"duplicates": [d for _, d, _ in signals], "days_active": [d for _, _, d in signals]},
             {"duplicates": MIN_DUPLICATES, "days_active": MIN_DAYS_ACTIVE},

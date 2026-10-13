@@ -258,9 +258,10 @@ export type KeywordSuggestions = { term: string; country: string; items: Keyword
 
 /**
  * Cutoffs relative to the current result set; null/absent when the set is too small to rank.
+ * `ranks`: [share, score cutoff] steps for top 1/5/10/20/50%, read by the badge as "top N%".
  * `metrics`: per-metric value reaching the top 10% (for `ctr_rank`, lower is better).
  */
-export type ScoreHeat = { hot: number | null; warm: number | null; metrics?: Record<string, number> };
+export type ScoreHeat = { hot: number | null; warm: number | null; ranks?: [number, number][]; metrics?: Record<string, number> };
 
 /** `hidden_brands`: results left out because they belong to big brands (0 when they're included). */
 export type CreativePage = { total: number; items: Creative[]; heat: ScoreHeat; has_history: boolean; hidden_brands: number; scope: Scope };

@@ -13,7 +13,7 @@ from app.config import get_settings
 from app.db import get_db
 from app.models import Ad, Search, SourceTrend, TrendKeyword, TrendSnapshot, User
 from app.csv_export import EXPORT_LIMIT, csv_response
-from app.pipeline.heat import HOT_SHARE, WARM_SHARE, rank_cutoff
+from app.pipeline.heat import HOT_SHARE, WARM_SHARE, rank_cutoff, rank_cutoffs
 from app.pipeline.niche import NICHES, NicheSignals, classify_signals
 from app.pipeline.sources import SCOPE_HELP, as_utc, resolve_scope, user_search_source, user_source_ids
 from app.routes.collections import collections_by_ref, saved_refs
@@ -120,7 +120,7 @@ def list_keywords(
     filtered = stmt.subquery()
     total = db.scalar(select(func.count()).select_from(filtered)) or 0
     peaks = [p for p in db.scalars(select(filtered.c.peak_traffic)) if p is not None]
-    heat = ScoreHeat(hot=rank_cutoff(peaks, HOT_SHARE), warm=rank_cutoff(peaks, WARM_SHARE))
+    heat = ScoreHeat(hot=rank_cutoff(peaks, HOT_SHARE), warm=rank_cutoff(peaks, WARM_SHARE), ranks=rank_cutoffs(peaks))
     order = {
         "traffic": (TrendKeyword.peak_traffic.desc().nulls_last(), TrendKeyword.last_seen_at.desc()),
         "recent": (TrendKeyword.last_seen_at.desc(), TrendKeyword.peak_traffic.desc().nulls_last()),

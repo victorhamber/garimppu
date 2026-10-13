@@ -21,6 +21,14 @@ def rank_cutoff(values: Sequence[float], share: float) -> float | None:
     return sorted(values, reverse=True)[k - 1]
 
 
+RANK_SHARES = (0.01, 0.05, 0.10, 0.20, 0.50)
+
+
+def rank_cutoffs(values: Sequence[float]) -> list[tuple[float, float]]:
+    """(share, cutoff) steps the badge reads as "top N%"; steps the set is too small for are left out."""
+    return [(share, cutoff) for share in RANK_SHARES if (cutoff := rank_cutoff(values, share)) is not None]
+
+
 def metric_cutoffs(
     columns: Mapping[str, Sequence[float | None]],
     minimums: Mapping[str, float] | None = None,
