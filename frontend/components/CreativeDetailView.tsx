@@ -45,7 +45,7 @@ export function CreativeDetailView() {
   }, []);
 
   if (error) return <ErrorState action="abrir o criativo" error={error} onRetry={() => setAttempt((n) => n + 1)} />;
-  if (!creative) return <p className="text-muted">Carregando...</p>;
+  if (!creative) return <p role="status" className="text-muted">Carregando criativo...</p>;
 
   const s = creative.score;
   const activeAds = creative.ads.filter((a) => a.is_active);

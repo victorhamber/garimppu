@@ -8,6 +8,7 @@ import { digitsOnly, useUrlFilters } from "@/lib/useUrlFilters";
 import { CollectionMenu } from "./CollectionMenu";
 import { CoverImage, VideoFallback } from "./CoverImage";
 import { ErrorState } from "./ErrorState";
+import { ListSkeleton } from "./Skeleton";
 import { ExportCsv } from "./ExportCsv";
 import { CheckToggle, FilterChips, FilterSelect, FilterToggle, HiddenBrandsNote, MoreFilters, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
 import { Metric, MetricStrip, ScoreBadge, ScoreLegend, topMetric } from "./Metrics";
@@ -189,6 +190,8 @@ export function OffersView() {
           )}
         </div>
       )}
+
+      {loading && !error && items.length === 0 && <ListSkeleton variant="thumb-rows" />}
 
       <div aria-busy={loading || loadingMore} className={`flex flex-col gap-3 transition-opacity ${loading && items.length > 0 ? "opacity-60" : ""}`}>
         {items.map((offer, i) => (

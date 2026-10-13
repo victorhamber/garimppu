@@ -7,6 +7,7 @@ import { useCollections, useNiches } from "@/lib/hooks";
 import { useUrlFilters } from "@/lib/useUrlFilters";
 import { CollectionMenu } from "./CollectionMenu";
 import { ErrorState } from "./ErrorState";
+import { ListSkeleton } from "./Skeleton";
 import { ExportCsv } from "./ExportCsv";
 import { CheckToggle, FilterChips, FilterSelect, FilterToggle, MoreFilters, ScopeToggle, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
 import { CountrySelect } from "./CountrySelect";
@@ -190,6 +191,8 @@ export function KeywordsView() {
           )}
         </div>
       )}
+
+      {loading && !error && items.length === 0 && <ListSkeleton variant="rows" count={8} />}
 
       <ol aria-busy={loading || loadingMore}
         className={`flex flex-col divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface transition-opacity ${items.length === 0 ? "hidden" : ""} ${loading && items.length > 0 ? "opacity-60" : ""}`}>
@@ -411,7 +414,7 @@ export function KeywordRow({ keyword, heat, nicheLabel, collections, onCollectio
                 <a href={n.url} target="_blank" rel="noreferrer" className="text-muted hover:text-foreground">
                   {n.title}
                 </a>
-                {n.source && <span className="text-muted/70"> · {n.source}</span>}
+                {n.source && <span className="text-muted"> · {n.source}</span>}
               </li>
             ))}
           </ul>

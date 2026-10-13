@@ -8,6 +8,7 @@ import { digitsOnly, useUrlFilters } from "@/lib/useUrlFilters";
 import { CollectionMenu } from "./CollectionMenu";
 import { CoverImage, VideoFallback } from "./CoverImage";
 import { ErrorState } from "./ErrorState";
+import { ListSkeleton } from "./Skeleton";
 import { ExportCsv } from "./ExportCsv";
 import { CheckToggle, FilterChips, FilterSelect, FilterToggle, MoreFilters, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
 import { Metric, MetricStrip, ScoreBadge, ScoreLegend, ScoreParts, topMetric } from "./Metrics";
@@ -219,6 +220,8 @@ export function VideosView() {
           )}
         </div>
       )}
+
+      {loading && !error && items.length === 0 && <ListSkeleton variant="cards" />}
 
       <div aria-busy={loading || loadingMore}
         className={`grid gap-4 transition-opacity sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 ${loading && items.length > 0 ? "opacity-60" : ""}`}>

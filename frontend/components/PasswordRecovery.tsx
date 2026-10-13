@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { api, type Me } from "@/lib/api";
 import { useAuth } from "./AuthProvider";
+import { SupportLink } from "./SupportLink";
 
 function Card({ title, intro, children }: { title: string; intro: string; children: React.ReactNode }) {
   return (
@@ -50,7 +51,7 @@ export function ForgotPasswordView() {
   if (sent) {
     return (
       <Card title="Confira seu e-mail" intro={`Se ${email} tiver uma licença ativa, enviamos um link para criar uma senha nova. Ele vale por 1 hora.`}>
-        <p className="text-xs text-muted">Não chegou em alguns minutos? Confira o spam ou fale com o suporte.</p>
+        <p className="text-xs text-muted">Não chegou em alguns minutos? Confira o spam ou fale com <SupportLink />.</p>
       </Card>
     );
   }

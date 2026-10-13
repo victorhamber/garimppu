@@ -78,8 +78,8 @@ export function Nav() {
     <>
       <header className="sticky top-0 z-30 border-b border-line bg-background/90 backdrop-blur">
         <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-x-8 px-4 sm:px-6 lg:h-14 lg:flex-nowrap">
-          <Link href="/" className="flex h-12 shrink-0 items-center gap-2 font-semibold tracking-tight lg:h-auto">
-            <span className="grid size-7 place-items-center rounded bg-accent font-mono text-sm font-bold text-accent-ink">
+          <Link href="/" aria-label="Garimppu: início" className="flex h-12 shrink-0 items-center gap-2 font-semibold tracking-tight lg:h-auto">
+            <span aria-hidden="true" className="grid size-7 place-items-center rounded bg-accent font-mono text-sm font-bold text-accent-ink">
               G
             </span>
             <span className="whitespace-nowrap">Garimppu</span>
@@ -88,7 +88,7 @@ export function Nav() {
           {user && (
             <>
               <div className="ml-auto flex items-center gap-2 lg:order-last">
-                <div role="status" className="contents">
+                <div role="status" aria-label="Coleta" className="contents">
                   {running > 0 && (
                     <Link href="/buscas" title={`${running} ${running === 1 ? "busca coletando ou na fila" : "buscas coletando ou na fila"}`}
                       className="inline-flex min-h-6 items-center gap-1.5 rounded bg-accent/15 px-2 py-1 text-xs font-medium whitespace-nowrap text-accent transition-colors hover:bg-accent/25 pointer-coarse:min-h-11">
@@ -200,7 +200,7 @@ function SourcesMenu({ current, bar = false }: { current?: (typeof SOURCES)[numb
         )}
       </button>
       {open && (
-        <div id={menuId} onClick={() => setOpen(false)}
+        <nav id={menuId} aria-label="Fontes" onClick={() => setOpen(false)}
           className={`absolute z-40 w-56 rounded-md border border-line bg-surface p-1 shadow-xl ${
             bar ? "bottom-full left-1/2 mb-2 -translate-x-1/2" : "right-0 top-full mt-1 lg:right-auto lg:left-0"
           }`}>
@@ -216,7 +216,7 @@ function SourcesMenu({ current, bar = false }: { current?: (typeof SOURCES)[numb
               {s.label}
             </Link>
           ))}
-        </div>
+        </nav>
       )}
     </div>
   );
@@ -271,7 +271,7 @@ function AccountMenu() {
         <span className="sr-only">Conta de {label}</span>
       </button>
       {open && (
-        <div id={menuId} onClick={() => setOpen(false)}
+        <div id={menuId} role="group" aria-label="Conta" onClick={() => setOpen(false)}
           className="absolute right-0 top-full z-40 mt-1 w-56 rounded-md border border-line bg-surface p-1 shadow-xl">
           <p className="truncate px-2 py-1.5 text-xs text-muted" title={user.email}>{user.email}</p>
           <Link href="/conta" className={itemClass}>Minha conta</Link>

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, type Me } from "@/lib/api";
 import { useAuth } from "./AuthProvider";
+import { SupportLink } from "./SupportLink";
 
 /** Only same-app paths: "//evil.com" or "https://..." would turn the login into an open redirect. */
 function safeNext(value: string | null): string {
@@ -67,7 +68,7 @@ export function LoginView() {
           {submitting ? "Entrando..." : "Entrar"}
         </button>
         <p className="text-xs leading-relaxed text-muted">
-          O acesso não chegou? Confira o spam ou fale com o suporte.
+          O acesso não chegou? Confira o spam ou fale com <SupportLink />.
         </p>
       </form>
     </div>

@@ -6,6 +6,7 @@ import { useCollections, useNiches } from "@/lib/hooks";
 import { useViewPreference, type GridView } from "@/lib/useViewPreference";
 import { CreativeCard, CreativeRow } from "./CreativeCard";
 import { ErrorState } from "./ErrorState";
+import { ListSkeleton } from "./Skeleton";
 import { ExportCsv } from "./ExportCsv";
 import { HiddenBrandsNote } from "./FilterBar";
 import { ScoreLegend } from "./Metrics";
@@ -153,6 +154,8 @@ export function CreativeGrid({ filters, emptyMessage, onHistoryChange, toolbar, 
           {emptyMessage ?? "Nenhum criativo encontrado com esses filtros."}
         </div>
       )}
+
+      {refetching && !error && items.length === 0 && <ListSkeleton variant={view === "list" ? "thumb-rows" : "cards"} />}
 
       <div
         aria-busy={loading}

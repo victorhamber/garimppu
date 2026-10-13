@@ -326,6 +326,15 @@ Enquanto alguma busca do usuário está na fila ou coletando, o cabeçalho mostr
 ### Erro (um componente só)
 `ErrorState`: caixa Alarm Red a 10% com borda a 40%, `role="alert"`. Primeira linha em 500 e Alarm Red: "Não foi possível {ação}." (ex.: "carregar as ofertas", "salvar em \"Favoritos\""). Segunda linha em Quartz White a 80%: o motivo real, como `api()` traduziu: a mensagem do servidor quando ele explica (4xx), ou o que o código significa ("Sem conexão com o servidor do Garimppu.", "O servidor do Garimppu está fora do ar ou reiniciando (erro 503).", "Sua sessão expirou.", "Muitas requisições seguidas."). À direita, "Tentar de novo" e "Voltar" (página anterior, ou o destino da tela, como Coleções). A variante compacta (menus, confirmação de mineração, ações de linha) não tem "Voltar". Nenhuma ação falha calada: o menu de coleção abre e mostra o erro dentro dele.
 
+### Esqueleto de carregamento
+`ListSkeleton`: só no primeiro carregamento de uma lista vazia. Imita a forma do que vem: linhas com miniaturas (Ofertas, Sites, Criativos em lista), linhas simples (Palavras-chave) ou cards com área 16:9 e faixa de 4 métricas (Vídeos, TikTok, Criativos em grade). Blocos em Graphite Raised sobre Carbon, pulso só sem reduced-motion, `aria-hidden` (a linha de contagem já anuncia "Carregando..."). Ao trocar filtros com resultados na tela, a lista atual fica a 60% em vez de virar esqueleto.
+
+### Acessibilidade da moldura
+Primeiro foco da página: "Pular para o conteúdo" (botão âmbar que desce do topo ao receber foco e leva ao `main#conteudo`). As duas navegações (abas no topo, barra embaixo) se chamam "Principal" e nunca aparecem juntas; o menu de Fontes é uma `nav` "Fontes"; o logo se chama "Garimppu: início". Texto secundário sempre em Dust Gray cheio, nunca com opacidade (Dust Gray a 70% cai para ~3,4:1).
+
+### Link de suporte
+"o suporte" no login e na recuperação de senha vira link quando `NEXT_PUBLIC_SUPPORT_URL` está definida no build (WhatsApp, e-mail ou página); sem ela, fica como texto.
+
 ### Back Link
 `BackLink`: seta SVG de 16px (traço 2) e texto de 14px em Dust Gray, que clareia no hover. Ocupa só a largura do texto, nunca a linha inteira. Usado no detalhe do criativo, no anunciante, na coleção e nos criativos de uma oferta. Setas e ícones são sempre SVG, nunca caracteres como "←" ou "→".
 

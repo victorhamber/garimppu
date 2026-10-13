@@ -106,8 +106,9 @@ A cópia só roda com o Postgres vazio, então faça isso **antes** de criar qua
 3. **Build**: tipo **Dockerfile**. Em **Build Args** (não em Environment):
    ```
    NEXT_PUBLIC_API_URL=https://api.garimppu.com
+   NEXT_PUBLIC_SUPPORT_URL=https://wa.me/55DDDNUMERO
    ```
-   Esse valor entra no código do navegador durante o build. Se mudar a URL da API, faça **Rebuild**.
+   Esses valores entram no código do navegador durante o build. Se mudar algum, faça **Rebuild**. `NEXT_PUBLIC_SUPPORT_URL` é opcional: aceita `https://...` ou `mailto:...` e vira o link "o suporte" no login e na recuperação de senha; sem ele, o texto fica sem link.
 4. **Domains**: `app.garimppu.com`, porta **3000**, HTTPS ligado.
 5. **Deploy** e acesse `https://app.garimppu.com`.
 
