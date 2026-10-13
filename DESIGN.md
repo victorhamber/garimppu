@@ -1,6 +1,6 @@
 ---
 name: Garimppu
-description: Ofertas e criativos escalados na Biblioteca de Anúncios da Meta, ranqueados por sinais de escala.
+description: Ofertas e criativos escalados na Biblioteca de Anúncios da Meta, ranqueados por sinais de escala, com TikTok, YouTube, Google e sites de venda como fontes de apoio.
 colors:
   mine-black: "#0c0d0f"
   shaft-slate: "#15171a"
@@ -129,6 +129,26 @@ components:
     textColor: "{colors.lantern-amber}"
     rounded: "{rounded.full}"
     padding: "2px 8px"
+  chip-action:
+    backgroundColor: "transparent"
+    textColor: "{colors.lantern-amber}"
+    rounded: "{rounded.full}"
+    padding: "2px 8px"
+  chip-link:
+    backgroundColor: "transparent"
+    textColor: "{colors.dust-gray}"
+    rounded: "{rounded.full}"
+    padding: "2px 8px"
+  badge-media:
+    backgroundColor: "{colors.mine-black}"
+    textColor: "{colors.quartz-white}"
+    rounded: "{rounded.sm}"
+    padding: "2px 6px"
+  popularity-bar:
+    backgroundColor: "{colors.ledge-slate}"
+    rounded: "{rounded.full}"
+    height: "6px"
+    width: "96px"
   nav-item-active:
     backgroundColor: "{colors.ledge-slate}"
     textColor: "{colors.quartz-white}"
@@ -169,7 +189,7 @@ Uma paleta de mina: ardósias quase pretas, um branco de quartzo quente e uma lu
 - **Ore Ink** (ore-ink): texto sobre âmbar. Nunca usado sozinho.
 
 ### Secondary
-- **Ember** (ember): brasa. Só no selo de score mais quente (score de escala ≥ 3), com texto branco. É o único laranja-avermelhado do sistema e marca "isso está pegando fogo".
+- **Ember** (ember): brasa. Só no selo de score mais quente (top 5% do resultado), com texto Ore Ink, e na legenda "brasa" que explica esse selo. É o único laranja-avermelhado do sistema e marca "isso está pegando fogo". Selo de formato ("Short"), selo multiplataforma e destaque de CTR não usam Ember.
 
 ### Neutral
 - **Mine Black** (mine-black): fundo da página e da navegação fixa.
@@ -213,9 +233,11 @@ Títulos (`h1`–`h3`) usam `text-wrap: balance` e parágrafos usam `text-wrap: 
 
 Contêiner central com largura máxima de 1600px, margens laterais de 16px (24px a partir de 640px) e 24px no topo. A navegação é uma faixa fixa de 56px no topo.
 
-As telas seguem um ritmo vertical fixo: cabeçalho da página (título e uma linha de explicação), painel de filtros, contador de resultados com ação secundária (ex.: "Exportar CSV") e, por fim, os resultados. O espaçamento entre esses blocos é de 24px; dentro dos painéis é de 12px.
+As telas seguem um ritmo vertical fixo: cabeçalho da página (só o título; no máximo uma linha curta de contexto, nunca um parágrafo explicativo, e as telas novas como Palavras-chave, Sites de venda e Minerar ficam só com o título), painel de filtros, contador de resultados com ação secundária (ex.: "Exportar CSV") e, por fim, os resultados. O espaçamento entre esses blocos é de 24px; dentro dos painéis é de 12px.
 
 Marcas grandes (páginas com 2 mi+ curtidas ou de marcas conhecidas, como Boticário, 99 e Amazon) ficam fora do ranking por padrão, porque afiliados não podem promovê-las. Ao lado de "Somente ativos" há a caixa "Incluir marcas grandes"; abaixo da legenda do score, uma linha diz quantos resultados ficaram de fora e por quê, com "Mostrar mesmo assim". Quando incluídas, os cartões e as linhas dessas páginas trazem a etiqueta neutra "Marca grande" (borda Seam Line, sem âmbar) antes do nicho. Anunciante, coleção e oferta abertos diretamente mostram tudo. No Explorar, o painel de filtros fica recolhido numa linha (busca, botão "Filtros" com a contagem em âmbar, "Somente ativos" e "Incluir marcas grandes"); abaixo dela, os filtros ativos aparecem como chips removíveis e "Limpar filtros". O botão abre uma grade de 2 colunas (5 a partir de 768px) com Busca, Nicho, Mídia e os mínimos. "Ordenar por" fica no cabeçalho dos resultados, ao lado do contador, em todos os tamanhos, junto com a alternância Grade/Lista compacta e "Exportar CSV". Ofertas segue o mesmo padrão (painel com Tipo, Plataforma, Busca e Mín. anunciantes; "Ordenar por" ao lado do contador). A linha de oferta muda por largura: no celular, as 4 miniaturas ocupam a largura em quadrados iguais, com nome, faixa de métricas (2×2 abaixo de 400px) e a linha score + "Ver criativos" empilhados; de 640px a 1279px, as miniaturas (64px, 80px a partir de 1024px) ficam à esquerda e o resto numa coluna à direita; a partir de 1280px, três colunas. Em Minerar, abaixo de 1024px cada busca é um cartão com rótulos em Label (Status, Criativos, Última coleta, Recoleta) e as ações embaixo; a partir de 1024px, a tabela. No detalhe do criativo, abaixo de 640px a tabela de anúncios vira lista (ID, data, cópias, status e o texto embaixo) e a 5ª métrica ocupa a linha inteira. Botões compactos (`h-7`/`h-8`) sobem para 44px com ponteiro grosso. As peças são compartilhadas (`FilterToggle`, `FilterChips`, `FilterSelect`, `SortSelect`). A tecla "/" leva à busca da página; um "/" em caixa aparece dentro do campo vazio só com ponteiro fino a partir de 768px. O subtítulo do Explorar termina com "Última coleta há N h" (da busca filtrada, ou da mais recente). Os criativos aparecem numa grade automática de cartões com largura mínima de 250px e 16px de gap, ou na lista compacta: linhas de ~80px com posição, miniatura de 64px, anunciante, nicho e plataformas, faixa de métricas (a partir de 768px), selo de score e coleções. A escolha fica salva no navegador. As ofertas são linhas que quebram: miniaturas, informação flexível (mínimo de 256px) e métricas alinhadas à direita, que descem para baixo em telas estreitas. Os detalhes usam duas colunas a partir de 1024px (mídia com até 460px e informação).
+
+As fontes de apoio seguem os mesmos moldes. **Vídeos** e **TikTok** usam a grade de cartões de mídia (capa 16:9 no YouTube, quadrada no TikTok) com o mesmo cabeçalho de filtros. **Sites de venda** usa a linha de oferta (miniaturas, informação, faixa de métricas) com o domínio no lugar do nome da oferta. **Palavras-chave** abre com o bloco de pesquisa pela palavra do usuário (campo, país e "Pesquisar" numa linha só, dentro de um painel) e, abaixo, a seção "Em alta no Google agora" com os filtros e a lista; é o único campo de busca da tela. Em **Minerar**, o formulário é uma grade de 10 colunas a partir de 1280px, com "Buscar por" ocupando duas.
 
 ## Elevation & Depth
 
@@ -265,7 +287,7 @@ Todo elemento interativo (links, botões, campos, selects, caixas) mostra, só e
 - **Labels:** sempre acima, no estilo Label (caixa alta, Dust Gray).
 
 ### Navigation
-Uma faixa fixa de 56px sobre Mine Black a 90%, com desfoque e borda inferior Seam Line. A marca é um quadrado âmbar de 28px com a inicial em Geist Mono negrito, o nome em 600 e uma descrição em Dust Gray (só a partir de 768px). Abaixo de 640px, os itens descem para uma segunda linha com quatro abas de largura igual. Os itens usam texto de 14px: o ativo tem fundo Ledge Slate e texto Quartz White; os inativos têm texto Dust Gray, que clareia no hover.
+Uma faixa fixa de 56px sobre Mine Black a 90%, com desfoque e borda inferior Seam Line. A marca é um quadrado âmbar de 28px com a inicial em Geist Mono negrito, o nome em 600 e uma descrição em Dust Gray (só a partir de 1280px). São oito abas, nesta ordem: Explorar, Ofertas, Vídeos, TikTok, Sites, Palavras, Minerar, Coleções. Abaixo de 1024px elas descem para uma linha própria em grade de largura igual: 4 colunas (duas linhas) no celular e 8 colunas a partir de 640px; a partir de 1024px ficam em linha ao lado da marca. A conta fica num menu à direita. Os itens usam texto de 14px: o ativo tem fundo Ledge Slate e texto Quartz White; os inativos têm texto Dust Gray, que clareia no hover.
 
 ### Score Badge (signature)
 Um selo Geist Mono de 12px com cantos de 4px, que funciona como termômetro de escala:
@@ -299,6 +321,33 @@ Um rótulo de 4px a 12px em peso 500, com no mínimo 24px de altura, fundo da co
 ### Back Link
 `BackLink`: seta SVG de 16px (traço 2) e texto de 14px em Dust Gray, que clareia no hover. Ocupa só a largura do texto, nunca a linha inteira. Usado no detalhe do criativo, no anunciante, na coleção e nos criativos de uma oferta. Setas e ícones são sempre SVG, nunca caracteres como "←" ou "→".
 
+### Cartão de mídia (Vídeos e TikTok)
+Cartão Shaft Slate com a capa no topo (16:9 no YouTube, quadrada no TikTok, sempre recortada) e, sobre ela, selos de mídia: Mine Black a 85% com borda Seam Line e texto Quartz White ("Short", duração em Geist Mono no canto inferior direito). O selo "CTR top N%" do TikTok vira Lantern Amber com Ore Ink só quando o anúncio está no top 10% do nicho. Abaixo: posição "#N", título em 2 linhas, selo de score à direita, linha de contexto em Dust Gray (canal ou marca, nicho, data), faixa de métricas de 4 células e a linha "Pontos:" em Micro.
+
+### Linha "Pontos:" (decomposição do score)
+Em Micro e Dust Gray, logo abaixo da faixa de métricas: as parcelas que somam o score ("views/dia 3,1 · acima do canal 0,8 · ..."), com "—" para parcela ainda sem dado. O mesmo texto aparece no title do selo de score. É como o sistema cumpre "mostrar por que ranqueia" sem parágrafo.
+
+### Selo multiplataforma
+Quando uma oferta aparece em mais de uma fonte, uma pílula com borda Lantern Amber a 60% e texto âmbar em 600 lista as fontes ("Meta + TikTok + YouTube"). É sinal acima do limiar, por isso âmbar; nunca Ember.
+
+### Chips de ação
+Linha de pílulas de 11px que fecha uma linha de palavra-chave ou de site, alinhada à direita no desktop e embaixo no celular (44px de alvo com ponteiro grosso). A ação de valor ("Minerar no Meta", "N anúncios no Meta", "Ver ofertas e anúncios") usa borda âmbar a 40% e texto âmbar, com fundo âmbar a 10% no hover; os links de verificação ("Trends", "Google", "Explorar", "Abrir site") usam borda Seam Line e texto Dust Gray, que clareiam no hover. Depois da ação, o chip vira "Busca criada no Meta" em Vein Green, levando a Minerar.
+
+### Barra de popularidade
+Na pesquisa de palavras: um trilho Ledge Slate de 96px × 6px em pílula, preenchido em Lantern Amber na proporção da popularidade relativa (100 = a busca mais sugerida daquela pesquisa), seguido do número em Dust Gray. Nunca representa volume absoluto.
+
+### Linha de palavra-chave
+Lista dividida por Seam Line dentro de um painel. Na lista em alta, a primeira coluna é o volume estimado ("20 mil+") num selo de calor igual ao score (brasa top 5%, âmbar top 20%) com a variação ▲/▼ abaixo; na pesquisa, é a posição "#N". No meio, o termo em 500, o selo "em alta"/"agora" (Vein Green a 15% com texto verde) e uma linha de contexto em Dust Gray (nicho, país, dias em alta). À direita, os chips de ação.
+
+### Linha de site de venda
+Mesma estrutura da linha de oferta: até 4 miniaturas de criativos, o domínio (link para o site) com chips de nicho (neutro) e plataforma da loja (âmbar), anunciantes principais, e faixa de métricas com anunciantes, anúncios, produtos e dias no ar.
+
+### Seletor de país
+Todo campo de país é um select com nomes em português ("Brasil", "Estados Unidos"), nunca um campo para digitar o código. Se o valor salvo não está na lista, ele aparece como opção para não se perder.
+
+### Nome da fonte
+Tipos de busca e rótulos de busca salva dizem a plataforma antes do tipo, separados por " · ": "Meta Ads · palavra-chave", "Meta Ads · página do anunciante", "TikTok Ads · top anúncios", "YouTube · vídeos em alta", "Google · palavras-chave em alta".
+
 ### Empty State
 Uma caixa com borda tracejada Seam Line, 64px de padding vertical e texto Dust Gray centralizado. Ela diz por que está vazia e oferece o próximo passo, como um link âmbar para "Minerar" ou um botão primário "Minerar …".
 
@@ -310,10 +359,13 @@ Uma caixa com borda tracejada Seam Line, 64px de padding vertical e texto Dust G
 - **Do** separar superfícies com camadas de ardósia e bordas Seam Line de 1px.
 - **Do** mostrar por que algo ranqueia (anunciantes, anúncios, dias, crescimento) ao lado do score.
 - **Do** dar a todo estado vazio uma explicação e um próximo passo.
+- **Do** nomear a plataforma em todo tipo de busca e usar seletores (país, nicho) em vez de campos para digitar códigos.
+- **Do** levar explicação para o title, o tooltip ou a linha "Pontos:", e deixar a tela só com rótulos curtos.
 
 ### Don't:
 - **Don't** usar neon, gradientes ou linguagem de "painel de guru" com promessas de dinheiro.
 - **Don't** adotar o visual de SaaS genérico claro em roxo e azul.
 - **Don't** usar estética de espião ou hacker (verde matrix, lupas, caveiras).
 - **Don't** colocar sombras em cartões ou painéis; sombra é só para menus que sobrepõem a página.
-- **Don't** introduzir uma segunda cor de destaque; Ember existe só no selo de score mais quente.
+- **Don't** introduzir uma segunda cor de destaque; Ember existe só no selo de score mais quente e na legenda dele, nunca em selo de formato, multiplataforma ou CTR.
+- **Don't** pôr parágrafos explicativos sob o título da página nem dois campos de busca na mesma tela.

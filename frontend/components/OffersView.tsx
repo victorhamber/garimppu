@@ -251,14 +251,14 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
           )}
           {offer.platforms > 1 && (
             <span title="A oferta aparece em mais de uma plataforma: dinheiro sendo investido em várias frentes"
-              className="rounded-full bg-hot px-2 py-0.5 text-micro font-semibold text-accent-ink">
+              className="rounded-full border border-accent/60 px-2 py-0.5 text-micro font-semibold text-accent">
               {["Meta", offer.tiktok_ads > 0 && "TikTok", offer.videos > 0 && "YouTube"].filter(Boolean).join(" + ")}
             </span>
           )}
           {offer.site_rank != null && (
             <Link href={`/sites?q=${encodeURIComponent(offer.key)}&scope=all`}
               title={`O site da oferta está em #${offer.site_rank} no ranking "${offer.site_ranking}" do Cloudflare Radar`}
-              className="rounded-full border border-hot/50 px-2 py-0.5 text-micro font-semibold text-hot hover:bg-hot/10">
+              className="rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent hover:bg-accent/10">
               Site #{offer.site_rank}
             </Link>
           )}

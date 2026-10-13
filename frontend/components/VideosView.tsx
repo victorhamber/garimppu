@@ -266,7 +266,7 @@ function VideoCard({ video, rank, heat, niche }: { video: Video; rank: number; h
           <VideoFallback compact />
         )}
         {video.is_short && (
-          <span className="absolute left-2 top-2 rounded bg-hot px-1.5 py-0.5 text-micro font-semibold text-accent-ink">Short</span>
+          <span className="absolute left-2 top-2 rounded border border-line bg-background/85 px-1.5 py-0.5 text-micro text-foreground">Short</span>
         )}
         {duration && (
           <span className="absolute bottom-2 right-2 rounded bg-background/85 px-1.5 py-0.5 font-mono text-micro text-foreground">{duration}</span>

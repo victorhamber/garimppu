@@ -266,7 +266,7 @@ function TikTokCard({ ad, rank, heat }: { ad: TikTokAd; rank: number; heat?: Sco
           <VideoFallback compact />
         )}
         {ad.ctr_rank != null && (
-          <span className={`absolute left-2 top-2 rounded px-1.5 py-0.5 text-micro font-semibold ${topCtr ? "bg-hot text-accent-ink" : "bg-background/85 text-foreground"}`}>
+          <span className={`absolute left-2 top-2 rounded px-1.5 py-0.5 text-micro font-semibold ${topCtr ? "bg-accent text-accent-ink" : "border border-line bg-background/85 text-foreground"}`}>
             CTR top {formatCtr(ad.ctr_rank)}
           </span>
         )}
