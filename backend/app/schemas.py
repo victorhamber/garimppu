@@ -15,7 +15,7 @@ class SearchCreate(BaseModel):
     language: str | None = Field(default=None, max_length=8)
     media_type: Literal["all", "image", "video"] = "all"
     niche: str | None = None
-    source: Literal["scraper", "api", "hybrid", "youtube", "tiktok", "sites"] = "hybrid"
+    source: Literal["scraper", "api", "hybrid", "youtube", "tiktok", "sites", "trends"] = "hybrid"
     tiktok_industry: int | None = None  # TikTok top-level industry id; None = all
     site_category: str | None = Field(default=None, max_length=64)  # Cloudflare subcategory; None = all
     site_ranking: Literal["POPULAR", "TRENDING_RISE", "TRENDING_STEADY"] = "POPULAR"
@@ -295,6 +295,37 @@ class SitePage(BaseModel):
 class SiteOption(BaseModel):
     id: str
     label: str
+
+
+class TrendNews(BaseModel):
+    title: str
+    url: str
+    source: str = ""
+
+
+class KeywordOut(BaseModel):
+    id: int
+    term: str
+    geo: str
+    niche: str | None
+    traffic: int | None
+    peak_traffic: int | None
+    previous_traffic: int | None  # the previous day it trended, to show growth
+    days_trending: int
+    sightings: int
+    trending_now: bool
+    news: list[TrendNews]
+    picture_url: str | None
+    meta_ads: int | None = None  # collected Meta ads mentioning the term; None for terms too short to match
+    first_seen_at: datetime
+    last_seen_at: datetime
+
+
+class KeywordPage(BaseModel):
+    total: int
+    items: list[KeywordOut]
+    heat: ScoreHeat = ScoreHeat()
+    countries: list[str] = []
 
 
 class OfferPage(BaseModel):

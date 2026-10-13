@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/videos", label: "Vídeos" },
   { href: "/tiktok", label: "TikTok" },
   { href: "/sites", label: "Sites" },
+  { href: "/palavras-chave", label: "Palavras" },
   { href: "/buscas", label: "Minerar" },
   { href: "/colecoes", label: "Coleções" },
 ];
@@ -22,26 +23,26 @@ export function Nav() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-background/90 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-x-8 px-4 sm:h-14 sm:flex-nowrap sm:px-6">
-        <Link href="/" className="flex h-12 shrink-0 items-center gap-2 font-semibold tracking-tight sm:h-auto">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-x-8 px-4 sm:px-6 lg:h-14 lg:flex-nowrap">
+        <Link href="/" className="flex h-12 shrink-0 items-center gap-2 font-semibold tracking-tight lg:h-auto">
           <span className="grid size-7 place-items-center rounded bg-accent font-mono text-sm font-bold text-accent-ink">
             G
           </span>
           <span className="whitespace-nowrap">Garimppu</span>
-          <span className="hidden text-sm font-normal whitespace-nowrap text-muted md:inline">ofertas e criativos escalados</span>
+          <span className="hidden text-sm font-normal whitespace-nowrap text-muted xl:inline">ofertas e criativos escalados</span>
         </Link>
         {user && (
           <>
-            <div className="ml-auto sm:order-last">
+            <div className="ml-auto lg:order-last">
               <AccountMenu />
             </div>
-            <nav className="-mx-1 grid w-full grid-cols-4 gap-1 pb-2 sm:mx-0 sm:flex sm:w-auto sm:items-center sm:pb-0">
+            <nav className="-mx-1 grid w-full grid-cols-4 gap-1 pb-2 sm:grid-cols-8 lg:mx-0 lg:flex lg:w-auto lg:items-center lg:pb-0">
               {LINKS.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
                   aria-current={isActive(link.href) ? "page" : undefined}
-                  className={`flex items-center justify-center rounded-md px-2 py-1.5 text-sm sm:px-3 whitespace-nowrap transition-colors pointer-coarse:min-h-11 ${
+                  className={`flex items-center justify-center rounded-md px-2 py-1.5 text-sm lg:px-3 whitespace-nowrap transition-colors pointer-coarse:min-h-11 ${
                     isActive(link.href) ? "bg-surface-2 text-foreground" : "text-muted hover:text-foreground"
                   }`}
                 >

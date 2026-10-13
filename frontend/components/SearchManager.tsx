@@ -20,7 +20,7 @@ const STATUS: Record<Run["status"], { label: string; className: string }> = {
 };
 
 const EMPTY_FORM = {
-  source: "meta" as "meta" | "youtube" | "tiktok" | "sites",
+  source: "meta" as "meta" | "youtube" | "tiktok" | "sites" | "trends",
   mode: "keyword" as "keyword" | "page",
   term: "",
   page: "",
@@ -43,17 +43,24 @@ const TIKTOK_MAX = 200;
 const TIKTOK_DEFAULT = "100";
 /** Cloudflare Radar returns at most 100 domains per ranking. */
 const SITES_MAX = 100;
-const MAX_BY_SOURCE = { meta: 3000, youtube: YOUTUBE_MAX, tiktok: TIKTOK_MAX, sites: SITES_MAX };
-const DEFAULT_BY_SOURCE = { meta: EMPTY_FORM.max_ads, youtube: YOUTUBE_DEFAULT, tiktok: TIKTOK_DEFAULT, sites: String(SITES_MAX) };
+/** Google Trends' feed lists ~10 terms at a time; the cap only satisfies the API. */
+const TRENDS_MAX = 50;
+const MAX_BY_SOURCE = { meta: 3000, youtube: YOUTUBE_MAX, tiktok: TIKTOK_MAX, sites: SITES_MAX, trends: TRENDS_MAX };
+const DEFAULT_BY_SOURCE = {
+  meta: EMPTY_FORM.max_ads, youtube: YOUTUBE_DEFAULT, tiktok: TIKTOK_DEFAULT, sites: String(SITES_MAX), trends: String(TRENDS_MAX),
+};
 
-const UNIT: Partial<Record<Search["source"], string>> = { youtube: "vídeos", tiktok: "anúncios", sites: "sites" };
-const KIND_LABEL: Partial<Record<Search["source"], string>> = { youtube: "YouTube", tiktok: "TikTok Ads", sites: "Sites" };
+const UNIT: Partial<Record<Search["source"], string>> = { youtube: "vídeos", tiktok: "anúncios", sites: "sites", trends: "palavras" };
+const KIND_LABEL: Partial<Record<Search["source"], string>> = {
+  youtube: "YouTube", tiktok: "TikTok Ads", sites: "Sites", trends: "Google Trends",
+};
 
 function creativesHref(search: Search) {
   const params = new URLSearchParams({ search_id: String(search.id) });
   if (search.source === "youtube") return `/videos?${params}`;
   if (search.source === "tiktok") return `/tiktok?${params}`;
   if (search.source === "sites") return `/sites?${params}`;
+  if (search.source === "trends") return `/palavras-chave?${params}`;
   if (search.niche) params.set("niche", search.niche);
   return `/?${params}`;
 }
@@ -64,12 +71,14 @@ function joinedLater(search: Search) {
 }
 
 const MANUAL_RUN_GAP_MS = 24 * 3_600_000;
+const TRENDS_RUN_GAP_MS = 3_600_000;
 
-/** When a manual run is allowed again; the API refuses runs within 24h of the last finished one. */
+/** When a manual run is allowed again; the API refuses runs within 24h (1h for Google Trends) of the last one. */
 function nextManualRun(search: Search, now: number): number | null {
   const run = search.latest_run;
   if (run?.status !== "done" || !run.finished_at) return null;
-  const next = Date.parse(run.finished_at.endsWith("Z") ? run.finished_at : `${run.finished_at}Z`) + MANUAL_RUN_GAP_MS;
+  const gap = search.source === "trends" ? TRENDS_RUN_GAP_MS : MANUAL_RUN_GAP_MS;
+  const next = Date.parse(run.finished_at.endsWith("Z") ? run.finished_at : `${run.finished_at}Z`) + gap;
   return next > now ? next : null;
 }
 
@@ -114,8 +123,9 @@ export function SearchManager() {
     const youtube = form.source === "youtube";
     const tiktok = form.source === "tiktok";
     const sites = form.source === "sites";
+    const trends = form.source === "trends";
     const byPage = form.source === "meta" && form.mode === "page";
-    if (!tiktok && !sites && !(byPage ? form.page : form.term).trim() && !(youtube && form.niche)) return;
+    if (!tiktok && !sites && !trends && !(byPage ? form.page : form.term).trim() && !(youtube && form.niche)) return;
     setSubmitting(true);
     setError(null);
     setNotice(null);
@@ -123,18 +133,18 @@ export function SearchManager() {
       const created = await api<Search>("/api/searches", {
         method: "POST",
         body: JSON.stringify({
-          term: byPage || tiktok || sites ? "" : form.term,
+          term: byPage || tiktok || sites || trends ? "" : form.term,
           page: byPage ? form.page : null,
           country: form.country,
-          language: sites ? null : form.language || null,
-          media_type: form.source === "meta" ? form.media_type : sites ? "all" : "video",
+          language: sites || trends ? null : form.language || null,
+          media_type: form.source === "meta" ? form.media_type : sites || trends ? "all" : "video",
           niche: tiktok || sites ? null : form.niche || null,
           tiktok_industry: tiktok && form.industry ? Number(form.industry) : null,
           site_category: sites ? form.site_category || null : null,
           site_ranking: form.site_ranking,
           source: form.source === "meta" ? "hybrid" : form.source,
           max_ads: Math.min(Number(form.max_ads), MAX_BY_SOURCE[form.source]),
-          refresh_hours: form.refresh_hours ? Number(form.refresh_hours) : null,
+          refresh_hours: trends ? null : form.refresh_hours ? Number(form.refresh_hours) : null,
         }),
       });
       if (created.reused) setNotice(created);
@@ -177,10 +187,11 @@ export function SearchManager() {
   const youtube = form.source === "youtube";
   const tiktok = form.source === "tiktok";
   const sites = form.source === "sites";
+  const trends = form.source === "trends";
   const setKind = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     setForm((f) => {
-      const source = value === "youtube" || value === "tiktok" || value === "sites" ? value : "meta";
+      const source = value === "youtube" || value === "tiktok" || value === "sites" || value === "trends" ? value : "meta";
       const max_ads = source === f.source ? f.max_ads : DEFAULT_BY_SOURCE[source];
       return { ...f, source, mode: value === "page" ? "page" : "keyword", max_ads };
     });
@@ -207,6 +218,9 @@ export function SearchManager() {
           Com <span className="text-foreground">Sites</span>, escolha uma categoria: a coleta traz o ranking dos sites mais
           acessados (ou que mais estão subindo) no país, segundo o Cloudflare Radar (resultado em{" "}
           <Link href="/sites" className="text-foreground underline underline-offset-2 hover:text-accent">Sites</Link>).
+          Com <span className="text-foreground">Palavras-chave em alta</span>, a coleta acompanha a cada hora o que o país
+          está pesquisando no Google (Google Trends), separado por nicho (resultado em{" "}
+          <Link href="/palavras-chave" className="text-foreground underline underline-offset-2 hover:text-accent">Palavras-chave</Link>).
         </p>
       </div>
 
@@ -219,9 +233,19 @@ export function SearchManager() {
             <option value="youtube">YouTube</option>
             <option value="tiktok">TikTok Ads</option>
             <option value="sites">Sites</option>
+            <option value="trends">Palavras-chave em alta</option>
           </select>
         </div>
-        {sites ? (
+        {trends ? (
+          <div className="col-span-2 xl:col-span-2">
+            <label className="label" htmlFor="niche">Nicho</label>
+            <select id="niche" className="field" value={form.niche} onChange={set("niche")}
+              title="O Google Trends lista o que o país inteiro está pesquisando; o nicho de cada termo é detectado pelo termo e pelas notícias ligadas a ele">
+              <option value="">Todos os nichos</option>
+              {niches.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
+            </select>
+          </div>
+        ) : sites ? (
           <>
             <div className="col-span-2 xl:col-span-2">
               <label className="label" htmlFor="site-category">Categoria</label>
@@ -264,7 +288,7 @@ export function SearchManager() {
           <label className="label" htmlFor="country">País</label>
           <input id="country" className="field uppercase" value={form.country} onChange={set("country")} maxLength={2} />
         </div>
-        <div hidden={sites}>
+        <div hidden={sites || trends}>
           <label className="label" htmlFor="language">Idioma</label>
           <select id="language" className="field" value={form.language} onChange={set("language")}>
             <option value="">{form.source === "meta" ? "Todos" : "Do país"}</option>
@@ -303,19 +327,29 @@ export function SearchManager() {
             </div>
           </>
         )}
-        <div>
+        <div hidden={trends}>
           <label className="label" htmlFor="max">{youtube ? "Máx. vídeos" : sites ? "Máx. sites" : "Máx. anúncios"}</label>
           <input id="max" type="number" min={10} max={MAX_BY_SOURCE[form.source]} step={10} className="field" value={form.max_ads}
             onChange={set("max_ads")} title={youtube ? "Os mais vistos dos últimos 30 dias. Cada 50 vídeos gastam 100 da cota diária de 10 mil da API do YouTube."
               : tiktok ? "Metade pelos melhores CTRs do nicho, metade pelos mais curtidos, nos últimos 180 dias."
               : sites ? "O Cloudflare Radar entrega no máximo os 100 primeiros de cada ranking." : undefined} />
         </div>
-        <div>
-          <label className="label" htmlFor="refresh">Recoleta</label>
-          <select id="refresh" className="field" value={form.refresh_hours} onChange={set("refresh_hours")}>
-            {REFRESH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </div>
+        {trends ? (
+          <div>
+            <span className="label">Recoleta</span>
+            <p className="field flex items-center text-muted"
+              title="O Google Trends mostra só as últimas horas; a coleta roda sozinha a cada hora para não perder termos">
+              A cada hora
+            </p>
+          </div>
+        ) : (
+          <div>
+            <label className="label" htmlFor="refresh">Recoleta</label>
+            <select id="refresh" className="field" value={form.refresh_hours} onChange={set("refresh_hours")}>
+              {REFRESH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+        )}
         <div className="col-span-2 flex items-center justify-end gap-3 md:col-span-3 xl:col-span-9">
           {error && <span className="mr-auto text-sm text-danger">{error}</span>}
           {notice && !error && (
@@ -324,7 +358,7 @@ export function SearchManager() {
               {formatDate(notice.monitored_since)}:{" "}
               <Link href={creativesHref(notice)} className="text-foreground underline underline-offset-2 hover:text-accent">
                 <span className="font-mono tabular-nums">{notice.creatives_count}</span>{" "}
-                {UNIT[notice.source] ?? "criativos"} já coletados
+                {UNIT[notice.source] ?? "criativos"} já {notice.source === "trends" ? "coletadas" : "coletados"}
               </Link>
             </p>
           )}
@@ -371,7 +405,8 @@ export function SearchManager() {
                         ) : s.term}
                       </div>
                       <div className="mt-0.5 text-xs text-muted">
-                        {KIND_LABEL[s.source] ?? (s.page_id ? "Página" : "Palavra-chave")} · {s.country} · até {s.max_ads} {unit}
+                        {KIND_LABEL[s.source] ?? (s.page_id ? "Página" : "Palavra-chave")} · {s.country}
+                        {s.source !== "trends" && ` · até ${s.max_ads} ${unit}`}
                         {!yt && !tt && !st && s.media_type !== "all" && ` · ${s.media_type === "image" ? "imagens" : "vídeos"}`}
                         {s.niche && ` · só ${label(s.niche)}`}
                         {joinedLater(s) && ` · base desde ${formatDate(s.monitored_since)}`}
@@ -403,21 +438,30 @@ export function SearchManager() {
                       {formatDateTime(s.last_run_at)}
                     </td>
                     <td className="lg:px-4 lg:py-3">
-                      <label className="label lg:hidden" htmlFor={`refresh-${s.id}`}>Recoleta</label>
-                      <select id={`refresh-${s.id}`} aria-label={`Recoleta de ${s.term}`}
-                        className="field h-8 w-full pointer-coarse:h-11 lg:w-36" value={s.refresh_hours ? String(s.refresh_hours) : ""}
-                        onChange={(e) => setRefresh(s.id, e.target.value)}>
-                        {REFRESH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        {s.refresh_hours && !REFRESH_OPTIONS.some((o) => o.value === String(s.refresh_hours)) && (
-                          <option value={String(s.refresh_hours)}>A cada {s.refresh_hours}h</option>
-                        )}
-                      </select>
+                      {s.source === "trends" ? (
+                        <>
+                          <span className="label lg:hidden">Recoleta</span>
+                          <span className="text-xs text-muted" title="Automática enquanto a busca estiver ativa">A cada hora</span>
+                        </>
+                      ) : (
+                        <>
+                          <label className="label lg:hidden" htmlFor={`refresh-${s.id}`}>Recoleta</label>
+                          <select id={`refresh-${s.id}`} aria-label={`Recoleta de ${s.term}`}
+                            className="field h-8 w-full pointer-coarse:h-11 lg:w-36" value={s.refresh_hours ? String(s.refresh_hours) : ""}
+                            onChange={(e) => setRefresh(s.id, e.target.value)}>
+                            {REFRESH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                            {s.refresh_hours && !REFRESH_OPTIONS.some((o) => o.value === String(s.refresh_hours)) && (
+                              <option value={String(s.refresh_hours)}>A cada {s.refresh_hours}h</option>
+                            )}
+                          </select>
+                        </>
+                      )}
                     </td>
                     <td className="col-span-2 sm:col-span-4 lg:px-4 lg:py-3">
                       <div className="flex flex-wrap gap-1 lg:flex-nowrap lg:justify-end">
                         <Link href={creativesHref(s)} className="btn h-8 text-xs pointer-coarse:h-11">{`Ver ${UNIT[s.source] ?? "criativos"}`}</Link>
                         {nextRun ? (
-                          <span title={`Coletada nas últimas 24h. Nova coleta liberada em ${formatDateTime(new Date(nextRun).toISOString())}`}>
+                          <span title={`Coletada ${s.source === "trends" ? "na última hora" : "nas últimas 24h"}. Nova coleta liberada em ${formatDateTime(new Date(nextRun).toISOString())}`}>
                             <button type="button" className="btn h-8 text-xs pointer-coarse:h-11" disabled>Coletada</button>
                           </span>
                         ) : (

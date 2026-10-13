@@ -24,6 +24,8 @@ def source_key(*, term: str, page_id: str | None, country: str, language: str | 
         return f"yt:{country.upper()}:{(language or '*').lower()}:{normalize_term(term)}"
     if collector == "tiktok":
         return f"tt:{country.upper()}:{(language or '*').lower()}:{normalize_term(term)}"
+    if collector == "trends":
+        return f"gt:{country.upper()}"
     if collector == "sites":
         return f"st:{country.upper()}:{term}"
     if page_id:
@@ -67,6 +69,9 @@ def sync_source(db: Session, source: Source) -> None:
         source.max_ads = max(s.max_ads for s in active)
     refreshes = [s.refresh_hours for s in active if s.refresh_hours]
     source.refresh_hours = max(min(refreshes), get_settings().min_refresh_hours) if refreshes else None
+    if source.collector == "trends" and active:
+        # The feed only holds the last few hours of trends: anything slower misses most of them.
+        source.refresh_hours = get_settings().trends_refresh_hours
 
 
 def as_utc(value: datetime | None) -> datetime | None:
@@ -84,6 +89,6 @@ def last_good_run(db: Session, source: Source) -> Run | None:
 def is_fresh(db: Session, source: Source) -> bool:
     run = last_good_run(db, source)
     finished = as_utc(run.finished_at) if run else None
-    return finished is not None and datetime.now(timezone.utc) - finished < timedelta(
-        hours=get_settings().fresh_hours
-    )
+    settings = get_settings()
+    hours = settings.trends_refresh_hours if source.collector == "trends" else settings.fresh_hours
+    return finished is not None and datetime.now(timezone.utc) - finished < timedelta(hours=hours)

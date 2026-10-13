@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     # Shared collection: one source per canonical query, refreshed for all of its searches.
     min_refresh_hours: int = 24
     fresh_hours: int = 24  # a new search on a source collected this recently reuses it without a run
+    trends_refresh_hours: int = 1  # Google Trends' feed only lists the last few hours of trending searches
     max_runs_per_hour: int = 6  # global budget of Ad Library collections
     empty_run_alert_min_ads: int = 20  # a run returning 0 after one with this many is treated as broken
 

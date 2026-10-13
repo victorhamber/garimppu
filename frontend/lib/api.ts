@@ -20,7 +20,7 @@ export type Search = {
   language: string | null;
   media_type: "all" | "image" | "video";
   niche: string | null;
-  source: "scraper" | "api" | "hybrid" | "youtube" | "tiktok" | "sites";
+  source: "scraper" | "api" | "hybrid" | "youtube" | "tiktok" | "sites" | "trends";
   max_ads: number;
   refresh_hours: number | null;
   is_active: boolean;
@@ -222,6 +222,28 @@ export type Site = {
 export type SitePage = { total: number; items: Site[]; enabled: boolean };
 export type SiteOptions = { categories: { id: string; label: string }[]; rankings: { id: string; label: string }[] };
 export type TikTokIndustry = { id: number; label: string };
+
+/** A term from Google Trends "trending now"; traffic is Google's approximate search count ("20000+"). */
+export type Keyword = {
+  id: number;
+  term: string;
+  geo: string;
+  niche: string | null;
+  traffic: number | null;
+  peak_traffic: number | null;
+  /** Traffic on the previous day it trended, for growth. */
+  previous_traffic: number | null;
+  days_trending: number;
+  sightings: number;
+  trending_now: boolean;
+  news: { title: string; url: string; source: string }[];
+  picture_url: string | null;
+  /** Collected Meta ads mentioning the term (capped at 100); null when the term is too short to match. */
+  meta_ads: number | null;
+  first_seen_at: string;
+  last_seen_at: string;
+};
+export type KeywordPage = { total: number; items: Keyword[]; heat: ScoreHeat; countries: string[] };
 
 /** Cutoffs relative to the current result set; null when the set is too small to rank. */
 export type ScoreHeat = { hot: number | null; warm: number | null };

@@ -151,6 +151,12 @@ A aba **Sites** usa a API gratuita do Cloudflare Radar:
 
 Sem o token, a aba mostra um aviso e o Minerar recusa buscas de sites.
 
+## Palavras-chave (Google Trends)
+
+A aba **Palavras-chave** não precisa de chave: lê o feed RSS público do Google Trends. As buscas desse tipo são
+recoletadas a cada hora pelo agendador (`ENABLE_SCHEDULER` ligado na API); `TRENDS_REFRESH_HOURS` muda o intervalo.
+Essas coletas não gastam o limite de `MAX_RUNS_PER_HOUR` do Meta (é um único pedido por país).
+
 ## Atualizações
 
 Cada `git push` na branch `main` pode disparar o deploy automático (ative **Auto Deploy** nos dois apps).

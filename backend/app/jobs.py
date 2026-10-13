@@ -63,16 +63,16 @@ def enqueue_due_sources(db: Session) -> int:
     settings = get_settings()
     now = datetime.now(timezone.utc)
     used = db.scalar(
-        select(func.count(Run.id)).where(Run.created_at >= now - timedelta(hours=1))
+        select(func.count(Run.id)).join(Source, Source.id == Run.source_id)
+        .where(Run.created_at >= now - timedelta(hours=1), Source.collector != "trends")
     ) or 0
-    budget = settings.max_runs_per_hour - used
-    if budget <= 0:
-        return 0
+    budget = max(settings.max_runs_per_hour - used, 0)
 
     followers = Counter(
         s.source_id for s in db.scalars(select(Search).options(selectinload(Search.user))) if following(s)
     )
     due: list[tuple[float, Source]] = []
+    trends: list[Source] = []
     for source in db.scalars(select(Source).where(Source.refresh_hours.is_not(None))):
         if not followers.get(source.id):
             continue
@@ -80,12 +80,16 @@ def enqueue_due_sources(db: Session) -> int:
         period = timedelta(hours=source.refresh_hours)
         overdue = 10.0 if last is None else (now - last) / period
         if overdue >= 1:
-            due.append((overdue * followers[source.id], source))
+            # One small RSS request per country: it doesn't spend the Ad Library budget.
+            if source.collector == "trends":
+                trends.append(source)
+            else:
+                due.append((overdue * followers[source.id], source))
 
     due.sort(key=lambda item: item[0], reverse=True)
-    for _, source in due[:budget]:
+    for source in trends + [source for _, source in due[:budget]]:
         enqueue_source(db, source)
-    return min(len(due), budget)
+    return len(trends) + min(len(due), budget)
 
 
 def fail_orphaned_runs(db: Session) -> None:

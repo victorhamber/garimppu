@@ -401,6 +401,46 @@ class SourceSite(Base):
     site: Mapped[Site] = relationship()
 
 
+class TrendKeyword(Base):
+    """A search term that showed up in Google Trends "trending now" for a country; history in TrendSnapshot."""
+
+    __tablename__ = "trend_keywords"
+    __table_args__ = (UniqueConstraint("geo", "term_key", name="uq_trend_keywords_geo_term"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    geo: Mapped[str] = mapped_column(String(8))
+    term: Mapped[str] = mapped_column(String(255))
+    term_key: Mapped[str] = mapped_column(String(255))  # casefolded, accents kept: Google treats them as distinct
+    niche: Mapped[str | None] = mapped_column(String(32), index=True)
+    traffic: Mapped[int | None] = mapped_column(BigInteger)  # latest approximate searches ("20000+" -> 20000)
+    peak_traffic: Mapped[int | None] = mapped_column(BigInteger, index=True)
+    sightings: Mapped[int] = mapped_column(Integer, default=0)  # hourly collections it appeared in
+    news: Mapped[list | None] = mapped_column(JSON)  # [{"title", "url", "source"}] from the latest sighting
+    picture_url: Mapped[str | None] = mapped_column(Text)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class TrendSnapshot(Base):
+    """Highest approximate traffic of a trending term on one day; one row per day it trended."""
+
+    __tablename__ = "trend_snapshots"
+
+    keyword_id: Mapped[int] = mapped_column(ForeignKey("trend_keywords.id", ondelete="CASCADE"), primary_key=True)
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    traffic: Mapped[int | None] = mapped_column(BigInteger)
+
+
+class SourceTrend(Base):
+    """Every term a trends source has seen; the feed only holds the last hours, so links accumulate."""
+
+    __tablename__ = "source_trends"
+
+    source_id: Mapped[int] = mapped_column(ForeignKey("sources.id", ondelete="CASCADE"), primary_key=True)
+    keyword_id: Mapped[int] = mapped_column(ForeignKey("trend_keywords.id", ondelete="CASCADE"), primary_key=True,
+                                            index=True)
+
+
 class Collection(Base):
     __tablename__ = "collections"
     __table_args__ = (UniqueConstraint("user_id", "name", name="uq_collections_user_name"),)

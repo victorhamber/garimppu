@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 
 from app.collectors.base import RawAd, SearchQuery
+from app.collectors.google_trends import TrendsError, collect_trends
 from app.collectors.library_scraper import scrape_library
 from app.collectors.official_api import OfficialApiError, fetch_official
 from app.collectors.radar import RadarError, collect_sites
@@ -21,6 +22,7 @@ from app.pipeline.normalize import merge_sources
 from app.pipeline.scoring import recompute_scores
 from app.pipeline.site_ingest import ingest_sites
 from app.pipeline.sources import last_good_run
+from app.pipeline.trends_ingest import ingest_trends
 from app.pipeline.tiktok_ingest import ingest_tiktok_ads, known_ids
 from app.pipeline.video_ingest import ingest_videos, rescore_videos
 
@@ -70,6 +72,12 @@ def run_source(run_id: int) -> None:
             run.ads_found, run.creatives_found = _collect_tiktok(db, source, log)
             run.status = "done"
             log(f"Concluído: {run.ads_found} anúncios do TikTok, {run.creatives_found} novos")
+            return
+        if source.collector == "trends":
+            trends = collect_trends(source.country, log)
+            run.ads_found, run.creatives_found = ingest_trends(db, source, trends, log)
+            run.status = "done"
+            log(f"Concluído: {run.ads_found} buscas em alta, {run.creatives_found} novas")
             return
         if source.collector == "sites":
             run.ads_found, run.creatives_found = _collect_sites(db, source, log)
@@ -123,7 +131,7 @@ def run_source(run_id: int) -> None:
         run.creatives_found = len(creative_ids)
         run.status = "done"
         log(f"Concluído: {ads_count} anúncios, {len(creative_ids)} criativos")
-    except (EmptyCollection, YouTubeError, TikTokError, RadarError) as exc:
+    except (EmptyCollection, YouTubeError, TikTokError, RadarError, TrendsError) as exc:
         db.rollback()
         log(str(exc))
         run.status = "error"

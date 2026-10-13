@@ -144,6 +144,19 @@ por ranking. A aba **Sites** mostra a posição, quanto o site subiu ou caiu des
 do Meta e do TikTok já coletados levam para ele. As categorias ficam em `CATEGORIES` em `collectors/radar.py`.
 Código: `backend/app/collectors/radar.py`, `backend/app/pipeline/site_ingest.py` e `backend/app/routes/sites.py`.
 
+## Palavras-chave em alta (Google Trends)
+
+Em **Minerar**, *Buscar por: Palavras-chave em alta* acompanha o feed RSS oficial e público do Google Trends
+(`trends.google.com/trending/rss?geo=BR`), sem chave. O feed só mostra os ~10 termos das últimas horas, então essas
+buscas são recoletadas sozinhas **a cada hora** (`TRENDS_REFRESH_HOURS`, fora do limite de coletas do Meta) e o
+histórico se acumula: cada termo guarda o volume estimado pelo Google (ex.: 20 mil+), o pico, os dias em que ficou em
+alta e as notícias ligadas a ele. O nicho é detectado pelo mesmo classificador dos anúncios, a partir do termo e das
+manchetes; o nicho escolhido na busca funciona como filtro. A aba **Palavras-chave** lista os termos com links para o
+Google Trends, para a busca no Google e para o Explorar, a contagem de anúncios do Meta já coletados que citam o termo
+e um botão que cria a busca do termo no Meta.
+Código: `backend/app/collectors/google_trends.py`, `backend/app/pipeline/trends_ingest.py` e
+`backend/app/routes/keywords.py`.
+
 ## Recoleta e crescimento
 
 Buscas com recoleta automática são reexecutadas pelo agendador (a cada 15 min ele verifica o que está vencido). Toda coleta grava um snapshot diário por criativo, que alimenta o crescimento de 7 dias. Diariamente às 03:00 UTC todos os scores são recalculados.

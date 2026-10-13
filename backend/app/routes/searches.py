@@ -7,12 +7,25 @@ from sqlalchemy.orm import Session
 from app.auth import current_user
 from app.collectors.radar import CATEGORIES as SITE_CATEGORIES, MAX_LIMIT as SITE_MAX, RANKINGS as SITE_RANKINGS
 from app.collectors.radar import source_term as site_source_term
+from app.collectors.google_trends import source_term as trends_source_term
 from app.collectors.tiktok_ads import INDUSTRIES as TIKTOK_INDUSTRIES, PREFIX as TIKTOK_PREFIX
 from app.collectors.youtube import NICHE_PREFIX
 from app.config import get_settings
 from app.db import get_db
 from app.jobs import enqueue_source
-from app.models import AdCreative, Page, Run, Search, SourceAd, SourceSite, SourceTikTokAd, SourceVideo, User
+from app.models import (
+    AdCreative,
+    Page,
+    Run,
+    Search,
+    SourceAd,
+    SourceSite,
+    SourceTikTokAd,
+    SourceTrend,
+    SourceVideo,
+    TrendKeyword,
+    User,
+)
 from app.pipeline.niche import NICHES
 from app.pipeline.sources import find_or_create_source, is_fresh, sync_source
 from app.schemas import RunOut, SearchCreate, SearchOut, SearchUpdate
@@ -29,6 +42,13 @@ def _search_out(db: Session, search: Search, reused: bool = False) -> SearchOut:
         creatives = db.scalar(select(func.count()).select_from(SourceTikTokAd).where(SourceTikTokAd.source_id == source.id))
     elif source.collector == "sites":
         creatives = db.scalar(select(func.count()).select_from(SourceSite).where(SourceSite.source_id == source.id))
+    elif source.collector == "trends":
+        query = select(func.count()).select_from(SourceTrend).where(SourceTrend.source_id == source.id)
+        if search.niche:
+            query = query.join(TrendKeyword, TrendKeyword.id == SourceTrend.keyword_id).where(
+                TrendKeyword.niche == search.niche
+            )
+        creatives = db.scalar(query)
     else:
         creatives = db.scalar(
             select(func.count(func.distinct(AdCreative.creative_id)))
@@ -131,6 +151,14 @@ def create_search(payload: SearchCreate, db: Session = Depends(get_db), user: Us
         payload.language = None
         payload.media_type = "all"
         payload.max_ads = min(payload.max_ads, SITE_MAX)
+    if payload.source == "trends":
+        country = payload.country.upper()
+        source_term = trends_source_term(country)
+        niche = f" · {NICHES[payload.niche]['label']}" if payload.niche else ""
+        term = f"Palavras em alta: {country}{niche}"
+        payload.page = None
+        payload.language = None
+        payload.media_type = "all"
     if payload.page and payload.page.strip():
         page_id = parse_page_id(payload.page)
         if page_id is None:
