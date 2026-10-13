@@ -245,6 +245,16 @@ export type Keyword = {
 };
 export type KeywordPage = { total: number; items: Keyword[]; heat: ScoreHeat; countries: string[] };
 
+export type KeywordSuggestion = {
+  term: string;
+  popularity: number;
+  hits: number;
+  niche: string | null;
+  meta_ads: number | null;
+  trending: boolean;
+};
+export type KeywordSuggestions = { term: string; country: string; items: KeywordSuggestion[] };
+
 /** Cutoffs relative to the current result set; null when the set is too small to rank. */
 export type ScoreHeat = { hot: number | null; warm: number | null };
 export type CreativeHeat = ScoreHeat & { duplicates: number | null; days_active: number | null };

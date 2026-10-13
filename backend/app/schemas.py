@@ -328,6 +328,21 @@ class KeywordPage(BaseModel):
     countries: list[str] = []
 
 
+class KeywordSuggestion(BaseModel):
+    term: str
+    popularity: int  # 0-100, relative to the most suggested term of this search
+    hits: int
+    niche: str | None
+    meta_ads: int | None
+    trending: bool
+
+
+class KeywordSuggestions(BaseModel):
+    term: str
+    country: str
+    items: list[KeywordSuggestion]
+
+
 class OfferPage(BaseModel):
     total: int
     items: list[OfferOut]

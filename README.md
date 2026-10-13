@@ -157,6 +157,12 @@ e um botão que cria a busca do termo no Meta.
 Código: `backend/app/collectors/google_trends.py`, `backend/app/pipeline/trends_ingest.py` e
 `backend/app/routes/keywords.py`.
 
+No topo da aba **Palavras-chave** dá para pesquisar qualquer palavra: `GET /api/keywords/suggest?term=&country=`
+expande o termo no autocompletar público do Google (termo puro, termo + letras, "como/qual/melhor..." + termo, cerca
+de 30 consultas sequenciais, com cache de 24 h) e ordena as buscas pela frequência e posição em que o Google as sugere.
+A popularidade é relativa (100 = a mais sugerida da pesquisa), não é volume real. Código:
+`backend/app/collectors/google_suggest.py`.
+
 ## Recoleta e crescimento
 
 Buscas com recoleta automática são reexecutadas pelo agendador (a cada 15 min ele verifica o que está vencido). Toda coleta grava um snapshot diário por criativo, que alimenta o crescimento de 7 dias. Diariamente às 03:00 UTC todos os scores são recalculados.

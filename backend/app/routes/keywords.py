@@ -3,17 +3,20 @@
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.auth import current_user
+from app.collectors.google_suggest import SuggestError, suggest
 from app.config import get_settings
 from app.db import get_db
 from app.models import Ad, Search, SourceTrend, TrendKeyword, TrendSnapshot, User
 from app.pipeline.heat import HOT_SHARE, WARM_SHARE, rank_cutoff
+from app.pipeline.niche import NicheSignals, classify_signals
 from app.pipeline.sources import as_utc, user_search_source, user_source_ids
-from app.schemas import KeywordOut, KeywordPage, ScoreHeat, TrendNews
+from app.routes.searches import COUNTRY_LANGUAGE
+from app.schemas import KeywordOut, KeywordPage, KeywordSuggestion, KeywordSuggestions, ScoreHeat, TrendNews
 
 router = APIRouter(prefix="/api/keywords", tags=["keywords"])
 
@@ -23,12 +26,46 @@ MIN_MENTION_LENGTH = 4
 MENTION_CAP = 99
 
 
+# Each mention count scans the ads table, so suggestions only get it for the top ranks.
+MENTION_RANKS = 60
+
+
 def meta_mentions(db: Session, term: str) -> int | None:
     if len(term) < MIN_MENTION_LENGTH:
         return None
     pattern = f"%{term}%"
     hits = select(Ad.ad_archive_id).where(or_(Ad.body.ilike(pattern), Ad.title.ilike(pattern))).limit(MENTION_CAP + 1)
     return db.scalar(select(func.count()).select_from(hits.subquery())) or 0
+
+
+@router.get("/suggest", response_model=KeywordSuggestions)
+def suggest_keywords(
+    term: str = Query(..., min_length=2, max_length=80),
+    country: str = Query("BR", min_length=2, max_length=2),
+    limit: int = Query(60, ge=1, le=150),
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    country = country.upper()
+    language = f"{COUNTRY_LANGUAGE.get(country, 'pt')}-{country}"
+    try:
+        found = suggest(term, country=country, language=language)[:limit]
+    except SuggestError as exc:
+        raise HTTPException(502, str(exc)) from exc
+    top = max((s.score for s in found), default=1) or 1
+    base_niche = classify_signals(NicheSignals(texts=[term]))
+    terms = [s.term for s in found]
+    trending = set(db.scalars(select(func.lower(TrendKeyword.term)).where(
+        TrendKeyword.geo == country, func.lower(TrendKeyword.term).in_(terms)))) if terms else set()
+    items = [
+        KeywordSuggestion(
+            term=s.term, popularity=max(1, round(100 * s.score / top)), hits=s.hits,
+            niche=base_niche or classify_signals(NicheSignals(texts=[s.term])),
+            meta_ads=meta_mentions(db, s.term) if rank < MENTION_RANKS else None, trending=s.term in trending,
+        )
+        for rank, s in enumerate(found)
+    ]
+    return KeywordSuggestions(term=term.strip(), country=country, items=items)
 
 
 @router.get("", response_model=KeywordPage)

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { api, timeAgo, toQuery, type Keyword, type KeywordPage, type ScoreHeat, type Search } from "@/lib/api";
+import { api, timeAgo, toQuery, type Keyword, type KeywordPage, type KeywordSuggestions, type ScoreHeat, type Search } from "@/lib/api";
 import { useNiches } from "@/lib/hooks";
 import { useUrlFilters } from "@/lib/useUrlFilters";
 import { CheckToggle, FilterChips, FilterSelect, FilterToggle, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
@@ -110,14 +110,11 @@ export function KeywordsView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Palavras-chave em alta</h1>
-        <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted">
-          O que o país está pesquisando no Google agora, segundo o Google Trends, coletado a cada hora e separado por
-          nicho. O volume é a estimativa de buscas do próprio Google (ex.: 20 mil+). Use os termos para achar ofertas no
-          Meta antes de todo mundo.
-        </p>
-      </div>
+      <h1 className="text-2xl font-semibold tracking-tight">Palavras-chave</h1>
+
+      <KeywordSearch nicheLabel={label} />
+
+      <h2 className="mt-4 text-lg font-semibold tracking-tight">Em alta no Google agora</h2>
 
       <form
         role="search"
@@ -222,13 +219,102 @@ function Growth({ keyword }: { keyword: Keyword }) {
   );
 }
 
-function KeywordRow({ keyword, heat, nicheLabel }: { keyword: Keyword; heat?: ScoreHeat | null; nicheLabel: string | null }) {
+const LINK_CLASS = "rounded-full border border-line px-2 py-0.5 text-micro text-muted transition-colors hover:border-accent/60 hover:text-foreground pointer-coarse:py-2";
+const SUGGEST_PAGE = 40;
+
+/** Searches around the user's own term, from Google's autocomplete, ordered by how often Google suggests them. */
+function KeywordSearch({ nicheLabel }: { nicheLabel: (id: string | null) => string | null }) {
+  const [term, setTerm] = useState("");
+  const [country, setCountry] = useState("BR");
+  const [result, setResult] = useState<KeywordSuggestions | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [shown, setShown] = useState(SUGGEST_PAGE);
+
+  async function search(e: React.FormEvent) {
+    e.preventDefault();
+    if (term.trim().length < 2) return;
+    setBusy(true);
+    setError(null);
+    try {
+      setResult(await api<KeywordSuggestions>(`/api/keywords/suggest${toQuery({ term: term.trim(), country, limit: 150 })}`));
+      setShown(SUGGEST_PAGE);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const items = result?.items ?? [];
+  return (
+    <section className="flex flex-col gap-3">
+      <form onSubmit={search} role="search" aria-label="Pesquisar palavra-chave"
+        className="flex flex-wrap items-end gap-3 rounded-lg border border-line bg-surface p-3">
+        <div className="min-w-0 flex-1 basis-full sm:basis-72">
+          <label className="label" htmlFor="kw-term">Palavra-chave</label>
+          <input id="kw-term" type="search" enterKeyHint="search" className="field" value={term} maxLength={80}
+            onChange={(e) => setTerm(e.target.value)} placeholder="ex.: creatina, renda extra, emagrecer" />
+        </div>
+        <div className="w-20">
+          <label className="label" htmlFor="kw-country">País</label>
+          <input id="kw-country" className="field uppercase" value={country} maxLength={2}
+            onChange={(e) => setCountry(e.target.value.toUpperCase())} />
+        </div>
+        <button type="submit" className="btn btn-primary" disabled={busy || term.trim().length < 2}>
+          {busy ? "Pesquisando..." : "Pesquisar"}
+        </button>
+      </form>
+
+      {busy && <p role="status" className="text-sm text-muted">Consultando o Google (leva uns 10 segundos)...</p>}
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+      {result && !busy && (
+        items.length === 0 ? (
+          <p className="text-sm text-muted">Nenhuma busca encontrada para “{result.term}”.</p>
+        ) : (
+          <>
+            <p className="text-sm text-muted">
+              {items.length} buscas relacionadas a “{result.term}” ({result.country}), das mais para as menos sugeridas pelo Google.
+            </p>
+            <ol className="flex flex-col divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface">
+              {items.slice(0, shown).map((s, i) => (
+                <li key={s.term} className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 px-3 py-2.5 lg:grid-cols-[2.5rem_minmax(0,1fr)_auto] lg:items-center">
+                  <span className="pt-0.5 font-mono text-xs text-muted">#{i + 1}</span>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-baseline gap-x-2">
+                      <span className="font-medium">{s.term}</span>
+                      {s.trending && <span className="rounded bg-ok/15 px-1.5 text-micro font-medium text-ok">em alta</span>}
+                    </div>
+                    <div className="mt-1 flex items-center gap-2 text-xs text-muted">
+                      <span className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-2" aria-hidden="true">
+                        <span className="block h-full rounded-full bg-accent" style={{ width: `${s.popularity}%` }} />
+                      </span>
+                      <span title="Popularidade relativa: o quanto o Google sugere esta busca, comparada à mais sugerida desta pesquisa">
+                        {s.popularity}
+                      </span>
+                      {s.niche && <span>· {nicheLabel(s.niche)}</span>}
+                    </div>
+                  </div>
+                  <KeywordActions term={s.term} geo={result.country} metaAds={s.meta_ads} />
+                </li>
+              ))}
+            </ol>
+            {items.length > shown && (
+              <button type="button" className="btn mx-auto" onClick={() => setShown((n) => n + SUGGEST_PAGE)}>
+                Mostrar mais ({items.length - shown} restantes)
+              </button>
+            )}
+          </>
+        )
+      )}
+    </section>
+  );
+}
+
+function KeywordActions({ term: raw, geo, metaAds }: { term: string; geo: string; metaAds: number | null }) {
   const [mining, setMining] = useState<"idle" | "busy" | "done" | "error">("idle");
   const [mineError, setMineError] = useState<string | null>(null);
-  const term = encodeURIComponent(keyword.term);
-  const days = keyword.days_trending;
-  const since = keyword.trending_now ? "em alta agora" : `visto ${timeAgo(keyword.last_seen_at) ?? ""}`;
-  const linkClass = "rounded-full border border-line px-2 py-0.5 text-micro text-muted transition-colors hover:border-accent/60 hover:text-foreground pointer-coarse:py-2";
+  const term = encodeURIComponent(raw);
 
   async function mineMeta() {
     setMining("busy");
@@ -236,7 +322,7 @@ function KeywordRow({ keyword, heat, nicheLabel }: { keyword: Keyword; heat?: Sc
     try {
       await api<Search>("/api/searches", {
         method: "POST",
-        body: JSON.stringify({ term: keyword.term, country: keyword.geo, source: "hybrid", refresh_hours: 24 }),
+        body: JSON.stringify({ term: raw, country: geo, source: "hybrid", refresh_hours: 24 }),
       });
       setMining("done");
     } catch (e) {
@@ -244,6 +330,41 @@ function KeywordRow({ keyword, heat, nicheLabel }: { keyword: Keyword; heat?: Sc
       setMineError((e as Error).message);
     }
   }
+
+  return (
+    <div className="col-start-2 flex flex-wrap items-center gap-1.5 lg:col-start-3 lg:max-w-80 lg:justify-end">
+      {metaAds != null && metaAds > 0 && (
+        <Link href={`/?q=${term}&scope=all`} className="rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent hover:bg-accent/10 pointer-coarse:py-2"
+          title="Anúncios do Meta já coletados que citam o termo">
+          {metaAds > 99 ? "99+" : metaAds} {metaAds === 1 ? "anúncio" : "anúncios"} no Meta
+        </Link>
+      )}
+      <a href={`https://trends.google.com/trends/explore?geo=${geo}&q=${term}`} target="_blank" rel="noreferrer"
+        className={LINK_CLASS} title="Curva de interesse no Google Trends">
+        Trends
+      </a>
+      <a href={`https://www.google.com/search?q=${term}`} target="_blank" rel="noreferrer" className={LINK_CLASS}>
+        Google
+      </a>
+      <Link href={`/?q=${term}&scope=all`} className={LINK_CLASS} title="Criativos já coletados com o termo">Explorar</Link>
+      {mining === "done" ? (
+        <Link href="/buscas" className="rounded-full border border-ok/40 px-2 py-0.5 text-micro text-ok pointer-coarse:py-2">
+          Busca criada no Meta
+        </Link>
+      ) : (
+        <button type="button" onClick={mineMeta} disabled={mining === "busy"}
+          className="rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent transition-colors hover:bg-accent/10 disabled:opacity-60 pointer-coarse:py-2"
+          title={mineError ?? "Cria uma busca de anúncios no Meta com este termo"}>
+          {mining === "busy" ? "Criando..." : mining === "error" ? "Erro, tentar de novo" : "Minerar no Meta"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function KeywordRow({ keyword, heat, nicheLabel }: { keyword: Keyword; heat?: ScoreHeat | null; nicheLabel: string | null }) {
+  const days = keyword.days_trending;
+  const since = keyword.trending_now ? "em alta agora" : `visto ${timeAgo(keyword.last_seen_at) ?? ""}`;
 
   return (
     <li className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 px-3 py-3 lg:grid-cols-[4.5rem_minmax(0,1fr)_auto] lg:items-center">
@@ -283,33 +404,7 @@ function KeywordRow({ keyword, heat, nicheLabel }: { keyword: Keyword; heat?: Sc
           </ul>
         )}
       </div>
-      <div className="col-start-2 flex flex-wrap items-center gap-1.5 lg:col-start-3 lg:max-w-80 lg:justify-end">
-        {keyword.meta_ads != null && keyword.meta_ads > 0 && (
-          <Link href={`/?q=${term}&scope=all`} className="rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent hover:bg-accent/10 pointer-coarse:py-2"
-            title="Anúncios do Meta já coletados que citam o termo">
-            {keyword.meta_ads > 99 ? "99+" : keyword.meta_ads} {keyword.meta_ads === 1 ? "anúncio" : "anúncios"} no Meta
-          </Link>
-        )}
-        <a href={`https://trends.google.com/trends/explore?geo=${keyword.geo}&q=${term}&date=now%207-d`} target="_blank" rel="noreferrer"
-          className={linkClass} title="Curva de interesse dos últimos 7 dias no Google Trends">
-          Trends
-        </a>
-        <a href={`https://www.google.com/search?q=${term}`} target="_blank" rel="noreferrer" className={linkClass}>
-          Google
-        </a>
-        <Link href={`/?q=${term}&scope=all`} className={linkClass} title="Criativos já coletados com o termo">Explorar</Link>
-        {mining === "done" ? (
-          <Link href="/buscas" className="rounded-full border border-ok/40 px-2 py-0.5 text-micro text-ok pointer-coarse:py-2">
-            Busca criada no Meta
-          </Link>
-        ) : (
-          <button type="button" onClick={mineMeta} disabled={mining === "busy"}
-            className="rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent transition-colors hover:bg-accent/10 disabled:opacity-60 pointer-coarse:py-2"
-            title={mineError ?? "Cria uma busca de anúncios no Meta com este termo"}>
-            {mining === "busy" ? "Criando..." : mining === "error" ? "Erro, tentar de novo" : "Minerar no Meta"}
-          </button>
-        )}
-      </div>
+      <KeywordActions term={keyword.term} geo={keyword.geo} metaAds={keyword.meta_ads} />
     </li>
   );
 }
