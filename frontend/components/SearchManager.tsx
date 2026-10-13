@@ -91,7 +91,7 @@ export function SearchManager() {
     e.preventDefault();
     const youtube = form.source === "youtube";
     const byPage = !youtube && form.mode === "page";
-    if (!(byPage ? form.page : form.term).trim()) return;
+    if (!(byPage ? form.page : form.term).trim() && !(youtube && form.niche)) return;
     setSubmitting(true);
     setError(null);
     setNotice(null);
@@ -104,7 +104,7 @@ export function SearchManager() {
           country: form.country,
           language: form.language || null,
           media_type: youtube ? "video" : form.media_type,
-          niche: youtube ? null : form.niche || null,
+          niche: form.niche || null,
           source: youtube ? "youtube" : "hybrid",
           max_ads: youtube ? Math.min(Number(form.max_ads), YOUTUBE_MAX) : Number(form.max_ads),
           refresh_hours: form.refresh_hours ? Number(form.refresh_hours) : null,
@@ -169,7 +169,8 @@ export function SearchManager() {
           Anúncios e cole o link (contém <span className="font-mono text-foreground">view_all_page_id</span>).
           Buscas iguais compartilham a mesma coleta: se o termo já é monitorado, os criativos aparecem na hora.
           Buscando por <span className="text-foreground">YouTube</span>, a coleta traz os vídeos orgânicos mais vistos dos
-          últimos 30 dias e mede quais pegaram tração rápido (resultado em{" "}
+          últimos 30 dias e mede quais pegaram tração rápido; sem tema, escolha um nicho para ver o que está em alta nele
+          (resultado em{" "}
           <Link href="/videos" className="text-foreground underline underline-offset-2 hover:text-accent">Vídeos</Link>).
         </p>
       </div>
@@ -186,8 +187,8 @@ export function SearchManager() {
         {youtube || form.mode === "keyword" ? (
           <div className="col-span-2 xl:col-span-2">
             <label className="label" htmlFor="term">Tema ou palavra-chave</label>
-            <input id="term" className="field" value={form.term} onChange={set("term")} required
-              placeholder={youtube ? "ex.: como emagrecer, renda extra" : "ex.: renda extra, skincare"} />
+            <input id="term" className="field" value={form.term} onChange={set("term")} required={!youtube || !form.niche}
+              placeholder={youtube ? "opcional se escolher um nicho" : "ex.: renda extra, skincare"} />
           </div>
         ) : (
           <div className="col-span-2 xl:col-span-2">
@@ -203,12 +204,22 @@ export function SearchManager() {
         <div>
           <label className="label" htmlFor="language">Idioma</label>
           <select id="language" className="field" value={form.language} onChange={set("language")}>
-            <option value="">Todos</option>
+            <option value="">{youtube ? "Do país" : "Todos"}</option>
             <option value="pt">Português</option>
             <option value="es">Espanhol</option>
             <option value="en">Inglês</option>
           </select>
         </div>
+        {youtube && (
+          <div>
+            <label className="label" htmlFor="niche">Nicho</label>
+            <select id="niche" className="field" value={form.niche} onChange={set("niche")}
+              title="Sem tema: busca os vídeos em alta do nicho inteiro. Com tema: mostra só os vídeos desse nicho ao abrir a busca">
+              <option value="">Todos</option>
+              {niches.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
+            </select>
+          </div>
+        )}
         {!youtube && (
           <>
             <div>

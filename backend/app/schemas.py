@@ -201,6 +201,8 @@ class VideoOut(ORM):
     duration_s: int | None
     is_short: bool
     published_at: datetime
+    niche: str | None
+    language: str | None
     views: int
     likes: int | None
     comments: int | None

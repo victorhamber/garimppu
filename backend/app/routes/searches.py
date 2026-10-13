@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.auth import current_user
+from app.collectors.youtube import NICHE_PREFIX
 from app.config import get_settings
 from app.db import get_db
 from app.jobs import enqueue_source
@@ -55,6 +56,12 @@ def _get_search(db: Session, search_id: int, user: User) -> Search:
     return search
 
 
+# YouTube region filtering does not restrict language: a "Forex" search in BR otherwise returns Indian streams.
+COUNTRY_LANGUAGE = {"BR": "pt", "PT": "pt", "AO": "pt", "MZ": "pt", "US": "en", "GB": "en", "CA": "en", "AU": "en",
+                    "ES": "es", "MX": "es", "AR": "es", "CO": "es", "CL": "es", "PE": "es", "FR": "fr", "IT": "it",
+                    "DE": "de"}
+
+
 def _check_niche(niche: str | None) -> None:
     if niche and niche not in NICHES:
         raise HTTPException(422, f"Nicho desconhecido: {niche}")
@@ -79,13 +86,20 @@ def create_search(payload: SearchCreate, db: Session = Depends(get_db), user: Us
     _check_niche(payload.niche)
     term = " ".join(payload.term.split())
     page_id = None
+    source_term = None
     if payload.source == "youtube":
         if not get_settings().youtube_api_key:
             raise HTTPException(503, "Busca no YouTube desativada: falta configurar YOUTUBE_API_KEY no servidor.")
+        if not term and not payload.niche:
+            raise HTTPException(422, "Informe um tema ou escolha um nicho para buscar no YouTube.")
         if not term:
-            raise HTTPException(422, "Informe um tema ou palavra-chave para buscar no YouTube.")
+            source_term = f"{NICHE_PREFIX}{payload.niche}"
+            term = f"Nicho: {NICHES[payload.niche]['label']}"
+            # The niche is the query itself; filtering results by it again would hide off-label hits.
+            payload.niche = None
         payload.page = None
         payload.media_type = "video"
+        payload.language = payload.language or COUNTRY_LANGUAGE.get(payload.country.upper())
     if payload.page and payload.page.strip():
         page_id = parse_page_id(payload.page)
         if page_id is None:
@@ -101,7 +115,7 @@ def create_search(payload: SearchCreate, db: Session = Depends(get_db), user: Us
         raise HTTPException(422, "Informe um tema/palavra-chave ou uma página.")
 
     source, created = find_or_create_source(
-        db, term=term, page_id=page_id, country=payload.country, language=payload.language,
+        db, term=source_term or term, page_id=page_id, country=payload.country, language=payload.language,
         media_type=payload.media_type, collector=payload.source,
     )
     search = Search(user_id=user.id, source_id=source.id, term=term, niche=payload.niche, max_ads=payload.max_ads,

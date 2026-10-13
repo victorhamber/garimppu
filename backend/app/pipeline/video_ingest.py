@@ -3,14 +3,16 @@
 import re
 from collections.abc import Callable
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.collectors.youtube import RawVideo
 from app.models import Source, SourceVideo, Video, VideoSnapshot, utcnow
+from app.pipeline.niche import NicheSignals, classify_signals
 from app.pipeline.offers import classify_destination
 from app.pipeline.video_score import score_video
 
+DESCRIPTION_CHARS = 600
 _URL_RE = re.compile(r"https?://[^\s<>()\"'\]]+", re.I)
 # What a viewer is sent to buy is the signal; sites and social profiles in descriptions are mostly noise.
 _OFFER_PRIORITY = {"infoproduto": 0, "loja": 1, "app": 2}
@@ -27,6 +29,13 @@ def description_offer(description: str | None):
         if best is None or _OFFER_PRIORITY[offer.kind] < _OFFER_PRIORITY[best[1].kind]:
             best = (url, offer)
     return best
+
+
+def video_niche(title: str | None, description: str | None, channel: str | None, offer_key: str | None) -> str | None:
+    # Long descriptions are mostly sponsor blurbs and social links; the opening carries the topic.
+    return classify_signals(NicheSignals(
+        texts=[title, title, (description or "")[:DESCRIPTION_CHARS]], page_name=channel, offer_keys=[offer_key],
+    ))
 
 
 def ingest_videos(db: Session, source: Source, raw_videos: list[RawVideo], log: Callable[[str], None]) -> tuple[int, int]:
@@ -60,6 +69,8 @@ def ingest_videos(db: Session, source: Source, raw_videos: list[RawVideo], log: 
         video.offer_key = found[1].key[:255] if found else None
         video.offer_kind = found[1].kind if found else None
         video.offer_platform = found[1].platform if found else None
+        video.language = raw.language
+        video.niche = video_niche(raw.title, raw.description, raw.channel_title, video.offer_key)
 
         score_video(video, now)
         snapshot = next((s for s in video.snapshots if s.taken_on == today), None)
@@ -68,11 +79,13 @@ def ingest_videos(db: Session, source: Source, raw_videos: list[RawVideo], log: 
         else:
             snapshot.views = raw.views
     db.flush()
-    for raw in raw_videos:
-        video_id = f"youtube:{raw.external_id}"
-        if video_id not in linked:
-            db.add(SourceVideo(source_id=source.id, video_id=video_id))
-            linked.add(video_id)
+    # The search shows what is trending now: videos that left its top list are unlinked (they stay in the base).
+    current = {f"youtube:{raw.external_id}" for raw in raw_videos}
+    gone = linked - current
+    if gone:
+        db.execute(delete(SourceVideo).where(SourceVideo.source_id == source.id, SourceVideo.video_id.in_(gone)))
+    for video_id in current - linked:
+        db.add(SourceVideo(source_id=source.id, video_id=video_id))
     db.commit()
     with_offer = sum(1 for r in raw_videos if description_offer(r.description))
     log(f"{len(raw_videos)} vídeos salvos ({new} novos, {with_offer} com link de oferta na descrição)")

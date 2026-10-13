@@ -135,6 +135,8 @@ export type Video = {
   duration_s: number | null;
   is_short: boolean;
   published_at: string;
+  niche: string | null;
+  language: string | null;
   views: number;
   likes: number | null;
   comments: number | null;

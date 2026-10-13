@@ -3,15 +3,16 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api, timeAgo, toQuery, type ScoreHeat, type Search, type Video, type VideoPage } from "@/lib/api";
+import { useNiches } from "@/lib/hooks";
 import { digitsOnly, useUrlFilters } from "@/lib/useUrlFilters";
 import { CoverImage, VideoFallback } from "./CoverImage";
 import { CheckToggle, FilterChips, FilterSelect, FilterToggle, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
 import { HEAT_HINT, heatClass, ScoreLegend } from "./Metrics";
 
 const PAGE_SIZE = 30;
-const FILTER_KEYS = ["q", "search_id", "format", "period", "min_views", "has_offer", "offer", "scope", "sort"] as const;
+const FILTER_KEYS = ["q", "niche", "search_id", "format", "period", "min_views", "has_offer", "offer", "scope", "sort"] as const;
 const TYPED_KEYS = ["q", "min_views"] as const;
-const PANEL_KEYS = ["search_id", "format", "period", "min_views"] as const;
+const PANEL_KEYS = ["niche", "search_id", "format", "period", "min_views"] as const;
 type FilterKey = (typeof FILTER_KEYS)[number];
 
 const SORTS = [
@@ -62,11 +63,13 @@ export function VideosView() {
   const key = `${filtersKey}#${attempt}`;
   const loading = loadedKey !== key;
   const [panelOpen, setPanelOpen] = useState(false);
+  const { niches, label } = useNiches();
   useSlashFocus("vq");
 
   const youtubeSearches = searches.filter((s) => s.source === "youtube");
   const panelCount = PANEL_KEYS.filter((k) => filters[k]).length;
   const chips: FilterChip<FilterKey>[] = [];
+  if (filters.niche) chips.push({ key: "niche", label: label(filters.niche) ?? filters.niche });
   if (filters.search_id) {
     const search = searches.find((s) => String(s.id) === filters.search_id);
     chips.push({ key: "search_id", label: `Busca: ${search?.term ?? filters.search_id}` });
@@ -166,7 +169,8 @@ export function VideosView() {
             onChange={(on) => update("has_offer", on ? "true" : "")} />
         </div>
 
-        <div id="videos-panel" hidden={!panelOpen} className="grid grid-cols-2 gap-3 border-t border-line pt-3 md:grid-cols-4">
+        <div id="videos-panel" hidden={!panelOpen} className="grid grid-cols-2 gap-3 border-t border-line pt-3 md:grid-cols-5">
+          <FilterSelect id="v-nicho" label="Nicho" value={filters.niche} onChange={(v) => update("niche", v)} options={niches} />
           <FilterSelect id="v-busca" label="Busca" value={filters.search_id} onChange={(v) => update("search_id", v)}
             options={youtubeSearches.map((s) => ({ id: String(s.id), label: `${s.term} (${s.country})` }))} />
           <FilterSelect id="v-formato" label="Formato" value={filters.format} onChange={(v) => update("format", v)} options={FORMATS} />
@@ -220,7 +224,9 @@ export function VideosView() {
 
       <div aria-busy={loading || loadingMore}
         className={`grid gap-4 transition-opacity sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 ${loading && items.length > 0 ? "opacity-60" : ""}`}>
-        {items.map((video, i) => <VideoCard key={video.id} video={video} rank={i + 1} heat={data?.heat} />)}
+        {items.map((video, i) => (
+          <VideoCard key={video.id} video={video} rank={i + 1} heat={data?.heat} niche={label(video.niche)} />
+        ))}
       </div>
 
       {data && items.length < data.total && (
@@ -232,10 +238,24 @@ export function VideosView() {
   );
 }
 
-function VideoCard({ video, rank, heat }: { video: Video; rank: number; heat?: ScoreHeat }) {
+/** Same parts as backend pipeline/video_score.py, so the card can show where the score comes from. */
+function scoreParts(video: Video) {
+  const accel = video.acceleration;
+  return [
+    { label: "views/dia", value: Math.log10(1 + video.velocity) },
+    { label: "acima do canal", value: video.outlier != null ? Math.log10(1 + video.outlier) : null },
+    { label: "engajamento", value: video.engagement != null ? 0.5 * Math.min(video.engagement / 0.05, 1.5) : null },
+    { label: "aceleração", value: accel != null ? Math.max(Math.min(Math.log2(Math.max(accel, 0.01)) / 2, 1), -0.5) : null },
+  ];
+}
+
+const fmtPart = (v: number | null) => (v == null ? "—" : v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
+
+function VideoCard({ video, rank, heat, niche }: { video: Video; rank: number; heat?: ScoreHeat; niche: string | null }) {
   const duration = formatDuration(video.duration_s);
   const title = video.title || "Sem título";
   const accel = video.acceleration;
+  const parts = scoreParts(video);
   return (
     <article className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-line bg-surface">
       <a href={video.url} target="_blank" rel="noreferrer" className="relative block aspect-video bg-surface-2"
@@ -259,7 +279,7 @@ function VideoCard({ video, rank, heat }: { video: Video; rank: number; heat?: S
           <h2 className="line-clamp-2 min-w-0 flex-1 text-sm font-medium leading-snug" title={title}>
             <a href={video.url} target="_blank" rel="noreferrer" className="hover:text-accent">{title}</a>
           </h2>
-          <span title={`Score de vídeo (${HEAT_HINT})`}
+          <span title={`Score de vídeo = ${parts.map((p) => `${p.label} ${fmtPart(p.value)}`).join(" + ")} (${HEAT_HINT})`}
             className={`shrink-0 rounded px-1.5 py-0.5 font-mono text-xs font-semibold tabular-nums ${heatClass(video.score, heat)}`}>
             {video.score.toFixed(2)}
           </span>
@@ -272,6 +292,7 @@ function VideoCard({ video, rank, heat }: { video: Video; rank: number; heat?: S
           ) : video.channel_title}
           {video.channel_subscribers != null && ` · ${compact.format(video.channel_subscribers)} inscritos`}
           {` · ${timeAgo(video.published_at)}`}
+          {niche && ` · ${niche}`}
         </p>
 
         <dl className="grid grid-cols-4 gap-px overflow-hidden rounded-md border border-line bg-line text-center">
@@ -282,6 +303,9 @@ function VideoCard({ video, rank, heat }: { video: Video; rank: number; heat?: S
           <Metric label="engaj." value={video.engagement != null ? `${(video.engagement * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%` : "—"}
             strong={(video.engagement ?? 0) >= 0.05} title="(curtidas + 2×comentários) ÷ visualizações" />
         </dl>
+        <p className="text-micro text-muted">
+          Pontos: {parts.map((p) => `${p.label} ${fmtPart(p.value)}`).join(" · ")}
+        </p>
 
         <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
           {accel != null ? (

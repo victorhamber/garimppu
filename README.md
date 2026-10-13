@@ -104,6 +104,9 @@ score_video = log10(1 + views/dia)
             + bônus de aceleração (views/dia recentes ÷ média, entre -0.5 e +1)
 ```
 
+Sem tema, escolhendo um nicho, a busca usa os termos do nicho (`NICHE_QUERIES` em `collectors/youtube.py`).
+Lives e vídeos em outro idioma (o padrão é o idioma do país) são descartados, e cada busca mostra só os vídeos da
+última coleta. Cada vídeo recebe um nicho pelo mesmo classificador dos anúncios.
 A aceleração aparece a partir da segunda coleta (snapshot diário de views). O link de checkout/loja/app mais
 comercial da descrição é classificado como oferta, igual aos anúncios, e a oferta mostra quantos vídeos a citam.
 Código: `backend/app/collectors/youtube.py`, `backend/app/pipeline/video_score.py` e `video_ingest.py`.

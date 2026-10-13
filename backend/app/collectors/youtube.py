@@ -34,6 +34,7 @@ class RawVideo:
     views: int
     likes: int | None
     comments: int | None
+    language: str | None = None
     channel_subscribers: int | None = None
 
     @property
@@ -107,10 +108,12 @@ class YouTubeClient:
     def videos(self, ids: list[str]) -> list[RawVideo]:
         found: list[RawVideo] = []
         for chunk in _chunks(ids):
-            data = self._get("videos", 1, part="snippet,statistics,contentDetails", id=",".join(chunk))
+            data = self._get("videos", 1, part="snippet,statistics,contentDetails,liveStreamingDetails",
+                             id=",".join(chunk))
             for item in data.get("items", []):
                 snippet, stats = item.get("snippet", {}), item.get("statistics", {})
-                if snippet.get("liveBroadcastContent") in ("live", "upcoming"):
+                # Lives and their replays pile up views from the stream itself, not from the video spreading.
+                if snippet.get("liveBroadcastContent") in ("live", "upcoming") or item.get("liveStreamingDetails"):
                     continue
                 found.append(RawVideo(
                     external_id=item["id"],
@@ -124,6 +127,7 @@ class YouTubeClient:
                     views=int(stats.get("viewCount", 0)),
                     likes=_int(stats.get("likeCount")),
                     comments=_int(stats.get("commentCount")),
+                    language=snippet.get("defaultAudioLanguage") or snippet.get("defaultLanguage"),
                 ))
         return found
 
@@ -153,14 +157,64 @@ def _error_message(response: httpx.Response) -> str:
     return f"YouTube respondeu {response.status_code}: {message or reason}"
 
 
+NICHE_PREFIX = "nicho:"
+# What people search on YouTube for each niche (ids from pipeline.niche); joined with YouTube's OR operator.
+NICHE_QUERIES: dict[str, list[str]] = {
+    "revenda": ["revenda", "revendedora", "venda direta", "consultora"],
+    "entregas_apps": ["entregador", "motorista de aplicativo", "entregas ifood", "uber"],
+    "empregos": ["vagas de emprego", "jovem aprendiz", "currículo", "processo seletivo"],
+    "emagrecimento": ["emagrecer", "perder peso", "dieta", "secar barriga"],
+    "beleza_estetica": ["skincare", "maquiagem", "cabelo", "estética"],
+    "saude": ["saúde", "ansiedade", "diabetes", "dor nas costas"],
+    "fitness": ["treino", "academia", "hipertrofia", "musculação"],
+    "financas": ["investimentos", "renda passiva", "day trade", "bitcoin"],
+    "marketing_digital": ["marketing digital", "tráfego pago", "afiliado", "ganhar dinheiro na internet"],
+    "artesanato": ["artesanato", "crochê", "resina", "costura"],
+    "relacionamento": ["relacionamento", "reconquistar", "conquistar", "namoro"],
+    "educacao_concursos": ["concurso público", "enem", "vestibular", "como estudar"],
+    "idiomas": ["aprender inglês", "inglês", "espanhol", "fluência"],
+    "pets": ["cachorro", "gato", "pet", "adestramento"],
+    "moda": ["moda", "look", "roupas", "semijoias"],
+    "casa_decoracao": ["decoração", "organização da casa", "air fryer", "limpeza da casa"],
+    "tecnologia": ["iphone", "celular", "inteligência artificial", "chatgpt"],
+    "imoveis": ["imóveis", "apartamento", "minha casa minha vida", "terreno"],
+    "automotivo": ["carro", "moto", "mecânica", "consórcio"],
+    "alimentacao": ["receita", "confeitaria", "bolo", "marmita"],
+    "apostas": ["apostas esportivas", "cassino", "bet", "palpites"],
+    "espiritualidade": ["oração", "tarot", "signos", "lei da atração"],
+    "maternidade": ["bebê", "gravidez", "maternidade", "amamentação"],
+}
+
+
+def search_query(term: str) -> str:
+    """A plain term, or "nicho:<id>" expanded to that niche's searches."""
+    if term.startswith(NICHE_PREFIX):
+        words = NICHE_QUERIES.get(term[len(NICHE_PREFIX):], [])
+        return "|".join(f'"{w}"' if " " in w else w for w in words)
+    return term
+
+
+def matches_language(video: RawVideo, language: str) -> bool:
+    if video.language:
+        return video.language.lower().split("-")[0] == language.lower()
+    # Undeclared: drop titles written mostly in another script (Devanagari, Bengali, Arabic...).
+    letters = [c for c in video.title or "" if c.isalpha()]
+    return not letters or sum(ord(c) > 0x24F for c in letters) / len(letters) < 0.3
+
+
 def collect_videos(term: str, *, country: str, language: str | None, max_results: int, window_days: int,
                    api_key: str, log: Callable[[str], None]) -> tuple[list[RawVideo], int]:
     """Returns the videos and the quota units spent."""
     client = YouTubeClient(api_key)
     since = datetime.now(timezone.utc) - timedelta(days=window_days)
-    ids = client.search_ids(term, country=country, language=language, max_results=max_results, published_after=since)
+    query = search_query(term)
+    if not query:
+        raise YouTubeError(f"Nicho sem termos de busca no YouTube: {term}")
+    ids = client.search_ids(query, country=country, language=language, max_results=max_results, published_after=since)
     log(f"YouTube: {len(ids)} vídeos publicados nos últimos {window_days} dias")
-    videos = client.videos(ids)
+    found = client.videos(ids)
+    videos = [v for v in found if not language or matches_language(v, language)]
+    log(f"Descartados: {len(ids) - len(found)} lives ou indisponíveis, {len(found) - len(videos)} em outro idioma")
     subs = client.subscribers([v.channel_id for v in videos if v.channel_id])
     for video in videos:
         video.channel_subscribers = subs.get(video.channel_id) if video.channel_id else None

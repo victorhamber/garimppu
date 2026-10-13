@@ -48,6 +48,7 @@ def list_videos(
     search_id: int | None = None,
     scope: Literal["mine", "all"] = Query("mine", description="mine = só vídeos das buscas do usuário"),
     offer: str | None = Query(None, description="Uma oferta exata (offer_key)"),
+    niche: str | None = None,
     has_offer: bool = False,
     format: Literal["all", "short", "long"] = "all",
     period: int | None = Query(None, ge=1, le=365, description="Publicados nos últimos N dias"),
@@ -70,6 +71,8 @@ def list_videos(
         stmt = stmt.where(Video.offer_key == offer)
     elif has_offer:
         stmt = stmt.where(Video.offer_key.is_not(None))
+    if niche:
+        stmt = stmt.where(Video.niche == niche)
     if format == "short":
         stmt = stmt.where(Video.is_short.is_(True))
     elif format == "long":

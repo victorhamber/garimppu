@@ -295,6 +295,8 @@ class Video(Base):
     duration_s: Mapped[int | None] = mapped_column(Integer)
     is_short: Mapped[bool] = mapped_column(Boolean, default=False)
     published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    niche: Mapped[str | None] = mapped_column(String(32), index=True)
+    language: Mapped[str | None] = mapped_column(String(16))  # declared by the uploader, often missing
     views: Mapped[int] = mapped_column(BigInteger, default=0)
     likes: Mapped[int | None] = mapped_column(BigInteger)
     comments: Mapped[int | None] = mapped_column(BigInteger)
