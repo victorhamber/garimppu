@@ -33,7 +33,7 @@ export function CollectionsView() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Coleções</h1>
-        <p className="mt-1 text-sm text-muted">Anúncios e ofertas que você salvou.</p>
+        <p className="mt-1 text-sm text-muted">Tudo o que você salvou, de qualquer fonte.</p>
       </div>
 
       <form onSubmit={create} className="flex max-w-md gap-2">
@@ -48,7 +48,7 @@ export function CollectionsView() {
             <Link href={`/colecoes/${c.id}`} className="min-w-0">
               <p className="truncate font-medium hover:text-accent">{c.name}</p>
               <p className="text-xs text-muted">{c.offers_count > 0 && `${c.offers_count} ${c.offers_count === 1 ? "oferta" : "ofertas"} · `}
-                {c.items_count} criativos · criada em {formatDate(c.created_at)}</p>
+                {c.items_count} criativos{c.refs_count > 0 && ` · ${c.refs_count} de outras fontes`} · criada em {formatDate(c.created_at)}</p>
             </Link>
             {c.name !== "Favoritos" && (
               <button type="button" onClick={() => remove(c.id, c.name)} className="btn btn-ghost h-8 text-xs text-muted hover:text-danger pointer-coarse:h-11">

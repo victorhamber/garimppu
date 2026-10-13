@@ -21,7 +21,8 @@ from app.collectors.radar import parse_term as parse_site_term
 from app.config import get_settings
 from app.db import get_db
 from app.models import Ad, CollectionOffer, Creative, Page, Source, SourceAd, SourceSite, TikTokAd, User, Video
-from app.pipeline.heat import HOT_SHARE, WARM_SHARE, rank_cutoff
+from app.csv_export import EXPORT_LIMIT, csv_response
+from app.pipeline.heat import HOT_SHARE, MIN_DAYS_ACTIVE, WARM_SHARE, metric_cutoffs, rank_cutoff
 from app.pipeline.offers import offer_label
 from app.pipeline.scoring import MAX_LONGEVITY_DAYS, count_duplicates, days_running
 from app.pipeline.sources import user_search_source, user_source_ids
@@ -159,7 +160,7 @@ def list_offers(
     include_brands: bool = Query(False, description="Inclui páginas de marcas grandes, que afiliados não promovem"),
     scope: Literal["mine", "all"] = Query("mine", description="mine = só anúncios das buscas do usuário"),
     sort: OfferSort = "score",
-    limit: int = Query(30, ge=1, le=200),
+    limit: int = Query(30, ge=1, le=EXPORT_LIMIT),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
@@ -231,8 +232,6 @@ def list_offers(
     offers.sort(key=SORT_KEYS[sort], reverse=True)
 
     platforms = sorted(p for p in db.scalars(select(Ad.offer_platform).distinct()) if p)
-    scores = [o.score for o in offers]
-    heat = ScoreHeat(hot=rank_cutoff(scores, HOT_SHARE), warm=rank_cutoff(scores, WARM_SHARE))
     page = offers[offset:offset + limit]
     by_key = {o.key: o for o in page}
     saved = db.execute(
@@ -242,5 +241,32 @@ def list_offers(
     )
     for offer_key, cid in saved:
         by_key[offer_key].collection_ids.append(cid)
-    return OfferPage(total=len(offers), items=page, platforms=platforms, heat=heat,
+    return OfferPage(total=len(offers), items=page, platforms=platforms, heat=offer_heat(offers),
                      hidden_brands=len(brand_keys - groups.keys()))
+
+
+def offer_heat(rows) -> ScoreHeat:
+    """Score and metric cutoffs for offers or sites (same four counts; sites swap creatives for products)."""
+    scores = [r.score for r in rows]
+    columns = {name: [getattr(r, name) for r in rows]
+               for name in ("advertisers", "ads", "creatives", "products", "days_active") if rows and hasattr(rows[0], name)}
+    return ScoreHeat(
+        hot=rank_cutoff(scores, HOT_SHARE),
+        warm=rank_cutoff(scores, WARM_SHARE),
+        metrics=metric_cutoffs(columns, {"advertisers": 2, "ads": 2, "creatives": 2, "products": 2,
+                                         "days_active": MIN_DAYS_ACTIVE}),
+    )
+
+
+OFFER_CSV = ["oferta", "chave", "tipo", "plataforma", "url", "score", "anunciantes", "anuncios", "criativos",
+             "dias_no_ar", "videos_youtube", "anuncios_tiktok", "principais_anunciantes", "primeira_vez"]
+
+
+@router.get("/export.csv")
+def export_offers(page: OfferPage = Depends(list_offers)):
+    return csv_response("ofertas.csv", OFFER_CSV, (
+        [o.label, o.key, o.kind, o.platform, o.url, o.score, o.advertisers, o.ads, o.creatives, o.days_active,
+         o.videos, o.tiktok_ads, ", ".join(a.name or a.page_id for a in o.top_advertisers),
+         o.first_seen_at.date().isoformat()]
+        for o in page.items
+    ))

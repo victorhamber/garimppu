@@ -1,26 +1,32 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { api, type Collection } from "@/lib/api";
+import { api, toQuery, type Collection, type CollectionRefKind } from "@/lib/api";
+
+export type CollectionTarget = { creativeId: number } | { offerKey: string } | { kind: CollectionRefKind; ref: string };
 
 type Props = {
-  target: { creativeId: number } | { offerKey: string };
+  target: CollectionTarget;
   selected: number[];
   collections: Collection[];
   onChange: (ids: number[]) => void;
 };
 
-function add(collectionId: number, target: Props["target"]) {
+function add(collectionId: number, target: CollectionTarget) {
   const [path, body] = "offerKey" in target
     ? ["offers", { offer_key: target.offerKey }]
-    : ["items", { creative_id: target.creativeId }];
+    : "kind" in target
+      ? ["refs", { kind: target.kind, ref: target.ref }]
+      : ["items", { creative_id: target.creativeId }];
   return api(`/api/collections/${collectionId}/${path}`, { method: "POST", body: JSON.stringify(body) });
 }
 
-function remove(collectionId: number, target: Props["target"]) {
+function remove(collectionId: number, target: CollectionTarget) {
   const path = "offerKey" in target
-    ? `offers?offer_key=${encodeURIComponent(target.offerKey)}`
-    : `items/${target.creativeId}`;
+    ? `offers${toQuery({ offer_key: target.offerKey })}`
+    : "kind" in target
+      ? `refs${toQuery({ kind: target.kind, ref: target.ref })}`
+      : `items/${target.creativeId}`;
   return api(`/api/collections/${collectionId}/${path}`, { method: "DELETE" });
 }
 

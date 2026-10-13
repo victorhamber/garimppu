@@ -7,8 +7,9 @@ import { useCollections } from "@/lib/hooks";
 import { digitsOnly, useUrlFilters } from "@/lib/useUrlFilters";
 import { CollectionMenu } from "./CollectionMenu";
 import { CoverImage, VideoFallback } from "./CoverImage";
+import { ExportCsv } from "./ExportCsv";
 import { CheckToggle, FilterChips, FilterSelect, FilterToggle, HiddenBrandsNote, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
-import { HEAT_HINT, heatClass, ScoreLegend } from "./Metrics";
+import { Metric, MetricStrip, ScoreBadge, ScoreLegend, topMetric } from "./Metrics";
 
 const PAGE_SIZE = 30;
 const FILTER_KEYS = ["q", "kind", "platform", "search_id", "min_advertisers", "active_only", "include_brands", "multi_platform", "scope", "sort"] as const;
@@ -160,6 +161,7 @@ export function OffersView() {
           </span>
           <SortSelect id="osort" value={filters.sort ?? "score"} options={SORTS}
             onChange={(v) => update("sort", v === "score" ? "" : v)} />
+          <ExportCsv path="/api/offers/export.csv" filters={filters} disabled={loading || !!error || total === 0} className="ml-auto" />
         </div>
         {total > 0 && <ScoreLegend kind="offer" />}
         {!loading && <HiddenBrandsNote count={data?.hidden_brands ?? 0} noun="ofertas" onShow={() => update("include_brands", "true")} />}
@@ -288,17 +290,15 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
       </div>
 
       <div className="flex flex-wrap items-center gap-3 sm:col-start-2 xl:col-start-3 xl:flex-nowrap">
-        <dl className="grid w-full grid-cols-2 gap-px min-[440px]:grid-cols-4 overflow-hidden rounded-md border border-line bg-line text-center sm:w-auto sm:min-w-72 sm:flex-1 sm:max-md:grid-cols-2 md:min-w-96 xl:flex-none">
-          <Metric label="anunciantes" value={offer.advertisers} strong={offer.advertisers >= 2} />
-          <Metric label="anúncios" value={offer.ads} strong={offer.ads >= 10} />
-          <Metric label="criativos" value={offer.creatives} strong={offer.creatives >= 5} />
-          <Metric label="dias no ar" value={offer.days_active} strong={offer.days_active >= 30} />
-        </dl>
+        <MetricStrip className="w-full grid-cols-2 min-[440px]:grid-cols-4 sm:w-auto sm:min-w-72 sm:flex-1 sm:max-md:grid-cols-2 md:min-w-96 xl:flex-none">
+          <Metric label="anunciantes" value={offer.advertisers} strong={topMetric(heat, "advertisers", offer.advertisers)} />
+          <Metric label="anúncios" value={offer.ads} strong={topMetric(heat, "ads", offer.ads)} />
+          <Metric label="criativos" value={offer.creatives} strong={topMetric(heat, "creatives", offer.creatives)} />
+          <Metric label="dias no ar" value={offer.days_active} strong={topMetric(heat, "days_active", offer.days_active)} />
+        </MetricStrip>
         <div className="flex w-full items-center justify-between gap-3 sm:ml-auto sm:w-auto xl:flex-col xl:items-end xl:gap-2">
-          <span title={`Score de oferta: anunciantes, anúncios, criativos, tempo no ar e +0,75 por plataforma extra (${HEAT_HINT})`}
-            className={`rounded px-1.5 py-0.5 font-mono text-xs font-semibold tabular-nums ${heatClass(offer.score, heat)}`}>
-            {offer.score.toFixed(2)}
-          </span>
+          <ScoreBadge value={offer.score} heat={heat}
+            title="Score de oferta: anunciantes, anúncios, criativos, tempo no ar e +0,75 por plataforma extra" />
           <div className="flex items-center gap-1">
             <CollectionMenu target={{ offerKey: offer.key }} selected={offer.collection_ids} collections={collections}
               onChange={onCollectionsChange} />
@@ -309,14 +309,5 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
         </div>
       </div>
     </article>
-  );
-}
-
-function Metric({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
-  return (
-    <div className="flex min-w-0 flex-col-reverse bg-surface px-1 py-1.5 sm:min-w-16 sm:px-2">
-      <dt className="micro truncate max-xl:tracking-normal">{label}</dt>
-      <dd className={`font-mono text-sm tabular-nums ${strong ? "text-accent" : "text-foreground"}`}>{value}</dd>
-    </div>
   );
 }

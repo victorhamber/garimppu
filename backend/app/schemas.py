@@ -143,19 +143,16 @@ class CreativeDetail(CreativeCard):
 
 
 class ScoreHeat(BaseModel):
+    """Score cutoffs (hot = top 5%, warm = top 20%) and per-metric cutoffs (top 10%) of the current result."""
     hot: float | None = None
     warm: float | None = None
-
-
-class CreativeHeat(ScoreHeat):
-    duplicates: int | None = None
-    days_active: int | None = None
+    metrics: dict[str, float] = {}
 
 
 class CreativePage(BaseModel):
     total: int
     items: list[CreativeCard]
-    heat: CreativeHeat = CreativeHeat()
+    heat: ScoreHeat = ScoreHeat()
     has_history: bool = False
     hidden_brands: int = 0
 
@@ -224,6 +221,7 @@ class VideoOut(ORM):
     engagement: float | None
     acceleration: float | None
     first_seen_at: datetime
+    collection_ids: list[int] = []
 
 
 class VideoPage(BaseModel):
@@ -254,6 +252,7 @@ class TikTokAdOut(BaseModel):
     offer_label: str | None
     score: float
     first_seen_at: datetime
+    collection_ids: list[int] = []
 
 
 class TikTokAdPage(BaseModel):
@@ -285,11 +284,13 @@ class SiteOut(BaseModel):
     videos: int = 0
     top_advertisers: list[OfferAdvertiser]
     previews: list[OfferPreview]
+    collection_ids: list[int] = []
 
 
 class SitePage(BaseModel):
     total: int
     items: list[SiteOut]
+    heat: ScoreHeat = ScoreHeat()
     hidden_brands: int = 0
 
 
@@ -315,6 +316,7 @@ class KeywordOut(BaseModel):
     meta_ads: int | None = None  # collected Meta ads mentioning the term; None for terms too short to match
     first_seen_at: datetime
     last_seen_at: datetime
+    collection_ids: list[int] = []
 
 
 class KeywordPage(BaseModel):
@@ -357,6 +359,7 @@ class CollectionOut(ORM):
     created_at: datetime
     items_count: int = 0
     offers_count: int = 0
+    refs_count: int = 0
 
 
 class CollectionItemCreate(BaseModel):
@@ -366,6 +369,14 @@ class CollectionItemCreate(BaseModel):
 
 class CollectionOfferCreate(BaseModel):
     offer_key: str = Field(min_length=1, max_length=255)
+
+
+RefKind = Literal["video", "tiktok", "site", "keyword"]
+
+
+class CollectionRefCreate(BaseModel):
+    kind: RefKind
+    ref: str = Field(min_length=1, max_length=255)
 
 
 EMAIL_PATTERN = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"

@@ -22,19 +22,11 @@ from app.models import (
     SourceAd,
     User,
 )
-from app.pipeline.heat import (
-    HOT_SHARE,
-    METRIC_SHARE,
-    MIN_DAYS_ACTIVE,
-    MIN_DUPLICATES,
-    WARM_SHARE,
-    floored,
-    rank_cutoff,
-)
+from app.pipeline.heat import HOT_SHARE, MIN_DAYS_ACTIVE, MIN_DUPLICATES, WARM_SHARE, metric_cutoffs, rank_cutoff
 from app.pipeline.niche import NICHES
 from app.pipeline.sources import user_search_source, user_source_ids
 from app.routes.collections import user_collection_ids
-from app.schemas import CreativeDetail, CreativeHeat, CreativePage
+from app.schemas import CreativeDetail, CreativePage, ScoreHeat
 from app.serializers import creative_card, creative_detail
 
 router = APIRouter(prefix="/api/creatives", tags=["creatives"])
@@ -203,13 +195,15 @@ def creatives_with_history(db: Session, creative_ids: list[int]) -> set[int]:
     return set(db.scalars(_history_query().where(Snapshot.creative_id.in_(creative_ids))))
 
 
-def creative_heat(signals) -> CreativeHeat:
+def creative_heat(signals) -> ScoreHeat:
     scores = [s for s, _, _ in signals]
-    return CreativeHeat(
+    return ScoreHeat(
         hot=rank_cutoff(scores, HOT_SHARE),
         warm=rank_cutoff(scores, WARM_SHARE),
-        duplicates=floored(rank_cutoff([d for _, d, _ in signals], METRIC_SHARE), MIN_DUPLICATES),
-        days_active=floored(rank_cutoff([d for _, _, d in signals], METRIC_SHARE), MIN_DAYS_ACTIVE),
+        metrics=metric_cutoffs(
+            {"duplicates": [d for _, d, _ in signals], "days_active": [d for _, _, d in signals]},
+            {"duplicates": MIN_DUPLICATES, "days_active": MIN_DAYS_ACTIVE},
+        ),
     )
 
 

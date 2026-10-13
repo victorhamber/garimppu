@@ -162,6 +162,7 @@ export type Video = {
   /** Recent views/day ÷ lifetime views/day; needs two collections a day apart. */
   acceleration: number | null;
   first_seen_at: string;
+  collection_ids: number[];
 };
 
 /** `enabled`: false while the server has no YOUTUBE_API_KEY. */
@@ -192,6 +193,7 @@ export type TikTokAd = {
   offer_label: string | null;
   score: number;
   first_seen_at: string;
+  collection_ids: number[];
 };
 
 export type TikTokAdPage = { total: number; items: TikTokAd[]; heat: ScoreHeat };
@@ -215,9 +217,10 @@ export type Site = {
   videos: number;
   top_advertisers: Offer["top_advertisers"];
   previews: Offer["previews"];
+  collection_ids: number[];
 };
 
-export type SitePage = { total: number; items: Site[]; hidden_brands: number };
+export type SitePage = { total: number; items: Site[]; heat: ScoreHeat; hidden_brands: number };
 export type TikTokIndustry = { id: number; label: string };
 
 /** A term from Google Trends "trending now"; traffic is Google's approximate search count ("20000+"). */
@@ -239,6 +242,7 @@ export type Keyword = {
   meta_ads: number | null;
   first_seen_at: string;
   last_seen_at: string;
+  collection_ids: number[];
 };
 export type KeywordPage = { total: number; items: Keyword[]; heat: ScoreHeat; countries: string[] };
 
@@ -252,12 +256,14 @@ export type KeywordSuggestion = {
 };
 export type KeywordSuggestions = { term: string; country: string; items: KeywordSuggestion[] };
 
-/** Cutoffs relative to the current result set; null when the set is too small to rank. */
-export type ScoreHeat = { hot: number | null; warm: number | null };
-export type CreativeHeat = ScoreHeat & { duplicates: number | null; days_active: number | null };
+/**
+ * Cutoffs relative to the current result set; null/absent when the set is too small to rank.
+ * `metrics`: per-metric value reaching the top 10% (for `ctr_rank`, lower is better).
+ */
+export type ScoreHeat = { hot: number | null; warm: number | null; metrics?: Record<string, number> };
 
 /** `hidden_brands`: results left out because they belong to big brands (0 when they're included). */
-export type CreativePage = { total: number; items: Creative[]; heat: CreativeHeat; has_history: boolean; hidden_brands: number };
+export type CreativePage = { total: number; items: Creative[]; heat: ScoreHeat; has_history: boolean; hidden_brands: number };
 export type OfferPage = { total: number; items: Offer[]; platforms: string[]; heat: ScoreHeat; hidden_brands: number };
 
 export const OFFER_KINDS: { id: OfferKind; label: string }[] = [
@@ -322,7 +328,16 @@ export type EmailSettings = {
 
 export type EmailTest = { ok: boolean; sent_to: string; error: string | null };
 
-export type Collection = { id: number; name: string; created_at: string; items_count: number; offers_count: number };
+export type Collection = {
+  id: number;
+  name: string;
+  created_at: string;
+  items_count: number;
+  offers_count: number;
+  /** Videos, TikTok ads, sites and keywords. */
+  refs_count: number;
+};
+export type CollectionRefKind = "video" | "tiktok" | "site" | "keyword";
 export type Niche = { id: string; label: string };
 
 export type CreativeFilters = {

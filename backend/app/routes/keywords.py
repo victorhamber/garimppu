@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, or_, select
+from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.auth import current_user
@@ -12,9 +12,11 @@ from app.collectors.google_suggest import SuggestError, suggest
 from app.config import get_settings
 from app.db import get_db
 from app.models import Ad, Search, SourceTrend, TrendKeyword, TrendSnapshot, User
+from app.csv_export import EXPORT_LIMIT, csv_response
 from app.pipeline.heat import HOT_SHARE, WARM_SHARE, rank_cutoff
-from app.pipeline.niche import NicheSignals, classify_signals
+from app.pipeline.niche import NICHES, NicheSignals, classify_signals
 from app.pipeline.sources import as_utc, user_search_source, user_source_ids
+from app.routes.collections import collections_by_ref, saved_refs
 from app.routes.searches import COUNTRY_LANGUAGE
 from app.schemas import KeywordOut, KeywordPage, KeywordSuggestion, KeywordSuggestions, ScoreHeat, TrendNews
 
@@ -28,6 +30,8 @@ MENTION_CAP = 99
 
 # Each mention count scans the ads table, so suggestions only get it for the top ranks.
 MENTION_RANKS = 60
+# Same reason: a CSV export of thousands of terms skips the per-term ad count.
+MENTION_PAGE_LIMIT = 200
 
 
 def meta_mentions(db: Session, term: str) -> int | None:
@@ -72,13 +76,14 @@ def suggest_keywords(
 def list_keywords(
     q: str | None = None,
     search_id: int | None = None,
+    collection_id: int | None = None,
     scope: Literal["mine", "all"] = Query("mine", description="mine = só termos das buscas do usuário"),
     niche: str | None = None,
     has_niche: bool = Query(False, description="Só termos com nicho identificado"),
     geo: str | None = None,
     days: int | None = Query(None, ge=1, le=365, description="Só termos em alta nos últimos N dias"),
     sort: KeywordSort = "traffic",
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=EXPORT_LIMIT),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
@@ -87,6 +92,8 @@ def list_keywords(
                   .group_by(TrendSnapshot.keyword_id).subquery())
     days_col = func.coalesce(trend_days.c.n, 0)
     stmt = select(TrendKeyword, days_col).outerjoin(trend_days, trend_days.c.keyword_id == TrendKeyword.id)
+    if collection_id:
+        stmt = stmt.where(cast(TrendKeyword.id, String).in_(saved_refs(collection_id, "keyword", user)))
     if search_id:
         stmt = stmt.where(TrendKeyword.id.in_(
             select(SourceTrend.keyword_id).where(SourceTrend.source_id == user_search_source(user.id, search_id))
@@ -94,7 +101,7 @@ def list_keywords(
         # A trends search's niche is a filter over its country's terms.
         search_niche = db.scalar(select(Search.niche).where(Search.id == search_id, Search.user_id == user.id))
         niche = niche or search_niche
-    elif scope == "mine":
+    elif scope == "mine" and not collection_id:
         stmt = stmt.where(TrendKeyword.id.in_(
             select(SourceTrend.keyword_id).where(SourceTrend.source_id.in_(user_source_ids(user.id)))
         ))
@@ -138,10 +145,28 @@ def list_keywords(
             days_trending=n_days, sightings=keyword.sightings or 0,
             trending_now=as_utc(keyword.last_seen_at) >= now_cutoff,
             news=[TrendNews(**n) for n in (keyword.news or []) if n.get("title") and n.get("url")],
-            picture_url=keyword.picture_url, meta_ads=meta_mentions(db, keyword.term),
+            picture_url=keyword.picture_url,
+            meta_ads=meta_mentions(db, keyword.term) if limit <= MENTION_PAGE_LIMIT else None,
             first_seen_at=keyword.first_seen_at, last_seen_at=keyword.last_seen_at,
         )
         for keyword, n_days in rows
     ]
+    saved_in = collections_by_ref(db, "keyword", [str(k.id) for k in items], user)
+    for item in items:
+        item.collection_ids = saved_in.get(str(item.id), [])
     countries = sorted(db.scalars(select(TrendKeyword.geo).distinct()))
     return KeywordPage(total=total, items=items, heat=heat, countries=countries)
+
+
+KEYWORD_CSV = ["termo", "pais", "nicho", "pico_buscas", "buscas_ultimo_dia", "dias_em_alta", "em_alta_agora",
+               "primeira_vez", "ultima_vez"]
+
+
+@router.get("/export.csv")
+def export_keywords(page: KeywordPage = Depends(list_keywords)):
+    return csv_response("palavras-chave.csv", KEYWORD_CSV, (
+        [k.term, k.geo, NICHES.get(k.niche or "", {}).get("label", k.niche), k.peak_traffic, k.traffic,
+         k.days_trending, "sim" if k.trending_now else "não", k.first_seen_at.date().isoformat(),
+         k.last_seen_at.date().isoformat()]
+        for k in page.items
+    ))

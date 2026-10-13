@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { api, mediaUrl, toQuery, type Search, type Site, type SitePage } from "@/lib/api";
-import { useNiches } from "@/lib/hooks";
+import { api, mediaUrl, toQuery, type Collection, type ScoreHeat, type Search, type Site, type SitePage } from "@/lib/api";
+import { useCollections, useNiches } from "@/lib/hooks";
 import { useUrlFilters } from "@/lib/useUrlFilters";
+import { CollectionMenu } from "./CollectionMenu";
 import { CoverImage, VideoFallback } from "./CoverImage";
+import { ExportCsv } from "./ExportCsv";
+import { Metric, MetricStrip, ScoreBadge, ScoreLegend, topMetric } from "./Metrics";
 import { CheckToggle, FilterChips, FilterSelect, FilterToggle, HiddenBrandsNote, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
 
 const PAGE_SIZE = 30;
@@ -37,6 +40,7 @@ export function SitesView() {
   const key = `${filtersKey}#${attempt}`;
   const loading = loadedKey !== key;
   const [panelOpen, setPanelOpen] = useState(false);
+  const { collections, reload: reloadCollections } = useCollections();
   useSlashFocus("sq");
 
   const adSearches = searches.filter((s) => s.source === "scraper" || s.source === "api" || s.source === "hybrid");
@@ -137,13 +141,17 @@ export function SitesView() {
       </form>
 
       <p role="status" className="sr-only">{status}</p>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted">
-        <span aria-hidden="true" className={`whitespace-nowrap ${loading && data ? "opacity-60" : ""}`}>
-          {loading && !data ? "Carregando sites..." : `${count} ${total === 1 ? "site" : "sites"}`}
-        </span>
-        <SortSelect id="ssort" value={filters.sort ?? "score"} options={SORTS}
-          onChange={(v) => update("sort", v === "score" ? "" : v)} />
-        {!loading && <HiddenBrandsNote count={data?.hidden_brands ?? 0} noun="sites" onShow={() => update("include_brands", "true")} />}
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted">
+          <span aria-hidden="true" className={`whitespace-nowrap ${loading && data ? "opacity-60" : ""}`}>
+            {loading && !data ? "Carregando sites..." : `${count} ${total === 1 ? "site" : "sites"}`}
+          </span>
+          <SortSelect id="ssort" value={filters.sort ?? "score"} options={SORTS}
+            onChange={(v) => update("sort", v === "score" ? "" : v)} />
+          {!loading && <HiddenBrandsNote count={data?.hidden_brands ?? 0} noun="sites" onShow={() => update("include_brands", "true")} />}
+          <ExportCsv path="/api/sites/export.csv" filters={filters} disabled={loading || !!error || total === 0} className="ml-auto" />
+        </div>
+        {total > 0 && <ScoreLegend kind="site" />}
       </div>
 
       {error && (
@@ -174,7 +182,13 @@ export function SitesView() {
       <ol aria-busy={loading || loadingMore}
         className={`flex flex-col gap-3 transition-opacity ${items.length === 0 ? "hidden" : ""} ${loading && items.length > 0 ? "opacity-60" : ""}`}>
         {items.map((site, i) => (
-          <li key={site.domain}><SiteRow site={site} rank={i + 1} nicheLabel={label(site.niche)} /></li>
+          <li key={site.domain}>
+            <SiteRow site={site} rank={i + 1} nicheLabel={label(site.niche)} heat={data?.heat} collections={collections}
+              onCollectionsChange={(ids) => {
+                setData((d) => d && { ...d, items: d.items.map((s) => (s.domain === site.domain ? { ...s, collection_ids: ids } : s)) });
+                reloadCollections();
+              }} />
+          </li>
         ))}
       </ol>
 
@@ -187,7 +201,16 @@ export function SitesView() {
   );
 }
 
-function SiteRow({ site, rank, nicheLabel }: { site: Site; rank: number; nicheLabel: string | null }) {
+type SiteRowProps = {
+  site: Site;
+  rank: number;
+  nicheLabel: string | null;
+  heat?: ScoreHeat;
+  collections: Collection[];
+  onCollectionsChange: (ids: number[]) => void;
+};
+
+export function SiteRow({ site, rank, nicheLabel, heat, collections, onCollectionsChange }: SiteRowProps) {
   const domain = encodeURIComponent(site.domain);
   return (
     <article className="grid gap-3 rounded-lg border border-line bg-surface p-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-x-4 xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:items-center">
@@ -219,6 +242,7 @@ function SiteRow({ site, rank, nicheLabel }: { site: Site; rank: number; nicheLa
           {site.platform && (
             <span className="rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent">{site.platform}</span>
           )}
+          <ScoreBadge value={site.score} heat={heat} title="Score do site" className="ml-auto" />
         </div>
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
           {site.top_advertisers.map((a) => (
@@ -241,24 +265,17 @@ function SiteRow({ site, rank, nicheLabel }: { site: Site; rank: number; nicheLa
             className="rounded-full border border-line px-2 py-0.5 text-micro text-muted hover:border-accent/60 hover:text-foreground pointer-coarse:py-2">
             Abrir site
           </a>
+          <CollectionMenu target={{ kind: "site", ref: site.domain }} selected={site.collection_ids} collections={collections}
+            onChange={onCollectionsChange} />
         </div>
       </div>
 
-      <dl className="grid w-full grid-cols-2 gap-px overflow-hidden rounded-md border border-line bg-line text-center min-[440px]:grid-cols-4 sm:col-start-2 sm:w-auto sm:min-w-72 md:min-w-96 xl:col-start-3">
-        <Metric label="anunciantes" value={site.advertisers} strong={site.advertisers >= 2} />
-        <Metric label="anúncios" value={site.ads} strong={site.ads >= 10} />
-        <Metric label="produtos" value={site.products} strong={site.products >= 3} />
-        <Metric label="dias no ar" value={site.days_active} strong={site.days_active >= 30} />
-      </dl>
+      <MetricStrip className="w-full grid-cols-2 min-[440px]:grid-cols-4 sm:col-start-2 sm:w-auto sm:min-w-72 md:min-w-96 xl:col-start-3">
+        <Metric label="anunciantes" value={site.advertisers} strong={topMetric(heat, "advertisers", site.advertisers)} />
+        <Metric label="anúncios" value={site.ads} strong={topMetric(heat, "ads", site.ads)} />
+        <Metric label="produtos" value={site.products} strong={topMetric(heat, "products", site.products)} />
+        <Metric label="dias no ar" value={site.days_active} strong={topMetric(heat, "days_active", site.days_active)} />
+      </MetricStrip>
     </article>
-  );
-}
-
-function Metric({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
-  return (
-    <div className="flex min-w-0 flex-col-reverse bg-surface px-1 py-1.5 sm:min-w-16 sm:px-2">
-      <dt className="micro truncate max-xl:tracking-normal">{label}</dt>
-      <dd className={`font-mono text-sm tabular-nums ${strong ? "text-accent" : "text-foreground"}`}>{value}</dd>
-    </div>
   );
 }

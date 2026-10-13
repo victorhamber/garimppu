@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { api, timeAgo, toQuery, type ScoreHeat, type Search, type Video, type VideoPage } from "@/lib/api";
-import { useNiches } from "@/lib/hooks";
+import { api, timeAgo, toQuery, type Collection, type ScoreHeat, type Search, type Video, type VideoPage } from "@/lib/api";
+import { useCollections, useNiches } from "@/lib/hooks";
 import { digitsOnly, useUrlFilters } from "@/lib/useUrlFilters";
+import { CollectionMenu } from "./CollectionMenu";
 import { CoverImage, VideoFallback } from "./CoverImage";
+import { ExportCsv } from "./ExportCsv";
 import { CheckToggle, FilterChips, FilterSelect, FilterToggle, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
-import { HEAT_HINT, heatClass, ScoreLegend } from "./Metrics";
+import { Metric, MetricStrip, ScoreBadge, ScoreLegend, topMetric } from "./Metrics";
 
 const PAGE_SIZE = 30;
 const FILTER_KEYS = ["q", "niche", "search_id", "format", "period", "min_views", "has_offer", "offer", "scope", "sort"] as const;
@@ -64,6 +66,7 @@ export function VideosView() {
   const loading = loadedKey !== key;
   const [panelOpen, setPanelOpen] = useState(false);
   const { niches, label } = useNiches();
+  const { collections, reload: reloadCollections } = useCollections();
   useSlashFocus("vq");
 
   const youtubeSearches = searches.filter((s) => s.source === "youtube");
@@ -189,6 +192,7 @@ export function VideosView() {
           </span>
           <SortSelect id="vsort" value={filters.sort ?? "score"} options={SORTS}
             onChange={(v) => update("sort", v === "score" ? "" : v)} />
+          <ExportCsv path="/api/videos/export.csv" filters={filters} disabled={loading || !!error || total === 0} className="ml-auto" />
         </div>
         {total > 0 && <ScoreLegend kind="video" />}
       </div>
@@ -221,7 +225,11 @@ export function VideosView() {
       <div aria-busy={loading || loadingMore}
         className={`grid gap-4 transition-opacity sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 ${loading && items.length > 0 ? "opacity-60" : ""}`}>
         {items.map((video, i) => (
-          <VideoCard key={video.id} video={video} rank={i + 1} heat={data?.heat} niche={label(video.niche)} />
+          <VideoCard key={video.id} video={video} rank={i + 1} heat={data?.heat} niche={label(video.niche)} collections={collections}
+            onCollectionsChange={(ids) => {
+              setData((d) => d && { ...d, items: d.items.map((v) => (v.id === video.id ? { ...v, collection_ids: ids } : v)) });
+              reloadCollections();
+            }} />
         ))}
       </div>
 
@@ -247,7 +255,16 @@ function scoreParts(video: Video) {
 
 const fmtPart = (v: number | null) => (v == null ? "—" : v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
 
-function VideoCard({ video, rank, heat, niche }: { video: Video; rank: number; heat?: ScoreHeat; niche: string | null }) {
+type VideoCardProps = {
+  video: Video;
+  rank: number;
+  heat?: ScoreHeat;
+  niche: string | null;
+  collections: Collection[];
+  onCollectionsChange: (ids: number[]) => void;
+};
+
+export function VideoCard({ video, rank, heat, niche, collections, onCollectionsChange }: VideoCardProps) {
   const duration = formatDuration(video.duration_s);
   const title = video.title || "Sem título";
   const accel = video.acceleration;
@@ -275,10 +292,8 @@ function VideoCard({ video, rank, heat, niche }: { video: Video; rank: number; h
           <h2 className="line-clamp-2 min-w-0 flex-1 text-sm font-medium leading-snug" title={title}>
             <a href={video.url} target="_blank" rel="noreferrer" className="hover:text-accent">{title}</a>
           </h2>
-          <span title={`Score de vídeo = ${parts.map((p) => `${p.label} ${fmtPart(p.value)}`).join(" + ")} (${HEAT_HINT})`}
-            className={`shrink-0 rounded px-1.5 py-0.5 font-mono text-xs font-semibold tabular-nums ${heatClass(video.score, heat)}`}>
-            {video.score.toFixed(2)}
-          </span>
+          <ScoreBadge value={video.score} heat={heat}
+            title={`Score de vídeo = ${parts.map((p) => `${p.label} ${fmtPart(p.value)}`).join(" + ")}`} />
         </div>
         <p className="truncate text-xs text-muted">
           {video.channel_id ? (
@@ -291,14 +306,14 @@ function VideoCard({ video, rank, heat, niche }: { video: Video; rank: number; h
           {niche && ` · ${niche}`}
         </p>
 
-        <dl className="grid grid-cols-4 gap-px overflow-hidden rounded-md border border-line bg-line text-center">
-          <Metric label="views" value={compact.format(video.views)} />
-          <Metric label="por dia" value={compact.format(video.velocity)} strong={video.velocity >= 10_000} />
+        <MetricStrip className="grid-cols-4">
+          <Metric label="views" value={compact.format(video.views)} strong={topMetric(heat, "views", video.views)} />
+          <Metric label="por dia" value={compact.format(video.velocity)} strong={topMetric(heat, "velocity", video.velocity)} />
           <Metric label="x canal" value={video.outlier != null ? formatMultiple(video.outlier) : "—"}
-            strong={(video.outlier ?? 0) >= 3} title="Visualizações ÷ inscritos do canal" />
+            strong={topMetric(heat, "outlier", video.outlier)} title="Visualizações ÷ inscritos do canal" />
           <Metric label="engaj." value={video.engagement != null ? `${(video.engagement * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%` : "—"}
-            strong={(video.engagement ?? 0) >= 0.05} title="(curtidas + 2×comentários) ÷ visualizações" />
-        </dl>
+            strong={topMetric(heat, "engagement", video.engagement)} title="(curtidas + 2×comentários) ÷ visualizações" />
+        </MetricStrip>
         <p className="text-micro text-muted">
           Pontos: {parts.map((p) => `${p.label} ${fmtPart(p.value)}`).join(" · ")}
         </p>
@@ -312,23 +327,18 @@ function VideoCard({ video, rank, heat, niche }: { video: Video; rank: number; h
           ) : (
             <span className="text-muted" title="A aceleração aparece a partir da segunda coleta, um dia depois">Aceleração na próxima coleta</span>
           )}
-          {video.offer_key && (
-            <Link href={`/criativos?offer=${encodeURIComponent(video.offer_key)}`} title={`Ver anúncios desta oferta (${video.link_url ?? video.offer_key})`}
-              className="ml-auto max-w-full truncate rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent hover:bg-accent/10">
-              {video.offer_label ?? video.offer_key}
-            </Link>
-          )}
+          <div className="ml-auto flex min-w-0 items-center gap-2">
+            {video.offer_key && (
+              <Link href={`/criativos?offer=${encodeURIComponent(video.offer_key)}`} title={`Ver anúncios desta oferta (${video.link_url ?? video.offer_key})`}
+                className="min-w-0 truncate rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent hover:bg-accent/10">
+                {video.offer_label ?? video.offer_key}
+              </Link>
+            )}
+            <CollectionMenu target={{ kind: "video", ref: video.id }} selected={video.collection_ids} collections={collections}
+              onChange={onCollectionsChange} />
+          </div>
         </div>
       </div>
     </article>
-  );
-}
-
-function Metric({ label, value, strong, title }: { label: string; value: string; strong?: boolean; title?: string }) {
-  return (
-    <div className="flex min-w-0 flex-col-reverse bg-surface px-1 py-1.5" title={title}>
-      <dt className="micro truncate max-xl:tracking-normal">{label}</dt>
-      <dd className={`font-mono text-sm tabular-nums ${strong ? "text-accent" : "text-foreground"}`}>{value}</dd>
-    </div>
   );
 }

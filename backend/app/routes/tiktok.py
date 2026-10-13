@@ -10,9 +10,11 @@ from app.auth import current_user
 from app.collectors.tiktok_ads import INDUSTRIES, OBJECTIVES, detail_url
 from app.db import get_db
 from app.models import SourceTikTokAd, TikTokAd, User
-from app.pipeline.heat import HOT_SHARE, WARM_SHARE, rank_cutoff
+from app.csv_export import EXPORT_LIMIT, csv_response
+from app.pipeline.heat import HOT_SHARE, WARM_SHARE, metric_cutoffs, rank_cutoff
 from app.pipeline.offers import offer_label
 from app.pipeline.sources import user_search_source, user_source_ids
+from app.routes.collections import collections_by_ref, saved_refs
 from app.schemas import ScoreHeat, TikTokAdOut, TikTokAdPage, TikTokIndustry
 from app.serializers import media_path
 
@@ -50,22 +52,25 @@ def list_industries():
 def list_ads(
     q: str | None = None,
     search_id: int | None = None,
+    collection_id: int | None = None,
     scope: Literal["mine", "all"] = Query("mine", description="mine = só anúncios das buscas do usuário"),
     industry: int | None = None,
     objective: str | None = None,
     offer: str | None = Query(None, description="Uma oferta exata (offer_key)"),
     has_offer: bool = False,
     sort: TikTokSort = "score",
-    limit: int = Query(30, ge=1, le=200),
+    limit: int = Query(30, ge=1, le=EXPORT_LIMIT),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
 ):
     stmt = select(TikTokAd)
+    if collection_id:
+        stmt = stmt.where(TikTokAd.id.in_(saved_refs(collection_id, "tiktok", user)))
     if search_id:
         source_id = user_search_source(user.id, search_id)
         stmt = stmt.where(TikTokAd.id.in_(select(SourceTikTokAd.ad_id).where(SourceTikTokAd.source_id == source_id)))
-    elif scope == "mine" and not offer:
+    elif scope == "mine" and not (offer or collection_id):
         stmt = stmt.where(TikTokAd.id.in_(
             select(SourceTikTokAd.ad_id).where(SourceTikTokAd.source_id.in_(user_source_ids(user.id)))
         ))
@@ -84,8 +89,37 @@ def list_ads(
 
     filtered = stmt.subquery()
     total = db.scalar(select(func.count()).select_from(filtered)) or 0
-    scores = list(db.scalars(select(filtered.c.score)))
-    heat = ScoreHeat(hot=rank_cutoff(scores, HOT_SHARE), warm=rank_cutoff(scores, WARM_SHARE))
+    signals = db.execute(select(filtered.c.score, filtered.c.ctr_rank, filtered.c.likes, filtered.c.comments,
+                                filtered.c.shares)).all()
+    heat = ScoreHeat(
+        hot=rank_cutoff([s[0] for s in signals], HOT_SHARE),
+        warm=rank_cutoff([s[0] for s in signals], WARM_SHARE),
+        metrics=metric_cutoffs(
+            {"ctr_rank": [s[1] for s in signals], "likes": [s[2] for s in signals],
+             "comments": [s[3] for s in signals], "shares": [s[4] for s in signals]},
+            {"ctr_rank": 0.5, "likes": 100, "comments": 10, "shares": 10},
+            lower_is_better=frozenset({"ctr_rank"}),
+        ),
+    )
     rows = db.scalars(stmt.order_by(SORT_COLUMNS[sort].nulls_last(), TikTokAd.score.desc(), TikTokAd.id)
                       .offset(offset).limit(limit))
-    return TikTokAdPage(total=total, items=[_out(a) for a in rows], heat=heat)
+    items = [_out(a) for a in rows]
+    saved_in = collections_by_ref(db, "tiktok", [a.id for a in items], user)
+    for item in items:
+        item.collection_ids = saved_in.get(item.id, [])
+    return TikTokAdPage(total=total, items=items, heat=heat)
+
+
+TIKTOK_CSV = ["texto", "url", "marca", "pais", "nicho", "objetivo", "score", "ctr_top", "curtidas", "comentarios",
+              "compartilhamentos", "verba", "duracao_s", "pagina_destino", "oferta", "primeira_vez"]
+BUDGETS = ["baixa", "média", "alta"]
+
+
+@router.get("/ads/export.csv")
+def export_ads(page: TikTokAdPage = Depends(list_ads)):
+    return csv_response("anuncios-tiktok.csv", TIKTOK_CSV, (
+        [a.title, a.url, a.brand, a.country, a.industry, a.objective, a.score, a.ctr_rank, a.likes, a.comments,
+         a.shares, BUDGETS[a.budget] if a.budget is not None and 0 <= a.budget < len(BUDGETS) else None,
+         a.duration_s, a.landing_page, a.offer_label, a.first_seen_at.date().isoformat()]
+        for a in page.items
+    ))

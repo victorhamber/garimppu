@@ -11,9 +11,12 @@ from app.auth import current_user
 from app.config import get_settings
 from app.db import get_db
 from app.models import SourceVideo, User, Video
-from app.pipeline.heat import HOT_SHARE, WARM_SHARE, rank_cutoff
+from app.csv_export import EXPORT_LIMIT, csv_response
+from app.pipeline.heat import HOT_SHARE, WARM_SHARE, metric_cutoffs, rank_cutoff
+from app.pipeline.niche import NICHES
 from app.pipeline.offers import offer_label
 from app.pipeline.sources import user_search_source, user_source_ids
+from app.routes.collections import collections_by_ref, saved_refs
 from app.schemas import ScoreHeat, VideoOut, VideoPage
 
 router = APIRouter(prefix="/api/videos", tags=["videos"])
@@ -38,7 +41,7 @@ def _video_url(video: Video) -> str:
 
 def _out(video: Video) -> VideoOut:
     label = offer_label(video.offer_key, video.offer_kind or "site", video.offer_platform, None) if video.offer_key else None
-    fields = {f: getattr(video, f) for f in VideoOut.model_fields if f not in ("url", "offer_label")}
+    fields = {f: getattr(video, f) for f in VideoOut.model_fields if f not in ("url", "offer_label", "collection_ids")}
     return VideoOut(**fields, url=_video_url(video), offer_label=label)
 
 
@@ -46,6 +49,7 @@ def _out(video: Video) -> VideoOut:
 def list_videos(
     q: str | None = None,
     search_id: int | None = None,
+    collection_id: int | None = None,
     scope: Literal["mine", "all"] = Query("mine", description="mine = só vídeos das buscas do usuário"),
     offer: str | None = Query(None, description="Uma oferta exata (offer_key)"),
     niche: str | None = None,
@@ -54,16 +58,18 @@ def list_videos(
     period: int | None = Query(None, ge=1, le=365, description="Publicados nos últimos N dias"),
     min_views: int | None = Query(None, ge=0),
     sort: VideoSort = "score",
-    limit: int = Query(30, ge=1, le=200),
+    limit: int = Query(30, ge=1, le=EXPORT_LIMIT),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
 ):
     stmt = select(Video)
+    if collection_id:
+        stmt = stmt.where(Video.id.in_(saved_refs(collection_id, "video", user)))
     if search_id:
         source_id = user_search_source(user.id, search_id)
         stmt = stmt.where(Video.id.in_(select(SourceVideo.video_id).where(SourceVideo.source_id == source_id)))
-    elif scope == "mine" and not offer:
+    elif scope == "mine" and not (offer or collection_id):
         stmt = stmt.where(Video.id.in_(
             select(SourceVideo.video_id).where(SourceVideo.source_id.in_(user_source_ids(user.id)))
         ))
@@ -88,11 +94,37 @@ def list_videos(
 
     filtered = stmt.subquery()
     total = db.scalar(select(func.count()).select_from(filtered)) or 0
-    scores = list(db.scalars(select(filtered.c.score)))
-    heat = ScoreHeat(hot=rank_cutoff(scores, HOT_SHARE), warm=rank_cutoff(scores, WARM_SHARE))
+    signals = db.execute(select(filtered.c.score, filtered.c.views, filtered.c.velocity, filtered.c.outlier,
+                                filtered.c.engagement)).all()
+    heat = ScoreHeat(
+        hot=rank_cutoff([s[0] for s in signals], HOT_SHARE),
+        warm=rank_cutoff([s[0] for s in signals], WARM_SHARE),
+        metrics=metric_cutoffs(
+            {"views": [s[1] for s in signals], "velocity": [s[2] for s in signals],
+             "outlier": [s[3] for s in signals], "engagement": [s[4] for s in signals]},
+            {"views": 1_000, "velocity": 100, "outlier": 1, "engagement": 0.02},
+        ),
+    )
     column = SORT_COLUMNS[sort]
     rows = db.scalars(
         stmt.order_by(column.desc().nulls_last(), Video.score.desc(), Video.id).offset(offset).limit(limit)
     )
-    return VideoPage(total=total, items=[_out(v) for v in rows], heat=heat,
-                     enabled=bool(get_settings().youtube_api_key))
+    items = [_out(v) for v in rows]
+    saved_in = collections_by_ref(db, "video", [v.id for v in items], user)
+    for item in items:
+        item.collection_ids = saved_in.get(item.id, [])
+    return VideoPage(total=total, items=items, heat=heat, enabled=bool(get_settings().youtube_api_key))
+
+
+VIDEO_CSV = ["titulo", "url", "canal", "inscritos", "nicho", "short", "publicado", "score", "views", "views_por_dia",
+             "x_canal", "engajamento", "aceleracao", "curtidas", "comentarios", "oferta", "link"]
+
+
+@router.get("/export.csv")
+def export_videos(page: VideoPage = Depends(list_videos)):
+    return csv_response("videos-youtube.csv", VIDEO_CSV, (
+        [v.title, v.url, v.channel_title, v.channel_subscribers, NICHES.get(v.niche or "", {}).get("label", v.niche),
+         "sim" if v.is_short else "não", v.published_at.date().isoformat(), v.score, v.views, round(v.velocity),
+         v.outlier, v.engagement, v.acceleration, v.likes, v.comments, v.offer_label, v.link_url]
+        for v in page.items
+    ))

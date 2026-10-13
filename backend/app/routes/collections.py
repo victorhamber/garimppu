@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.auth import current_user
 from app.db import get_db
-from app.models import Ad, Collection, CollectionItem, CollectionOffer, Creative, User
-from app.schemas import CollectionCreate, CollectionItemCreate, CollectionOfferCreate, CollectionOut
+from app.models import Ad, Collection, CollectionItem, CollectionOffer, CollectionRef, Creative, TikTokAd, TrendKeyword, User, Video
+from app.schemas import CollectionCreate, CollectionItemCreate, CollectionOfferCreate, CollectionOut, CollectionRefCreate, RefKind
 
 router = APIRouter(prefix="/api/collections", tags=["collections"])
 DEFAULT_COLLECTION = "Favoritos"
@@ -23,6 +23,41 @@ def user_collection_ids(user: User):
     return select(Collection.id).where(Collection.user_id == user.id)
 
 
+def saved_refs(collection_id: int, kind: RefKind, user: User):
+    """Refs of one kind in one of the user's collections, for a list endpoint's collection_id filter."""
+    return select(CollectionRef.ref).where(
+        CollectionRef.collection_id == collection_id,
+        CollectionRef.kind == kind,
+        CollectionRef.collection_id.in_(user_collection_ids(user)),
+    )
+
+
+def collections_by_ref(db: Session, kind: RefKind, refs: list[str], user: User) -> dict[str, list[int]]:
+    result: dict[str, list[int]] = {}
+    if not refs:
+        return result
+    for ref, coll in db.execute(
+        select(CollectionRef.ref, CollectionRef.collection_id).where(
+            CollectionRef.kind == kind,
+            CollectionRef.ref.in_(refs),
+            CollectionRef.collection_id.in_(user_collection_ids(user)),
+        )
+    ):
+        result.setdefault(ref, []).append(coll)
+    return result
+
+
+def _ref_exists(db: Session, kind: RefKind, ref: str) -> bool:
+    if kind == "video":
+        return db.get(Video, ref) is not None
+    if kind == "tiktok":
+        return db.get(TikTokAd, ref) is not None
+    if kind == "keyword":
+        return ref.isdigit() and db.get(TrendKeyword, int(ref)) is not None
+    site_ads = select(Ad.ad_archive_id).where((Ad.offer_key == ref) | Ad.offer_key.like(f"{ref}/%")).limit(1)
+    return db.scalar(site_ads) is not None
+
+
 def _out(db: Session, collection: Collection) -> CollectionOut:
     out = CollectionOut.model_validate(collection)
     out.items_count = db.scalar(
@@ -30,6 +65,9 @@ def _out(db: Session, collection: Collection) -> CollectionOut:
     ) or 0
     out.offers_count = db.scalar(
         select(func.count()).select_from(CollectionOffer).where(CollectionOffer.collection_id == collection.id)
+    ) or 0
+    out.refs_count = db.scalar(
+        select(func.count()).select_from(CollectionRef).where(CollectionRef.collection_id == collection.id)
     ) or 0
     return out
 
@@ -113,6 +151,27 @@ def remove_offer(collection_id: int, offer_key: str, db: Session = Depends(get_d
                  user: User = Depends(current_user)):
     _get(db, collection_id, user)
     item = db.get(CollectionOffer, (collection_id, offer_key))
+    if item is not None:
+        db.delete(item)
+        db.commit()
+
+
+@router.post("/{collection_id}/refs", status_code=204)
+def add_ref(collection_id: int, payload: CollectionRefCreate, db: Session = Depends(get_db),
+            user: User = Depends(current_user)):
+    _get(db, collection_id, user)
+    if not _ref_exists(db, payload.kind, payload.ref):
+        raise HTTPException(404, "Item não encontrado")
+    if db.get(CollectionRef, (collection_id, payload.kind, payload.ref)) is None:
+        db.add(CollectionRef(collection_id=collection_id, kind=payload.kind, ref=payload.ref))
+        db.commit()
+
+
+@router.delete("/{collection_id}/refs", status_code=204)
+def remove_ref(collection_id: int, kind: RefKind, ref: str, db: Session = Depends(get_db),
+               user: User = Depends(current_user)):
+    _get(db, collection_id, user)
+    item = db.get(CollectionRef, (collection_id, kind, ref))
     if item is not None:
         db.delete(item)
         db.commit()

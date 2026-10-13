@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { offerTag, type Collection, type Creative, type CreativeHeat } from "@/lib/api";
+import { offerTag, type Collection, type Creative, type ScoreHeat } from "@/lib/api";
 import { CollectionMenu } from "./CollectionMenu";
 import { CreativeMedia } from "./CreativeMedia";
 import { MetricRow, Platforms, ScoreBadge } from "./Metrics";
@@ -9,7 +9,7 @@ import { MetricRow, Platforms, ScoreBadge } from "./Metrics";
 type Props = {
   creative: Creative;
   rank: number;
-  heat: CreativeHeat | null;
+  heat: ScoreHeat | null;
   collections: Collection[];
   nicheLabel: (id: string | null) => string | null;
   onCollectionsChange: (ids: number[]) => void;
@@ -98,7 +98,7 @@ export function CreativeCard({ creative, rank, heat, collections, nicheLabel, on
         <CreativeMedia creative={creative} className="transition-transform duration-300 motion-safe:group-hover:scale-[1.02]" />
         <span className="absolute top-2 left-2 rounded border border-line bg-background/85 px-1.5 py-0.5 font-mono text-xs text-foreground tabular-nums">#{rank}</span>
         <span className="absolute top-2 right-2">
-          <ScoreBadge score={creative.score} heat={heat} />
+          <ScoreBadge value={creative.score?.score ?? 0} heat={heat} />
         </span>
         {creative.media_type === "video" && (
           <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded border border-line bg-background/85 px-1.5 py-0.5 text-xs text-foreground">
@@ -164,7 +164,7 @@ export function CreativeRow({ creative, rank, heat, collections, nicheLabel, onC
         <MetricRow score={creative.score} heat={heat} hasHistory={creative.has_history} />
       </div>
       <span className="shrink-0">
-        <ScoreBadge score={creative.score} heat={heat} />
+        <ScoreBadge value={creative.score?.score ?? 0} heat={heat} />
       </span>
       <span className="hidden sm:block">
         <Actions creative={creative} collections={collections} onCollectionsChange={onCollectionsChange} external={false} />

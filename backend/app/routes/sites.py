@@ -17,9 +17,12 @@ from app.auth import current_user
 from app.config import get_settings
 from app.db import get_db
 from app.models import Ad, Creative, SourceAd, TikTokAd, User, Video
+from app.csv_export import EXPORT_LIMIT, csv_response
+from app.pipeline.niche import NICHES
 from app.pipeline.scoring import count_duplicates, days_running
 from app.pipeline.sources import user_search_source, user_source_ids
-from app.routes.offers import offer_score
+from app.routes.collections import collections_by_ref, saved_refs
+from app.routes.offers import offer_heat, offer_score
 from app.schemas import OfferAdvertiser, OfferPreview, SiteOut, SitePage
 from app.serializers import media_path
 
@@ -116,11 +119,12 @@ def list_sites(
     q: str | None = None,
     niche: str | None = None,
     search_id: int | None = None,
+    collection_id: int | None = None,
     scope: Literal["mine", "all"] = Query("mine", description="mine = só anúncios das buscas do usuário"),
     active_only: bool = True,
     include_brands: bool = Query(False, description="Inclui páginas de marcas grandes"),
     sort: SiteSort = "score",
-    limit: int = Query(30, ge=1, le=200),
+    limit: int = Query(30, ge=1, le=EXPORT_LIMIT),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
@@ -134,18 +138,19 @@ def list_sites(
     if search_id:
         source_id = user_search_source(user.id, search_id)
         stmt = stmt.where(Ad.ad_archive_id.in_(select(SourceAd.ad_archive_id).where(SourceAd.source_id == source_id)))
-    elif scope == "mine":
+    elif scope == "mine" and not collection_id:
         stmt = stmt.where(Ad.ad_archive_id.in_(
             select(SourceAd.ad_archive_id).where(SourceAd.source_id.in_(user_source_ids(user.id)))
         ))
+    saved = set(db.scalars(saved_refs(collection_id, "site", user))) if collection_id else None
 
     groups: dict[str, list[Ad]] = {}
     brand_sites: set[str] = set()
     for ad in db.scalars(stmt):
         domain = site_domain(ad.offer_key)
-        if not domain:
+        if not domain or (saved is not None and domain not in saved):
             continue
-        if not include_brands and ad.page and ad.page.big_brand:
+        if not (include_brands or collection_id) and ad.page and ad.page.big_brand:
             brand_sites.add(domain)
             continue
         groups.setdefault(domain, []).append(ad)
@@ -164,5 +169,24 @@ def list_sites(
         site.tiktok_ads = tiktok.get(site.domain, 0)
         site.videos = videos.get(site.domain, 0)
     sites.sort(key=SORT_KEYS[sort], reverse=True)
-    return SitePage(total=len(sites), items=sites[offset:offset + limit],
+    page = sites[offset:offset + limit]
+    saved_in = collections_by_ref(db, "site", [s.domain for s in page], user)
+    for site in page:
+        site.collection_ids = saved_in.get(site.domain, [])
+    return SitePage(total=len(sites), items=page, heat=offer_heat(sites),
                     hidden_brands=len(brand_sites - groups.keys()))
+
+
+SITE_CSV = ["site", "url", "nicho", "plataforma", "score", "anunciantes", "anuncios", "criativos", "produtos",
+            "dias_no_ar", "anuncios_tiktok", "videos_youtube", "principais_anunciantes", "primeira_vez", "ultima_vez"]
+
+
+@router.get("/export.csv")
+def export_sites(page: SitePage = Depends(list_sites)):
+    return csv_response("sites-de-venda.csv", SITE_CSV, (
+        [s.domain, s.url, NICHES.get(s.niche or "", {}).get("label", s.niche), s.platform, s.score, s.advertisers,
+         s.ads, s.creatives, s.products, s.days_active, s.tiktok_ads, s.videos,
+         ", ".join(a.name or a.page_id for a in s.top_advertisers),
+         s.first_seen_at.date().isoformat(), s.last_seen_at.date().isoformat()]
+        for s in page.items
+    ))

@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { API_URL, api, toQuery, type Creative, type CreativeFilters, type CreativeHeat, type CreativePage } from "@/lib/api";
+import { api, toQuery, type Creative, type CreativeFilters, type CreativePage, type ScoreHeat } from "@/lib/api";
 import { useCollections, useNiches } from "@/lib/hooks";
 import { useViewPreference, type GridView } from "@/lib/useViewPreference";
 import { CreativeCard, CreativeRow } from "./CreativeCard";
+import { ExportCsv } from "./ExportCsv";
 import { HiddenBrandsNote } from "./FilterBar";
 import { ScoreLegend } from "./Metrics";
 
@@ -41,7 +42,7 @@ export function CreativeGrid({ filters, emptyMessage, onHistoryChange, toolbar, 
   const [loadedKey, setLoadedKey] = useState<string | null>(null);
   const [items, setItems] = useState<Creative[]>([]);
   const [total, setTotal] = useState(0);
-  const [heat, setHeat] = useState<CreativeHeat | null>(null);
+  const [heat, setHeat] = useState<ScoreHeat | null>(null);
   const [hiddenBrands, setHiddenBrands] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +97,6 @@ export function CreativeGrid({ filters, emptyMessage, onHistoryChange, toolbar, 
     reloadCollections();
   }
 
-  const exportHref = `${API_URL}/api/creatives/export.csv${toQuery({ ...filters })}`;
   const canExport = !refetching && !error && total > 0;
   const count = total.toLocaleString("pt-BR");
 
@@ -136,15 +136,7 @@ export function CreativeGrid({ filters, emptyMessage, onHistoryChange, toolbar, 
                 </button>
               ))}
             </div>
-            {canExport ? (
-              <a href={exportHref} className="btn h-8 text-xs pointer-coarse:h-11">
-                Exportar CSV
-              </a>
-            ) : (
-              <button type="button" disabled className="btn h-8 text-xs pointer-coarse:h-11">
-                Exportar CSV
-              </button>
-            )}
+            <ExportCsv path="/api/creatives/export.csv" filters={filters} disabled={!canExport} />
           </div>
         </div>
         {total > 0 && <ScoreLegend />}

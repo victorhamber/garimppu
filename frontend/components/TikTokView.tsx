@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { api, mediaUrl, timeAgo, toQuery, type ScoreHeat, type Search, type TikTokAd, type TikTokAdPage, type TikTokIndustry } from "@/lib/api";
+import { api, mediaUrl, timeAgo, toQuery, type Collection, type ScoreHeat, type Search, type TikTokAd, type TikTokAdPage, type TikTokIndustry } from "@/lib/api";
+import { useCollections } from "@/lib/hooks";
 import { useUrlFilters } from "@/lib/useUrlFilters";
+import { CollectionMenu } from "./CollectionMenu";
 import { CoverImage, VideoFallback } from "./CoverImage";
+import { ExportCsv } from "./ExportCsv";
 import { CheckToggle, FilterChips, FilterSelect, FilterToggle, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
-import { HEAT_HINT, heatClass, ScoreLegend } from "./Metrics";
+import { Metric, MetricStrip, ScoreBadge, ScoreLegend, topMetric } from "./Metrics";
 
 const PAGE_SIZE = 30;
 const FILTER_KEYS = ["q", "industry", "search_id", "objective", "has_offer", "offer", "scope", "sort"] as const;
@@ -71,6 +74,7 @@ export function TikTokView() {
   const key = `${filtersKey}#${attempt}`;
   const loading = loadedKey !== key;
   const [panelOpen, setPanelOpen] = useState(false);
+  const { collections, reload: reloadCollections } = useCollections();
   useSlashFocus("tq");
 
   const tiktokSearches = searches.filter((s) => s.source === "tiktok");
@@ -187,6 +191,7 @@ export function TikTokView() {
           </span>
           <SortSelect id="tsort" value={filters.sort ?? "score"} options={SORTS}
             onChange={(v) => update("sort", v === "score" ? "" : v)} />
+          <ExportCsv path="/api/tiktok/ads/export.csv" filters={filters} disabled={loading || !!error || total === 0} className="ml-auto" />
         </div>
         {total > 0 && <ScoreLegend kind="tiktok" />}
       </div>
@@ -219,7 +224,11 @@ export function TikTokView() {
       <div aria-busy={loading || loadingMore}
         className={`grid gap-4 transition-opacity sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 ${loading && items.length > 0 ? "opacity-60" : ""}`}>
         {items.map((ad, i) => (
-          <TikTokCard key={ad.id} ad={ad} rank={i + 1} heat={data?.heat} />
+          <TikTokCard key={ad.id} ad={ad} rank={i + 1} heat={data?.heat} collections={collections}
+            onCollectionsChange={(ids) => {
+              setData((d) => d && { ...d, items: d.items.map((a) => (a.id === ad.id ? { ...a, collection_ids: ids } : a)) });
+              reloadCollections();
+            }} />
         ))}
       </div>
 
@@ -245,13 +254,21 @@ function scoreParts(ad: TikTokAd) {
 
 const fmtPart = (v: number | null) => (v == null ? "—" : v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
 
-function TikTokCard({ ad, rank, heat }: { ad: TikTokAd; rank: number; heat?: ScoreHeat }) {
+type TikTokCardProps = {
+  ad: TikTokAd;
+  rank: number;
+  heat?: ScoreHeat;
+  collections: Collection[];
+  onCollectionsChange: (ids: number[]) => void;
+};
+
+export function TikTokCard({ ad, rank, heat, collections, onCollectionsChange }: TikTokCardProps) {
   const duration = formatDuration(ad.duration_s);
   const title = ad.title?.trim() && ad.title.trim() !== "." ? ad.title.trim() : "Anúncio sem texto";
   const cover = mediaUrl(ad.cover);
   const host = hostOf(ad.landing_page);
   const parts = scoreParts(ad);
-  const topCtr = ad.ctr_rank != null && ad.ctr_rank <= 0.1;
+  const topCtr = topMetric(heat, "ctr_rank", ad.ctr_rank);
   return (
     <article className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-line bg-surface">
       <a href={ad.url} target="_blank" rel="noreferrer" className="relative block aspect-square overflow-hidden bg-surface-2"
@@ -277,23 +294,23 @@ function TikTokCard({ ad, rank, heat }: { ad: TikTokAd; rank: number; heat?: Sco
           <h2 className="line-clamp-2 min-w-0 flex-1 text-sm font-medium leading-snug" title={title}>
             <a href={ad.url} target="_blank" rel="noreferrer" className="hover:text-accent">{title}</a>
           </h2>
-          <span title={`Score TikTok = ${parts.map((p) => `${p.label} ${fmtPart(p.value)}`).join(" + ")} (${HEAT_HINT})`}
-            className={`shrink-0 rounded px-1.5 py-0.5 font-mono text-xs font-semibold tabular-nums ${heatClass(ad.score, heat)}`}>
-            {ad.score.toFixed(2)}
-          </span>
+          <ScoreBadge value={ad.score} heat={heat}
+            title={`Score TikTok = ${parts.map((p) => `${p.label} ${fmtPart(p.value)}`).join(" + ")}`} />
         </div>
         <p className="truncate text-xs text-muted">
           {[ad.brand ?? host, ad.industry, ad.objective, ad.budget != null ? BUDGETS[ad.budget] : null, timeAgo(ad.first_seen_at)]
             .filter(Boolean).join(" · ")}
         </p>
 
-        <dl className="grid grid-cols-4 gap-px overflow-hidden rounded-md border border-line bg-line text-center">
+        <MetricStrip className="grid-cols-4">
           <Metric label="CTR top" value={formatCtr(ad.ctr_rank)} strong={topCtr}
             title="Posição do CTR entre os anúncios do mesmo nicho: 3% = melhor que 97% deles" />
-          <Metric label="curtidas" value={compact.format(ad.likes)} strong={ad.likes >= 50_000} />
-          <Metric label="coment." value={ad.comments != null ? compact.format(ad.comments) : "—"} />
-          <Metric label="compart." value={ad.shares != null ? compact.format(ad.shares) : "—"} strong={(ad.shares ?? 0) >= 1_000} />
-        </dl>
+          <Metric label="curtidas" value={compact.format(ad.likes)} strong={topMetric(heat, "likes", ad.likes)} />
+          <Metric label="coment." value={ad.comments != null ? compact.format(ad.comments) : "—"}
+            strong={topMetric(heat, "comments", ad.comments)} />
+          <Metric label="compart." value={ad.shares != null ? compact.format(ad.shares) : "—"}
+            strong={topMetric(heat, "shares", ad.shares)} />
+        </MetricStrip>
         <p className="text-micro text-muted">
           Pontos: {parts.map((p) => `${p.label} ${fmtPart(p.value)}`).join(" · ")}
         </p>
@@ -305,23 +322,18 @@ function TikTokCard({ ad, rank, heat }: { ad: TikTokAd; rank: number; heat?: Sco
               {host ?? "Página de destino"}
             </a>
           )}
-          {ad.offer_key && (
-            <Link href={`/criativos?offer=${encodeURIComponent(ad.offer_key)}`} title={`Ver anúncios desta oferta no Meta (${ad.offer_key})`}
-              className="ml-auto max-w-full truncate rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent hover:bg-accent/10">
-              {ad.offer_label ?? ad.offer_key}
-            </Link>
-          )}
+          <div className="ml-auto flex min-w-0 items-center gap-2">
+            {ad.offer_key && (
+              <Link href={`/criativos?offer=${encodeURIComponent(ad.offer_key)}`} title={`Ver anúncios desta oferta no Meta (${ad.offer_key})`}
+                className="min-w-0 truncate rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent hover:bg-accent/10">
+                {ad.offer_label ?? ad.offer_key}
+              </Link>
+            )}
+            <CollectionMenu target={{ kind: "tiktok", ref: ad.id }} selected={ad.collection_ids} collections={collections}
+              onChange={onCollectionsChange} />
+          </div>
         </div>
       </div>
     </article>
-  );
-}
-
-function Metric({ label, value, strong, title }: { label: string; value: string; strong?: boolean; title?: string }) {
-  return (
-    <div className="flex min-w-0 flex-col-reverse bg-surface px-1 py-1.5" title={title}>
-      <dt className="micro truncate max-xl:tracking-normal">{label}</dt>
-      <dd className={`font-mono text-sm tabular-nums ${strong ? "text-accent" : "text-foreground"}`}>{value}</dd>
-    </div>
   );
 }

@@ -6,7 +6,7 @@ import { BackLink } from "./BackLink";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  api, formatDate, formatDateTime, PLATFORM_LABELS, type CreativeDetail, type CreativeHeat, type CreativePage,
+  api, formatDate, formatDateTime, PLATFORM_LABELS, type CreativeDetail, type ScoreHeat, type CreativePage,
 } from "@/lib/api";
 import { useCollections, useNiches } from "@/lib/hooks";
 import { CollectionMenu } from "./CollectionMenu";
@@ -21,7 +21,7 @@ export function CreativeDetailView() {
   const { collections, reload } = useCollections();
   const { label } = useNiches();
 
-  const [heat, setHeat] = useState<CreativeHeat | null>(null);
+  const [heat, setHeat] = useState<ScoreHeat | null>(null);
 
   useEffect(() => {
     api<CreativeDetail>(`/api/creatives/${id}`).then(setCreative).catch((e: Error) => setError(e.message));
@@ -71,7 +71,7 @@ export function CreativeDetailView() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <ScoreBadge score={s} heat={heat} />
+              <ScoreBadge value={s?.score ?? 0} heat={heat} />
               <div className="rounded-md border border-line">
                 <CollectionMenu target={{ creativeId: creative.id }} selected={creative.collection_ids} collections={collections}
                   onChange={(ids) => { setCreative({ ...creative, collection_ids: ids }); reload(); }} />

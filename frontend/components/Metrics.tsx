@@ -1,8 +1,9 @@
-import { PLATFORM_LABELS, PLATFORM_SHORT, type CreativeHeat, type Score, type ScoreHeat } from "@/lib/api";
+import type { ReactNode } from "react";
+import { PLATFORM_LABELS, PLATFORM_SHORT, type Score, type ScoreHeat } from "@/lib/api";
 
 const reached = (value: number, cutoff: number | null | undefined) => cutoff != null && value >= cutoff;
 
-export function heatClass(score: number, heat?: ScoreHeat | null): string {
+function heatClass(score: number, heat?: ScoreHeat | null): string {
   if (reached(score, heat?.hot)) return "bg-hot text-accent-ink";
   if (reached(score, heat?.warm)) return "bg-accent text-accent-ink";
   return "bg-surface-2 text-foreground";
@@ -10,14 +11,31 @@ export function heatClass(score: number, heat?: ScoreHeat | null): string {
 
 export const HEAT_HINT = "brasa = top 5% deste resultado, âmbar = top 20%";
 
-export function ScoreBadge({ score, heat }: { score: Score | null; heat?: ScoreHeat | null }) {
-  const value = score?.score ?? 0;
+/** Whether a metric is in the top 10% of the current result, by the server's cutoff (`ctr_rank`: lower wins). */
+export function topMetric(heat: ScoreHeat | null | undefined, name: string, value: number | null | undefined): boolean {
+  const cutoff = heat?.metrics?.[name];
+  if (cutoff == null || value == null) return false;
+  return name === "ctr_rank" ? value <= cutoff : value >= cutoff;
+}
+
+type ScoreBadgeProps = {
+  value: number;
+  heat?: ScoreHeat | null;
+  /** What the number is, for the tooltip, e.g. "Score de oferta". */
+  title?: string;
+  /** Shown instead of the number (keywords show the search volume). */
+  children?: ReactNode;
+  className?: string;
+};
+
+/** The one score badge: neutral, amber in the top 20% of the result, ember in the top 5%. */
+export function ScoreBadge({ value, heat, title = "Score de escala", children, className = "" }: ScoreBadgeProps) {
   return (
     <span
-      title={`Score de escala (${HEAT_HINT})`}
-      className={`rounded px-1.5 py-0.5 font-mono text-xs font-semibold tabular-nums ${heatClass(value, heat)}`}
+      title={`${title} (${HEAT_HINT})`}
+      className={`shrink-0 rounded px-1.5 py-0.5 font-mono text-xs font-semibold whitespace-nowrap tabular-nums ${heatClass(value, heat)} ${className}`}
     >
-      {value.toFixed(2)}
+      {children ?? value.toFixed(2)}
     </span>
   );
 }
@@ -27,12 +45,12 @@ export function formatGrowth(growth: number): string {
   return `${growth > 0 ? "+" : ""}${Math.round(growth * 100)}%`;
 }
 
-export function MetricRow({ score, heat, hasHistory }: { score: Score | null; heat?: CreativeHeat | null; hasHistory: boolean }) {
+export function MetricRow({ score, heat, hasHistory }: { score: Score | null; heat?: ScoreHeat | null; hasHistory: boolean }) {
   if (!score) return null;
   return (
-    <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-md border border-line bg-line text-center">
-      <Metric label="anúncios" value={score.duplicates} strong={reached(score.duplicates, heat?.duplicates)} />
-      <Metric label="dias ativo" value={score.days_active} strong={reached(score.days_active, heat?.days_active)} />
+    <MetricStrip className="grid-cols-3">
+      <Metric label="anúncios" value={score.duplicates} strong={topMetric(heat, "duplicates", score.duplicates)} />
+      <Metric label="dias ativo" value={score.days_active} strong={topMetric(heat, "days_active", score.days_active)} />
       {hasHistory ? (
         <Metric
           label="cresc. 7d"
@@ -43,7 +61,28 @@ export function MetricRow({ score, heat, hasHistory }: { score: Score | null; he
       ) : (
         <Metric label="1ª coleta" value="—" tone="text-muted" />
       )}
+    </MetricStrip>
+  );
+}
+
+/** The signature strip: equal cells, 1px dividers drawn by the gap; columns come from `className`. */
+export function MetricStrip({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <dl className={`grid gap-px overflow-hidden rounded-md border border-line bg-line text-center ${className}`}>
+      {children}
     </dl>
+  );
+}
+
+type MetricProps = { label: string; value: ReactNode; strong?: boolean; tone?: string; title?: string };
+
+/** Value in amber when `strong` (top 10% of the result); `tone` overrides, e.g. red for a drop. */
+export function Metric({ label, value, strong, tone, title }: MetricProps) {
+  return (
+    <div className="flex min-w-0 flex-col-reverse bg-surface px-1 py-1.5 sm:px-2" title={title}>
+      <dt className="micro truncate max-xl:tracking-normal">{label}</dt>
+      <dd className={`font-mono text-sm tabular-nums ${tone ?? (strong ? "text-accent" : "text-foreground")}`}>{value}</dd>
+    </div>
   );
 }
 
@@ -53,6 +92,7 @@ const FORMULAS = {
   offer: "Score de oferta: soma anunciantes (peso maior), anúncios, criativos, tempo no ar e um bônus quando a oferta também aparece no TikTok, no YouTube ou no ranking de sites mais acessados.",
   video: "Score de vídeo: soma visualizações por dia, quanto superou o tamanho do canal, engajamento e aceleração.",
   tiktok: "Score TikTok: soma o CTR comparado ao nicho (peso maior), curtidas, comentários e compartilhamentos, e a faixa de verba.",
+  site: "Score do site: soma anunciantes (peso maior), anúncios, criativos e tempo no ar de todos os produtos do site.",
 };
 
 export function ScoreLegend({ kind = "creative" }: { kind?: keyof typeof FORMULAS }) {
@@ -68,15 +108,6 @@ export function ScoreLegend({ kind = "creative" }: { kind?: keyof typeof FORMULA
         <span className="rounded bg-accent px-1 font-mono text-micro font-semibold text-accent-ink">âmbar</span>
         top 20% deste resultado
       </span>
-    </div>
-  );
-}
-
-function Metric({ label, value, strong, tone }: { label: string; value: string | number; strong?: boolean; tone?: string }) {
-  return (
-    <div className="flex flex-col-reverse bg-surface px-1 py-1.5">
-      <dt className="micro">{label}</dt>
-      <dd className={`font-mono text-sm tabular-nums ${tone ?? (strong ? "text-accent" : "text-foreground")}`}>{value}</dd>
     </div>
   );
 }

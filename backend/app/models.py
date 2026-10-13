@@ -454,6 +454,7 @@ class Collection(Base):
         back_populates="collection", cascade="all, delete-orphan"
     )
     offers: Mapped[list["CollectionOffer"]] = relationship(cascade="all, delete-orphan")
+    refs: Mapped[list["CollectionRef"]] = relationship(cascade="all, delete-orphan")
 
 
 class CollectionItem(Base):
@@ -479,4 +480,17 @@ class CollectionOffer(Base):
         ForeignKey("collections.id", ondelete="CASCADE"), primary_key=True
     )
     offer_key: Mapped[str] = mapped_column(String(255), primary_key=True)
+    added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class CollectionRef(Base):
+    """Everything else a user can save, by kind and id: video, tiktok (ad id), site (domain), keyword (id)."""
+
+    __tablename__ = "collection_refs"
+
+    collection_id: Mapped[int] = mapped_column(
+        ForeignKey("collections.id", ondelete="CASCADE"), primary_key=True
+    )
+    kind: Mapped[str] = mapped_column(String(16), primary_key=True)
+    ref: Mapped[str] = mapped_column(String(255), primary_key=True)
     added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

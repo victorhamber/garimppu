@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { api, timeAgo, toQuery, type Keyword, type KeywordPage, type KeywordSuggestions, type ScoreHeat, type Search } from "@/lib/api";
-import { useNiches } from "@/lib/hooks";
+import { useEffect, useState, type ReactNode } from "react";
+import { api, timeAgo, toQuery, type Collection, type Keyword, type KeywordPage, type KeywordSuggestions, type ScoreHeat, type Search } from "@/lib/api";
+import { useCollections, useNiches } from "@/lib/hooks";
 import { useUrlFilters } from "@/lib/useUrlFilters";
+import { CollectionMenu } from "./CollectionMenu";
+import { ExportCsv } from "./ExportCsv";
 import { CheckToggle, FilterChips, FilterSelect, FilterToggle, ScopeToggle, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
 import { CountrySelect } from "./CountrySelect";
-import { HEAT_HINT, heatClass } from "./Metrics";
+import { HEAT_HINT, ScoreBadge } from "./Metrics";
 
 const PAGE_SIZE = 50;
 const FILTER_KEYS = ["q", "niche", "geo", "days", "search_id", "scope", "sort", "has_niche"] as const;
@@ -49,6 +51,7 @@ export function KeywordsView() {
   const key = `${filtersKey}#${attempt}`;
   const loading = loadedKey !== key;
   const [panelOpen, setPanelOpen] = useState(false);
+  const { collections, reload: reloadCollections } = useCollections();
 
   const trendSearches = searches.filter((s) => s.source === "trends");
   const panelCount = PANEL_KEYS.filter((k) => filters[k]).length;
@@ -162,6 +165,7 @@ export function KeywordsView() {
           <span className="rounded bg-hot px-1 font-mono text-micro font-semibold text-accent-ink">brasa</span> top 5% ·{" "}
           <span className="rounded bg-accent px-1 font-mono text-micro font-semibold text-accent-ink">âmbar</span> top 20%
         </span>
+        <ExportCsv path="/api/keywords/export.csv" filters={filters} disabled={loading || !!error || total === 0} className="ml-auto" />
       </div>
 
       {error && (
@@ -192,7 +196,11 @@ export function KeywordsView() {
       <ol aria-busy={loading || loadingMore}
         className={`flex flex-col divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface transition-opacity ${items.length === 0 ? "hidden" : ""} ${loading && items.length > 0 ? "opacity-60" : ""}`}>
         {items.map((keyword) => (
-          <KeywordRow key={keyword.id} keyword={keyword} heat={data?.heat} nicheLabel={label(keyword.niche)} />
+          <KeywordRow key={keyword.id} keyword={keyword} heat={data?.heat} nicheLabel={label(keyword.niche)} collections={collections}
+            onCollectionsChange={(ids) => {
+              setData((d) => d && { ...d, items: d.items.map((k) => (k.id === keyword.id ? { ...k, collection_ids: ids } : k)) });
+              reloadCollections();
+            }} />
         ))}
       </ol>
 
@@ -308,7 +316,9 @@ function KeywordSearch({ nicheLabel }: { nicheLabel: (id: string | null) => stri
   );
 }
 
-function KeywordActions({ term: raw, geo, metaAds }: { term: string; geo: string; metaAds: number | null }) {
+type KeywordActionsProps = { term: string; geo: string; metaAds: number | null; children?: ReactNode };
+
+function KeywordActions({ term: raw, geo, metaAds, children }: KeywordActionsProps) {
   const [mining, setMining] = useState<"idle" | "busy" | "done" | "error">("idle");
   const [mineError, setMineError] = useState<string | null>(null);
   const term = encodeURIComponent(raw);
@@ -355,21 +365,29 @@ function KeywordActions({ term: raw, geo, metaAds }: { term: string; geo: string
           {mining === "busy" ? "Criando..." : mining === "error" ? "Erro, tentar de novo" : "Minerar no Meta"}
         </button>
       )}
+      {children}
     </div>
   );
 }
 
-function KeywordRow({ keyword, heat, nicheLabel }: { keyword: Keyword; heat?: ScoreHeat | null; nicheLabel: string | null }) {
+type KeywordRowProps = {
+  keyword: Keyword;
+  heat?: ScoreHeat | null;
+  nicheLabel: string | null;
+  collections: Collection[];
+  onCollectionsChange: (ids: number[]) => void;
+};
+
+export function KeywordRow({ keyword, heat, nicheLabel, collections, onCollectionsChange }: KeywordRowProps) {
   const days = keyword.days_trending;
   const since = keyword.trending_now ? "em alta agora" : `visto ${timeAgo(keyword.last_seen_at) ?? ""}`;
 
   return (
     <li className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 px-3 py-3 lg:grid-cols-[4.5rem_minmax(0,1fr)_auto] lg:items-center">
       <div className="row-span-2 flex flex-col items-center gap-0.5 lg:row-span-1">
-        <span title={`Pico estimado de buscas (${HEAT_HINT})`}
-          className={`rounded px-1.5 py-0.5 font-mono text-xs font-semibold whitespace-nowrap tabular-nums ${heatClass(keyword.peak_traffic ?? 0, heat)}`}>
+        <ScoreBadge value={keyword.peak_traffic ?? 0} heat={heat} title="Pico estimado de buscas">
           {formatTraffic(keyword.peak_traffic)}
-        </span>
+        </ScoreBadge>
         <span className="font-mono text-micro tabular-nums"><Growth keyword={keyword} /></span>
       </div>
       <div className="min-w-0">
@@ -401,7 +419,10 @@ function KeywordRow({ keyword, heat, nicheLabel }: { keyword: Keyword; heat?: Sc
           </ul>
         )}
       </div>
-      <KeywordActions term={keyword.term} geo={keyword.geo} metaAds={keyword.meta_ads} />
+      <KeywordActions term={keyword.term} geo={keyword.geo} metaAds={keyword.meta_ads}>
+        <CollectionMenu target={{ kind: "keyword", ref: String(keyword.id) }} selected={keyword.collection_ids} collections={collections}
+          onChange={onCollectionsChange} />
+      </KeywordActions>
     </li>
   );
 }
