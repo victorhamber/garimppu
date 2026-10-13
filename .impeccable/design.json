@@ -142,7 +142,7 @@
     ],
     "rules": [
       { "name": "The One Lantern Rule", "body": "O âmbar é a única luz da tela. Se tudo brilha, nada é ouro: âmbar só em ação primária, foco, estado ativo e valor acima do limiar.", "section": "colors" },
-      { "name": "The Signal Threshold Rule", "body": "Uma métrica só fica âmbar quando está no topo do resultado que o usuário está vendo: anúncios e dias ativo no top 10% do conjunto filtrado (com pisos de 2 anúncios e 7 dias), calculados no backend sobre o conjunto inteiro, não só a página carregada. Limiares absolutos só valem quando o número tem significado próprio (anunciantes ≥ 2). Abaixo disso, fica em Quartz White; conjuntos pequenos demais para ranquear não acendem nada.", "section": "colors" },
+      { "name": "The Signal Threshold Rule", "body": "Uma métrica só fica âmbar quando está no topo do resultado que o usuário está vendo: anúncios e dias no ar no top 10% do conjunto filtrado (com pisos de 2 anúncios e 7 dias), calculados no backend sobre o conjunto inteiro, não só a página carregada. Limiares absolutos só valem quando o número tem significado próprio (anunciantes ≥ 2). Abaixo disso, fica em Quartz White; conjuntos pequenos demais para ranquear não acendem nada.", "section": "colors" },
       { "name": "The Numbers Are Mono Rule", "body": "Todo número que o usuário compara (score, contagem, dias, crescimento, posição) é Geist Mono tabular, para que colunas alinhem e a leitura seja de instrumento.", "section": "typography" },
       { "name": "The Flat Mine Rule", "body": "Superfícies não flutuam. Para separar, suba uma camada de ardósia ou use uma borda de 1px; sombra só para o que literalmente sobrepõe a página (menus, popovers).", "section": "elevation" }
     ],

@@ -88,7 +88,7 @@ export function TikTokView() {
   }
   if (filters.search_id) {
     const search = searches.find((s) => String(s.id) === filters.search_id);
-    chips.push({ key: "search_id", label: `Busca: ${search?.term ?? filters.search_id}` });
+    chips.push({ key: "search_id", label: `Mineração: ${search?.term ?? filters.search_id}` });
   }
   if (filters.objective) {
     chips.push({ key: "objective", label: OBJECTIVES.find((o) => o.id === filters.objective)?.label ?? filters.objective });
@@ -180,7 +180,7 @@ export function TikTokView() {
 
         <div id="tiktok-panel" hidden={!panelOpen} className="grid grid-cols-2 gap-3 border-t border-line pt-3 md:grid-cols-3">
           <FilterSelect id="t-nicho" label="Nicho" value={filters.industry} onChange={(v) => update("industry", v)} options={industryOptions} />
-          <FilterSelect id="t-busca" label="Busca" value={filters.search_id} onChange={(v) => update("search_id", v)}
+          <FilterSelect id="t-busca" label="Mineração" allLabel="Todas" value={filters.search_id} onChange={(v) => update("search_id", v)}
             options={tiktokSearches.map((s) => ({ id: String(s.id), label: `${s.term} (${s.country})` }))} />
           <FilterSelect id="t-objetivo" label="Objetivo" value={filters.objective} onChange={(v) => update("objective", v)} options={OBJECTIVES} />
         </div>
@@ -300,7 +300,7 @@ export function TikTokCard({ ad, rank, heat, collections, onCollectionsChange }:
             title={`Score TikTok = ${parts.map((p) => `${p.label} ${fmtPart(p.value)}`).join(" + ")}`} />
         </div>
         <p className="truncate text-xs text-muted">
-          {[ad.brand ?? host, ad.industry, ad.objective, ad.budget != null ? BUDGETS[ad.budget] : null, timeAgo(ad.first_seen_at)]
+          {[ad.brand ?? host, ad.industry, ad.objective, ad.budget != null ? BUDGETS[ad.budget] : null, ad.first_seen_at ? `visto pela 1ª vez ${timeAgo(ad.first_seen_at)}` : null]
             .filter(Boolean).join(" · ")}
         </p>
 

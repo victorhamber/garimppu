@@ -24,7 +24,7 @@ const SORTS = [
   { id: "advertisers", label: "Mais anunciantes" },
   { id: "ads", label: "Mais anúncios" },
   { id: "products", label: "Mais produtos" },
-  { id: "days_active", label: "Há mais tempo no ar" },
+  { id: "days_active", label: "Mais tempo no ar" },
   { id: "recent", label: "Novos primeiro" },
 ];
 
@@ -51,7 +51,7 @@ export function SitesView() {
   if (filters.niche) chips.push({ key: "niche", label: label(filters.niche) ?? filters.niche });
   if (filters.search_id) {
     const search = searches.find((s) => String(s.id) === filters.search_id);
-    chips.push({ key: "search_id", label: `Busca: ${search?.term ?? filters.search_id}` });
+    chips.push({ key: "search_id", label: `Mineração: ${search?.term ?? filters.search_id}` });
   }
 
   useEffect(() => {
@@ -138,7 +138,7 @@ export function SitesView() {
         <div id="sites-panel" hidden={!panelOpen} className="grid grid-cols-2 gap-3 border-t border-line pt-3">
           <FilterSelect id="s-nicho" label="Nicho" value={filters.niche} onChange={(v) => update("niche", v)}
             options={niches.map((n) => ({ id: n.id, label: n.label }))} />
-          <FilterSelect id="s-busca" label="Busca" value={filters.search_id} onChange={(v) => update("search_id", v)}
+          <FilterSelect id="s-busca" label="Mineração" allLabel="Todas" value={filters.search_id} onChange={(v) => update("search_id", v)}
             options={adSearches.map((s) => ({ id: String(s.id), label: s.term }))} />
         </div>
 

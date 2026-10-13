@@ -52,7 +52,7 @@ export function OffersView() {
   if (filters.platform) chips.push({ key: "platform", label: filters.platform });
   if (filters.search_id) {
     const search = searches.find((s) => String(s.id) === filters.search_id);
-    chips.push({ key: "search_id", label: `Busca: ${search?.term ?? filters.search_id}` });
+    chips.push({ key: "search_id", label: `Mineração: ${search?.term ?? filters.search_id}` });
   }
   if (filters.min_advertisers) chips.push({ key: "min_advertisers", label: `≥ ${filters.min_advertisers} anunciantes` });
 
@@ -146,7 +146,7 @@ export function OffersView() {
           <FilterSelect id="o-tipo" label="Tipo" value={filters.kind} onChange={(v) => update("kind", v)} options={OFFER_KINDS} />
           <FilterSelect id="o-plataforma" label="Plataforma" value={filters.platform} onChange={(v) => update("platform", v)}
             options={platforms.map((p) => ({ id: p, label: p }))} />
-          <FilterSelect id="o-busca" label="Busca" value={filters.search_id} onChange={(v) => update("search_id", v)}
+          <FilterSelect id="o-busca" label="Mineração" allLabel="Todas" value={filters.search_id} onChange={(v) => update("search_id", v)}
             options={searches.map((s) => ({ id: String(s.id), label: `${s.term} (${s.country})` }))} />
           <div>
             <label className="label" htmlFor="min_adv">Mín. anunciantes</label>

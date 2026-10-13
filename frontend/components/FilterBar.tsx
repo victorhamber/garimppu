@@ -57,18 +57,19 @@ export function MoreFilters({ open, children }: { open: boolean; children: React
 }
 
 /** Labelled select for the filter panel; the empty option means "no filter". */
-export function FilterSelect({ id, label, value, options, onChange }: {
+export function FilterSelect({ id, label, value, options, onChange, allLabel = "Todos" }: {
   id: string;
   label: string;
   value?: string;
   options: { id: string; label: string }[];
   onChange: (value: string) => void;
+  allLabel?: string;
 }) {
   return (
     <div>
       <label className="label" htmlFor={id}>{label}</label>
       <select id={id} className="field" value={value ?? ""} onChange={(e) => onChange(e.target.value)}>
-        <option value="">Todos</option>
+        <option value="">{allLabel}</option>
         {options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
       </select>
     </div>

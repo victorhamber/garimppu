@@ -191,7 +191,7 @@ export function CreativeDetailView() {
             <div className="rounded-lg border border-line bg-surface p-4">
               <h2 className="label">Evolução de anúncios ativos</h2>
               <Sparkline points={creative.snapshots} />
-              <p className="mt-3 text-xs text-muted">Primeira vez visto em {formatDateTime(creative.first_seen_at)}</p>
+              <p className="mt-3 text-xs text-muted">Visto pela 1ª vez em {formatDateTime(creative.first_seen_at)}</p>
             </div>
           </div>
         </div>

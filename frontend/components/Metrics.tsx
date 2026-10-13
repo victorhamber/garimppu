@@ -84,7 +84,7 @@ export function MetricRow({ score, heat, hasHistory }: { score: Score | null; he
   return (
     <MetricStrip className="grid-cols-3">
       <Metric label="anúncios" value={score.duplicates} strong={topMetric(heat, "duplicates", score.duplicates)} />
-      <Metric label="dias ativo" value={score.days_active} strong={topMetric(heat, "days_active", score.days_active)} />
+      <Metric label="dias no ar" value={score.days_active} strong={topMetric(heat, "days_active", score.days_active)} />
       {hasHistory ? (
         <Metric
           label="cresc. 7d"

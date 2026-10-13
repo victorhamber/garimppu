@@ -321,6 +321,13 @@ Enquanto um criativo só foi visto num dia de coleta, a célula de crescimento m
 ### Título da aba
 Cada página tem o seu título, no formato "Página · Garimppu" ("Minerar · Garimppu", "Criativos · Garimppu"). Os detalhes trocam pelo nome real quando ele chega: o anunciante no criativo e no anunciante, o nome da coleção na coleção.
 
+### Vocabulário
+- **Dias no ar:** o único nome para há quanto tempo algo está rodando (métrica, filtro "Mín. dias no ar", ordem "Mais tempo no ar"). Nunca "dias ativo".
+- **Datas relativas dizem a que se referem:** "visto pela 1ª vez há 3 dias", "publicado há 2 dias", "em alta pela última vez há 5 h". Nunca um "há 3 dias" solto.
+- **Mineração:** o filtro que limita a lista ao que uma busca de Minerar coletou ("Mineração: renda extra", "Todas"). "Buscar" fica só para o campo de texto.
+- **Sites de venda:** o nome das buscas de sites, igual ao menu.
+- **Frase exata:** no campo de Minerar, aspas buscam a frase exata; o exemplo do campo e a legenda dizem isso.
+
 ### Dicas visíveis
 Nada essencial mora só no `title`, porque no toque ele não existe. Em Minerar, uma legenda de uma linha (12px, Dust Gray, `aria-describedby` dos campos) muda com a fonte e diz o que ela coleta e o limite. Métricas com nome curto ("vs. inscritos", "engaj.", "CTR top 3%") são explicadas ao abrir a legenda do score. A nota de marcas grandes diz o porquê na própria frase. O `title` fica só como repetição para o mouse.
 

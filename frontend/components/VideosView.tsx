@@ -77,7 +77,7 @@ export function VideosView() {
   if (filters.niche) chips.push({ key: "niche", label: label(filters.niche) ?? filters.niche });
   if (filters.search_id) {
     const search = searches.find((s) => String(s.id) === filters.search_id);
-    chips.push({ key: "search_id", label: `Busca: ${search?.term ?? filters.search_id}` });
+    chips.push({ key: "search_id", label: `Mineração: ${search?.term ?? filters.search_id}` });
   }
   if (filters.format) chips.push({ key: "format", label: FORMATS.find((f) => f.id === filters.format)?.label ?? filters.format });
   if (filters.period) chips.push({ key: "period", label: PERIODS.find((p) => p.id === filters.period)?.label ?? `${filters.period} dias` });
@@ -175,7 +175,7 @@ export function VideosView() {
 
         <div id="videos-panel" hidden={!panelOpen} className="grid grid-cols-2 gap-3 border-t border-line pt-3 md:grid-cols-5">
           <FilterSelect id="v-nicho" label="Nicho" value={filters.niche} onChange={(v) => update("niche", v)} options={niches} />
-          <FilterSelect id="v-busca" label="Busca" value={filters.search_id} onChange={(v) => update("search_id", v)}
+          <FilterSelect id="v-busca" label="Mineração" allLabel="Todas" value={filters.search_id} onChange={(v) => update("search_id", v)}
             options={youtubeSearches.map((s) => ({ id: String(s.id), label: `${s.term} (${s.country})` }))} />
           <FilterSelect id="v-formato" label="Formato" value={filters.format} onChange={(v) => update("format", v)} options={FORMATS} />
           <FilterSelect id="v-periodo" label="Publicado" value={filters.period} onChange={(v) => update("period", v)} options={PERIODS} />
@@ -304,7 +304,7 @@ export function VideoCard({ video, rank, heat, niche, collections, onCollections
             </a>
           ) : video.channel_title}
           {video.channel_subscribers != null && ` · ${compact.format(video.channel_subscribers)} inscritos`}
-          {` · ${timeAgo(video.published_at)}`}
+          {video.published_at && ` · publicado ${timeAgo(video.published_at)}`}
           {niche && ` · ${niche}`}
         </p>
 

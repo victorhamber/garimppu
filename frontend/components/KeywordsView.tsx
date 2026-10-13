@@ -64,7 +64,7 @@ export function KeywordsView() {
   if (filters.days) chips.push({ key: "days", label: PERIODS.find((p) => p.id === filters.days)?.label ?? `${filters.days} dias` });
   if (filters.search_id) {
     const search = searches.find((s) => String(s.id) === filters.search_id);
-    chips.push({ key: "search_id", label: `Busca: ${search?.term ?? filters.search_id}` });
+    chips.push({ key: "search_id", label: `Mineração: ${search?.term ?? filters.search_id}` });
   }
 
   useEffect(() => {
@@ -153,7 +153,7 @@ export function KeywordsView() {
           <FilterSelect id="k-pais" label="País" value={filters.geo} onChange={(v) => update("geo", v)}
             options={(data?.countries ?? []).map((c) => ({ id: c, label: c }))} />
           <FilterSelect id="k-periodo" label="Em alta" value={filters.days} onChange={(v) => update("days", v)} options={PERIODS} />
-          <FilterSelect id="k-busca" label="Busca" value={filters.search_id} onChange={(v) => update("search_id", v)}
+          <FilterSelect id="k-busca" label="Mineração" allLabel="Todas" value={filters.search_id} onChange={(v) => update("search_id", v)}
             options={trendSearches.map((s) => ({ id: String(s.id), label: s.term }))} />
         </div>
 
@@ -377,7 +377,7 @@ type KeywordRowProps = {
 
 export function KeywordRow({ keyword, heat, nicheLabel, collections, onCollectionsChange }: KeywordRowProps) {
   const days = keyword.days_trending;
-  const since = keyword.trending_now ? "em alta agora" : `visto ${timeAgo(keyword.last_seen_at) ?? ""}`;
+  const since = keyword.trending_now ? "em alta agora" : `em alta pela última vez ${timeAgo(keyword.last_seen_at) ?? ""}`;
 
   return (
     <li className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 px-3 py-3 lg:grid-cols-[4.5rem_minmax(0,1fr)_auto] lg:items-center">
@@ -400,7 +400,7 @@ export function KeywordRow({ keyword, heat, nicheLabel, collections, onCollectio
             keyword.geo,
             days > 1 ? `em alta há ${days} dias` : "em alta hoje",
             keyword.trending_now ? null : since,
-            `desde ${timeAgo(keyword.first_seen_at) ?? ""}`,
+            keyword.first_seen_at && `visto pela 1ª vez ${timeAgo(keyword.first_seen_at)}`,
           ].filter(Boolean).join(" · ")}
         </p>
         {keyword.news.length > 0 && (

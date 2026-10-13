@@ -57,7 +57,7 @@ const DEFAULT_BY_SOURCE = {
 
 const UNIT: Partial<Record<Search["source"], string>> = { youtube: "vídeos", tiktok: "anúncios", sites: "sites", trends: "palavras" };
 const KIND_LABEL: Partial<Record<Search["source"], string>> = {
-  youtube: "YouTube", tiktok: "TikTok Ads", sites: "Sites mais acessados", trends: "Google · em alta",
+  youtube: "YouTube", tiktok: "TikTok Ads", sites: "Sites de venda", trends: "Google · em alta",
 };
 
 function creativesHref(search: Search) {
@@ -265,7 +265,9 @@ export function SearchManager() {
         ? "Vêm os vídeos mais vistos dos últimos 30 dias. Sem tema, vale o nicho inteiro. O YouTube limita as buscas por dia, então prefira poucos vídeos."
         : sites
           ? "Vêm no máximo os 100 primeiros sites de cada lista."
-          : "O nicho de cada criativo é detectado sozinho; o filtro de nicho só muda o que aparece ao abrir a busca.";
+          : form.mode === "keyword"
+            ? "Entre aspas, busca a frase exata; sem aspas, as palavras em qualquer ordem. O nicho de cada criativo é detectado sozinho."
+            : "O nicho de cada criativo é detectado sozinho; o filtro de nicho só muda o que aparece ao abrir a busca.";
   const setKind = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     setForm((f) => {
@@ -315,7 +317,7 @@ export function SearchManager() {
             <div className="col-span-2 md:col-span-1">
               <label className="label" htmlFor="term">Tema ou palavra-chave</label>
               <input id="term" className="field" value={form.term} onChange={set("term")} required={!youtube || !form.niche}
-                placeholder={youtube ? "opcional se escolher um nicho" : "ex.: renda extra, skincare"} />
+                placeholder={youtube ? "opcional se escolher um nicho" : 'ex.: renda extra ou "frase exata"'} />
             </div>
           ) : (
             <div className="col-span-2 md:col-span-1">
