@@ -242,7 +242,7 @@ export function SiteRow({ site, rank, nicheLabel, heat, collections, onCollectio
           </a>
           {nicheLabel && <span className="rounded-full bg-surface-2 px-2 py-0.5 text-micro text-muted">{nicheLabel}</span>}
           {site.platform && (
-            <span className="rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent">{site.platform}</span>
+            <span className="rounded-full border border-line px-2 py-0.5 text-micro text-foreground">{site.platform}</span>
           )}
           <ScoreBadge value={site.score} heat={heat} title="Score do site" className="ml-auto" />
         </div>
@@ -255,20 +255,20 @@ export function SiteRow({ site, rank, nicheLabel, heat, collections, onCollectio
           {site.advertisers > site.top_advertisers.length && (
             <span>+{site.advertisers - site.top_advertisers.length} anunciantes</span>
           )}
-          {site.tiktok_ads > 0 && <span className="text-accent">{site.tiktok_ads} no TikTok</span>}
-          {site.videos > 0 && <span className="text-accent">{site.videos} no YouTube</span>}
+          {site.tiktok_ads > 0 && <span className="text-foreground">{site.tiktok_ads} no TikTok</span>}
+          {site.videos > 0 && <span className="text-foreground">{site.videos} no YouTube</span>}
         </div>
         <div className="flex flex-wrap gap-1.5">
           <Link href={`/?q=${domain}&scope=all`}
-            className="rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent hover:bg-accent/10 pointer-coarse:py-2">
+            className="pill">
             Ver ofertas e anúncios
           </Link>
           <a href={site.url} target="_blank" rel="noreferrer"
-            className="rounded-full border border-line px-2 py-0.5 text-micro text-muted hover:border-accent/60 hover:text-foreground pointer-coarse:py-2">
+            className="pill">
             Abrir site
           </a>
           <CollectionMenu target={{ kind: "site", ref: site.domain }} selected={site.collection_ids} collections={collections}
-            onChange={onCollectionsChange} />
+            onChange={onCollectionsChange} itemName={`o site ${site.domain}`} />
         </div>
       </div>
 

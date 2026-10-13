@@ -134,7 +134,8 @@ export function CreativeDetailView() {
               <ScoreBadge value={s?.score ?? 0} heat={heat} reference="base" />
               <div className="rounded-md border border-line">
                 <CollectionMenu target={{ creativeId: creative.id }} selected={creative.collection_ids} collections={collections}
-                  onChange={(ids) => { setCreative({ ...creative, collection_ids: ids }); reload(); }} />
+                  onChange={(ids) => { setCreative({ ...creative, collection_ids: ids }); reload(); }}
+                  itemName={`este criativo de ${creative.page?.name ?? "anunciante desconhecido"}`} />
               </div>
             </div>
           </div>

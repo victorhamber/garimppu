@@ -278,17 +278,17 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
           {offer.platforms > 1 && (
             <span title="A mesma oferta também aparece no TikTok ou no YouTube"
-              className="rounded-full border border-accent/60 px-2 py-0.5 text-micro font-semibold text-accent">
+              className="rounded-full border border-line px-2 py-0.5 text-micro font-semibold text-foreground">
               {["Meta", offer.tiktok_ads > 0 && "TikTok", offer.videos > 0 && "YouTube"].filter(Boolean).join(" + ")}
             </span>
           )}
           {offer.videos > 0 && (
-            <Link href={`/videos?offer=${encodeURIComponent(offer.key)}`} className="text-accent hover:underline">
+            <Link href={`/videos?offer=${encodeURIComponent(offer.key)}`} className="pill">
               {offer.videos} {offer.videos === 1 ? "vídeo" : "vídeos"} no YouTube
             </Link>
           )}
           {offer.tiktok_ads > 0 && (
-            <Link href={`/tiktok?offer=${encodeURIComponent(offer.key)}`} className="text-accent hover:underline">
+            <Link href={`/tiktok?offer=${encodeURIComponent(offer.key)}`} className="pill">
               {offer.tiktok_ads} no TikTok
             </Link>
           )}
@@ -305,7 +305,7 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
 
       <div className="flex items-center justify-end gap-1">
         <CollectionMenu target={{ offerKey: offer.key }} selected={offer.collection_ids} collections={collections}
-          onChange={onCollectionsChange} />
+          onChange={onCollectionsChange} itemName={`a oferta ${offer.label}`} />
       </div>
     </article>
   );

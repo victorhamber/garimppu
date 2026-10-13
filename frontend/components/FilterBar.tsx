@@ -32,7 +32,7 @@ export function FilterChips<K extends string>({ chips, onRemove, onClear }: {
       {chips.length > 0 && (
         <ul aria-label="Filtros ativos" className="flex flex-wrap items-center gap-2">
           {chips.map((chip) => (
-            <li key={chip.key} className="flex items-center gap-1 rounded-full border border-accent/40 py-0.5 pr-1 pl-3 text-xs text-accent">
+            <li key={chip.key} className="flex items-center gap-1 rounded-full border border-line bg-surface-2 py-0.5 pr-1 pl-3 text-xs text-foreground">
               <span className="max-w-48 truncate sm:max-w-72" title={chip.title ?? chip.label}>{chip.label}</span>
               <button type="button" onClick={() => onRemove(chip.key)} aria-label={`Remover filtro ${chip.label}`}
                 className="flex size-5 items-center justify-center rounded-full text-muted hover:text-foreground pointer-coarse:size-9">

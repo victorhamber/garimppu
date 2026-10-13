@@ -164,7 +164,7 @@ export function OfferDossier({ offer, collections, onCollectionsChange }: Props)
           )}
           <div className="rounded-md border border-line">
             <CollectionMenu target={{ offerKey: offer.key }} selected={offer.collection_ids} collections={collections}
-              onChange={onCollectionsChange} />
+              onChange={onCollectionsChange} itemName={`a oferta ${offer.label}`} />
           </div>
         </div>
       </div>

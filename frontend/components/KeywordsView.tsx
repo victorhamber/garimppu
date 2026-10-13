@@ -228,7 +228,7 @@ function Growth({ keyword }: { keyword: Keyword }) {
   );
 }
 
-const LINK_CLASS = "rounded-full border border-line px-2 py-0.5 text-micro text-muted transition-colors hover:border-accent/60 hover:text-foreground pointer-coarse:py-2";
+const LINK_CLASS = "pill";
 const SUGGEST_PAGE = 40;
 
 /** Searches around the user's own term, from Google's autocomplete, ordered by how often Google suggests them. */
@@ -337,7 +337,7 @@ function KeywordActions({ term: raw, geo, metaAds, children }: KeywordActionsPro
   return (
     <div className="col-start-2 flex flex-wrap items-center gap-1.5 lg:col-start-3 lg:max-w-80 lg:justify-end">
       {metaAds != null && metaAds > 0 && (
-        <Link href={`/criativos?q=${term}&scope=all`} className="rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent hover:bg-accent/10 pointer-coarse:py-2"
+        <Link href={`/criativos?q=${term}&scope=all`} className="pill"
           title="Anúncios do Meta já coletados que citam o termo">
           {metaAds > 99 ? "99+" : metaAds} {metaAds === 1 ? "anúncio" : "anúncios"} no Meta
         </Link>
@@ -359,7 +359,7 @@ function KeywordActions({ term: raw, geo, metaAds, children }: KeywordActionsPro
           label="Minerar no Meta"
           consequence={`Cria a busca "${raw}" e coleta até 300 anúncios ativos em ${country} da Biblioteca de Anúncios da Meta. A coleta roda em segundo plano e leva alguns minutos; você acompanha em Minerar.`}
           onConfirm={mineMeta}
-          openerClassName="rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent transition-colors hover:bg-accent/10 pointer-coarse:py-2"
+          openerClassName="pill"
         />
       )}
       {children}
@@ -418,7 +418,7 @@ export function KeywordRow({ keyword, heat, nicheLabel, collections, onCollectio
       </div>
       <KeywordActions term={keyword.term} geo={keyword.geo} metaAds={keyword.meta_ads}>
         <CollectionMenu target={{ kind: "keyword", ref: String(keyword.id) }} selected={keyword.collection_ids} collections={collections}
-          onChange={onCollectionsChange} />
+          onChange={onCollectionsChange} itemName={`a palavra-chave ${keyword.term}`} />
       </KeywordActions>
     </li>
   );

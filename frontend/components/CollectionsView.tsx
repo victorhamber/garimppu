@@ -38,7 +38,8 @@ export function CollectionsView() {
     }
   }
 
-  function remove(id: number, collectionName: string) {
+  function remove(id: number, collectionName: string, e: React.MouseEvent<HTMLButtonElement>) {
+    const origin = { from: e.currentTarget, keyboard: e.detail === 0 };
     setError(null);
     deletion.remove(id, `Coleção "${collectionName}" excluída.`, () =>
       api(`/api/collections/${id}`, { method: "DELETE" })
@@ -46,7 +47,7 @@ export function CollectionsView() {
           setError({ action: `excluir "${collectionName}"`, message: err.message });
           throw err;
         })
-        .finally(reload));
+        .finally(reload), origin);
   }
 
   return (
@@ -67,13 +68,13 @@ export function CollectionsView() {
 
       <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
         {collections.filter((c) => !deletion.isHidden(c.id)).map((c) => (
-          <div key={c.id} className="flex items-center justify-between rounded-lg border border-line bg-surface p-4">
+          <div key={c.id} data-undo-row={c.id} className="flex items-center justify-between rounded-lg border border-line bg-surface p-4">
             <Link href={`/colecoes/${c.id}`} className="min-w-0">
               <p className="truncate font-medium hover:text-accent">{c.name}</p>
               <p className="text-xs text-muted">{summary(c)} · criada em {formatDate(c.created_at)}</p>
             </Link>
             {c.name !== "Favoritos" && (
-              <button type="button" onClick={() => remove(c.id, c.name)} aria-label={`Excluir a coleção ${c.name}`}
+              <button type="button" onClick={(e) => remove(c.id, c.name, e)} aria-label={`Excluir a coleção ${c.name}`} data-undo-focus
                 className="btn btn-ghost h-8 text-xs text-muted hover:text-danger pointer-coarse:h-11">
                 Excluir
               </button>
@@ -81,7 +82,7 @@ export function CollectionsView() {
           </div>
         ))}
       </div>
-      <UndoToast message={deletion.message} onUndo={deletion.undo} />
+      <UndoToast {...deletion.toast} />
     </div>
   );
 }

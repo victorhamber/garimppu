@@ -325,12 +325,12 @@ export function TikTokCard({ ad, rank, heat, collections, onCollectionsChange }:
           <div className="ml-auto flex min-w-0 items-center gap-2">
             {ad.offer_key && (
               <Link href={`/criativos?offer=${encodeURIComponent(ad.offer_key)}`} title={`Ver anúncios desta oferta no Meta (${ad.offer_key})`}
-                className="min-w-0 truncate rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent hover:bg-accent/10">
+                className="pill min-w-0 truncate">
                 {ad.offer_label ?? ad.offer_key}
               </Link>
             )}
             <CollectionMenu target={{ kind: "tiktok", ref: ad.id }} selected={ad.collection_ids} collections={collections}
-              onChange={onCollectionsChange} />
+              onChange={onCollectionsChange} itemName={`o anúncio #${rank} do TikTok`} />
           </div>
         </div>
       </div>

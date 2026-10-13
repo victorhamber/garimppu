@@ -61,13 +61,14 @@ function OfferLine({ creative }: { creative: Creative }) {
   );
 }
 
-function Save({ creative, collections, onCollectionsChange }: Pick<Props, "creative" | "collections" | "onCollectionsChange">) {
+function Save({ creative, rank, collections, onCollectionsChange }: Pick<Props, "creative" | "rank" | "collections" | "onCollectionsChange">) {
   return (
     <CollectionMenu
       target={{ creativeId: creative.id }}
       selected={creative.collection_ids}
       collections={collections}
       onChange={onCollectionsChange}
+      itemName={`o criativo #${rank} de ${creative.page?.name ?? creative.page?.page_id ?? "anunciante desconhecido"}`}
     />
   );
 }
@@ -103,7 +104,7 @@ export function CreativeCard({ creative, rank, heat, collections, nicheLabel, on
         <p className="line-clamp-2 text-sm leading-normal text-muted">{creative.body ?? creative.title ?? "Sem texto"}</p>
 
         <div className="mt-auto flex justify-end pt-1">
-          <Save creative={creative} collections={collections} onCollectionsChange={onCollectionsChange} />
+          <Save creative={creative} rank={rank} collections={collections} onCollectionsChange={onCollectionsChange} />
         </div>
       </div>
     </li>
@@ -147,7 +148,7 @@ export function CreativeRow({ creative, rank, heat, collections, nicheLabel, onC
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-4">
         <ScoreBadge value={creative.score?.score ?? 0} heat={heat} />
-        <Save creative={creative} collections={collections} onCollectionsChange={onCollectionsChange} />
+        <Save creative={creative} rank={rank} collections={collections} onCollectionsChange={onCollectionsChange} />
       </div>
     </li>
   );

@@ -12,6 +12,8 @@ type Props = {
   selected: number[];
   collections: Collection[];
   onChange: (ids: number[]) => void;
+  /** What is being saved, so repeated buttons in a list have distinct names ("Favoritar Hotmart X"). */
+  itemName: string;
 };
 
 function add(collectionId: number, target: CollectionTarget) {
@@ -48,7 +50,7 @@ function opensBelow(anchor: HTMLElement, rows: number): boolean {
   return above < needed && below > above;
 }
 
-export function CollectionMenu({ target, selected, collections, onChange }: Props) {
+export function CollectionMenu({ target, selected, collections, onChange, itemName }: Props) {
   const [open, setOpen] = useState(false);
   const [below, setBelow] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -110,7 +112,7 @@ export function CollectionMenu({ target, selected, collections, onChange }: Prop
         disabled={busy || !favorites}
         onClick={() => favorites && toggle(favorites.id)}
         aria-pressed={isFavorite}
-        aria-label="Favorito"
+        aria-label={`Favoritar ${itemName}`}
         title={!favorites ? "Crie uma coleção para salvar" : isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
         className={`btn btn-ghost h-8 rounded-r-none px-2 pointer-coarse:h-11 pointer-coarse:px-3 ${isFavorite ? "text-accent" : "text-muted"}`}
       >
@@ -128,7 +130,7 @@ export function CollectionMenu({ target, selected, collections, onChange }: Prop
         }}
         aria-expanded={open}
         aria-controls={panelId}
-        aria-label="Salvar em coleção"
+        aria-label={`Salvar ${itemName} em coleção`}
         title="Salvar em coleção"
         className="btn btn-ghost h-8 rounded-l-none px-1.5 text-muted pointer-coarse:h-11 pointer-coarse:px-3"
       >
@@ -137,7 +139,7 @@ export function CollectionMenu({ target, selected, collections, onChange }: Prop
         </svg>
       </button>
       {open && (
-        <div id={panelId} role="group" aria-label="Coleções" className={`absolute right-0 z-20 w-64 ${below ? "top-full mt-1" : "bottom-full mb-1"} rounded-md border border-line bg-surface p-1 shadow-xl`}>
+        <div id={panelId} role="group" aria-label={`Coleções de ${itemName}`} className={`absolute right-0 z-20 w-64 ${below ? "top-full mt-1" : "bottom-full mb-1"} rounded-md border border-line bg-surface p-1 shadow-xl`}>
           {error && (
             <div className="mb-1">
               <ErrorState action={error.action} error={error.message} compact />

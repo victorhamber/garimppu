@@ -330,12 +330,12 @@ export function VideoCard({ video, rank, heat, niche, collections, onCollections
           <div className="ml-auto flex min-w-0 items-center gap-2">
             {video.offer_key && (
               <Link href={`/criativos?offer=${encodeURIComponent(video.offer_key)}`} title={`Ver anúncios desta oferta (${video.link_url ?? video.offer_key})`}
-                className="min-w-0 truncate rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent hover:bg-accent/10">
+                className="pill min-w-0 truncate">
                 {video.offer_label ?? video.offer_key}
               </Link>
             )}
             <CollectionMenu target={{ kind: "video", ref: video.id }} selected={video.collection_ids} collections={collections}
-              onChange={onCollectionsChange} />
+              onChange={onCollectionsChange} itemName={`o vídeo ${title}`} />
           </div>
         </div>
       </div>

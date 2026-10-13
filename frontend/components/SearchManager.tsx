@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { api, formatDate, formatDateTime, type Run, type Search, type TikTokIndustry } from "@/lib/api";
 import { useNiches } from "@/lib/hooks";
+import { digitsOnly } from "@/lib/useUrlFilters";
 import { CountrySelect } from "./CountrySelect";
 import { ErrorState } from "./ErrorState";
 import { UndoToast, useUndoableDelete } from "./UndoToast";
@@ -92,6 +93,17 @@ function waitText(next: number, now: number) {
   return minutes < 60 ? `${minutes} min` : `${Math.ceil(minutes / 60)} h`;
 }
 
+const MIN_MAX = 10;
+
+/** Says what is wrong with the max instead of clamping it quietly; null when it is fine. */
+function maxIssue(value: string, limit: number, unit: string): string | null {
+  if (!value) return `Informe quantos ${unit} coletar.`;
+  const n = Number(value);
+  if (n < MIN_MAX) return `O mínimo é ${MIN_MAX} ${unit}.`;
+  if (n > limit) return `O máximo desta fonte é ${limit.toLocaleString("pt-BR")} ${unit}.`;
+  return null;
+}
+
 const skeletonBlock = "rounded bg-surface-2 motion-safe:animate-pulse";
 
 /** Follows the search just created until its first collection ends. */
@@ -108,7 +120,14 @@ function CreatedNote({ search }: { search: Search }) {
       </p>
     );
   }
-  if (run?.status === "error") return <p>Busca {name} criada, mas a coleta falhou. Clique em Erro na lista para ver o motivo.</p>;
+  if (run?.status === "error") {
+    return (
+      <div role="alert" className="flex flex-col gap-0.5 rounded-md border border-danger/40 bg-danger/10 px-3 py-2">
+        <p className="font-medium text-danger">Busca {name} criada, mas a coleta falhou.</p>
+        <p className="text-foreground/80">{run.error?.trim() || "A coleta parou sem dizer o motivo. O log completo está no status da busca, na lista."}</p>
+      </div>
+    );
+  }
   return (
     <p className="flex items-center gap-2">
       <span aria-hidden="true" className="size-1.5 rounded-full bg-accent motion-safe:animate-pulse" />
@@ -177,6 +196,11 @@ export function SearchManager() {
     const trends = form.source === "trends";
     const byPage = form.source === "meta" && form.mode === "page";
     if (!tiktok && !sites && !trends && !(byPage ? form.page : form.term).trim() && !(youtube && form.niche)) return;
+    if (!trends && maxIssue(form.max_ads, MAX_BY_SOURCE[form.source], "itens")) {
+      setMoreOpen(true);
+      requestAnimationFrame(() => document.getElementById("max")?.focus());
+      return;
+    }
     setSubmitting(true);
     setError(null);
     setNotice(null);
@@ -195,7 +219,7 @@ export function SearchManager() {
           site_category: null,
           site_ranking: "POPULAR",
           source: form.source === "meta" ? "hybrid" : form.source,
-          max_ads: Math.min(Number(form.max_ads), MAX_BY_SOURCE[form.source]),
+          max_ads: Number(form.max_ads),
           refresh_hours: trends ? null : form.refresh_hours ? Number(form.refresh_hours) : null,
         }),
       });
@@ -239,7 +263,7 @@ export function SearchManager() {
     if (ok) setTimeout(() => setRefreshNote((n) => (n?.id === search.id ? null : n)), 3000);
   }
 
-  function remove(search: Search) {
+  function remove(search: Search, e: React.MouseEvent<HTMLButtonElement>) {
     const name = search.term || KIND_LABEL[search.source];
     setError(null);
     if (createdId === search.id) setCreatedId(null);
@@ -249,7 +273,7 @@ export function SearchManager() {
           setError({ action: `excluir "${name}"`, message: err.message });
           throw err;
         })
-        .finally(load));
+        .finally(load), { from: e.currentTarget, keyboard: e.detail === 0 });
   }
 
   const set = (key: keyof typeof EMPTY_FORM) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -258,6 +282,8 @@ export function SearchManager() {
   const tiktok = form.source === "tiktok";
   const sites = form.source === "sites";
   const trends = form.source === "trends";
+  const maxLimit = MAX_BY_SOURCE[form.source];
+  const maxProblem = trends ? null : maxIssue(form.max_ads, maxLimit, youtube ? "vídeos" : sites ? "sites" : "anúncios");
   const refreshLabel = REFRESH_OPTIONS.find((o) => o.value === form.refresh_hours)?.label ?? "Manual";
   const optionsSummary = [
     !sites && !trends && form.language && LANGUAGES[form.language]?.toLowerCase(),
@@ -395,8 +421,12 @@ export function SearchManager() {
           )}
           <div hidden={trends}>
             <label className="label" htmlFor="max">{youtube ? "Máx. vídeos" : sites ? "Máx. sites" : "Máx. anúncios"}</label>
-            <input id="max" type="number" min={10} max={MAX_BY_SOURCE[form.source]} step={10} className="field" value={form.max_ads}
-              onChange={set("max_ads")} aria-describedby="mine-hint" />
+            <input id="max" inputMode="numeric" pattern="[0-9]*" className="field" value={form.max_ads}
+              onChange={(e) => setForm((f) => ({ ...f, max_ads: digitsOnly(e.target.value) }))}
+              aria-invalid={!!maxProblem} aria-describedby="max-hint mine-hint" />
+            <p id="max-hint" className={`mt-1 text-micro ${maxProblem ? "text-danger" : "text-muted"}`}>
+              {maxProblem ?? `De ${MIN_MAX} a ${maxLimit.toLocaleString("pt-BR")}`}
+            </p>
           </div>
           {trends ? (
             <div>
@@ -476,9 +506,10 @@ export function SearchManager() {
               const tt = s.source === "tiktok";
               const st = s.source === "sites";
               const unit = UNIT[s.source] ?? "anúncios";
+              const searchName = s.term || KIND_LABEL[s.source] || "sem nome";
               return (
                 <Fragment key={s.id}>
-                  <tr id={`busca-${s.id}`} className={`grid grid-cols-2 gap-x-4 gap-y-3 p-4 align-top transition-colors duration-500 sm:grid-cols-4 lg:table-row lg:p-0 ${
+                  <tr id={`busca-${s.id}`} data-undo-row={s.id} className={`grid grid-cols-2 gap-x-4 gap-y-3 p-4 align-top transition-colors duration-500 sm:grid-cols-4 lg:table-row lg:p-0 ${
                     s.id === createdId ? "bg-accent/10" : ""}`}>
                     <td className="col-span-2 sm:col-span-4 lg:px-4 lg:py-3">
                       <div className="font-medium">
@@ -498,7 +529,7 @@ export function SearchManager() {
                       <span className="label lg:hidden">Status</span>
                       {status ? (
                         <button type="button" onClick={() => setOpenLog(openLog === s.id ? null : s.id)}
-                          aria-expanded={openLog === s.id}
+                          aria-expanded={openLog === s.id} aria-label={`${status.label}: ver detalhes da coleta de ${searchName}`}
                           className={`inline-flex min-h-6 items-center gap-1.5 whitespace-nowrap rounded px-2 py-1 text-xs font-medium pointer-coarse:min-h-11 ${status.className}`} title="Ver detalhes da coleta">
                           {status.label}
                           {run?.status === "running" && <span aria-hidden="true" className="size-1.5 rounded-full bg-current motion-safe:animate-pulse" />}
@@ -528,7 +559,7 @@ export function SearchManager() {
                       ) : (
                         <>
                           <label className="label lg:hidden" htmlFor={`refresh-${s.id}`}>Recoleta</label>
-                          <select id={`refresh-${s.id}`} aria-label={`Recoleta de ${s.term}`}
+                          <select id={`refresh-${s.id}`} aria-label={`Recoleta da busca ${searchName}`}
                             className="field h-8 w-full pointer-coarse:h-11 lg:w-36" value={s.refresh_hours ? String(s.refresh_hours) : ""}
                             onChange={(e) => setRefresh(s, e.target.value)}>
                             {REFRESH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -544,7 +575,8 @@ export function SearchManager() {
                     </td>
                     <td className="col-span-2 sm:col-span-4 lg:px-4 lg:py-3">
                       <div className="flex flex-wrap gap-1 lg:flex-nowrap lg:justify-end">
-                        <Link href={creativesHref(s)} className="btn h-8 text-xs pointer-coarse:h-11">{`Ver ${UNIT[s.source] ?? "criativos"}`}</Link>
+                        <Link href={creativesHref(s)} className="btn h-8 text-xs pointer-coarse:h-11"
+                          aria-label={`Ver ${UNIT[s.source] ?? "criativos"} da busca ${searchName}`}>{`Ver ${UNIT[s.source] ?? "criativos"}`}</Link>
                         {nextRun ? (
                           <span className="inline-flex h-8 items-center px-2 text-xs whitespace-nowrap text-muted pointer-coarse:h-11"
                             title={`Coletada ${s.source === "trends" ? "na última hora" : "nas últimas 24h"}. Liberada em ${formatDateTime(new Date(nextRun).toISOString())}`}>
@@ -552,11 +584,12 @@ export function SearchManager() {
                           </span>
                         ) : (
                           <button type="button" className="btn h-8 text-xs pointer-coarse:h-11" onClick={() => runNow(s)}
-                            disabled={!!run && ["queued", "running"].includes(run.status)}>
+                            disabled={!!run && ["queued", "running"].includes(run.status)} aria-label={`Coletar a busca ${searchName}`}>
                             Coletar
                           </button>
                         )}
-                        <button type="button" className="btn btn-ghost ml-auto h-8 text-xs text-muted hover:text-danger pointer-coarse:h-11 lg:ml-0" onClick={() => remove(s)}>
+                        <button type="button" className="btn btn-ghost ml-auto h-8 text-xs text-muted hover:text-danger pointer-coarse:h-11 lg:ml-0" onClick={(e) => remove(s, e)}
+                          aria-label={`Excluir a busca ${searchName}`} data-undo-focus>
                           Excluir
                         </button>
                       </div>
@@ -578,7 +611,7 @@ export function SearchManager() {
           </tbody>
         </table>
       </section>
-      <UndoToast message={deletion.message} onUndo={deletion.undo} />
+      <UndoToast {...deletion.toast} />
     </div>
   );
 }

@@ -112,7 +112,8 @@ function Licenses({ selfId }: { selfId: number }) {
     });
   }
 
-  function remove(u: AdminUser) {
+  function remove(u: AdminUser, e: React.MouseEvent<HTMLButtonElement>) {
+    const origin = { from: e.currentTarget, keyboard: e.detail === 0 };
     setError(null);
     deletion.remove(u.id, `Licença de ${u.email} excluída, com as buscas e coleções dele. Os anúncios coletados continuam na base.`, () =>
       api(`/api/admin/users/${u.id}`, { method: "DELETE" })
@@ -120,7 +121,7 @@ function Licenses({ selfId }: { selfId: number }) {
           setError(e.message);
           throw e;
         })
-        .finally(load));
+        .finally(load), origin);
   }
 
   const counts = users.reduce<Record<string, number>>((acc, u) => ({ ...acc, [u.status]: (acc[u.status] ?? 0) + 1 }), {});
@@ -202,7 +203,7 @@ function Licenses({ selfId }: { selfId: number }) {
                 const self = u.id === selfId;
                 const busy = busyId === u.id;
                 return (
-                  <tr key={u.id} className="grid grid-cols-2 gap-x-4 gap-y-3 p-4 align-top sm:grid-cols-4 lg:table-row lg:p-0">
+                  <tr key={u.id} data-undo-row={u.id} className="grid grid-cols-2 gap-x-4 gap-y-3 p-4 align-top sm:grid-cols-4 lg:table-row lg:p-0">
                     <td className="col-span-2 sm:col-span-4 lg:px-4 lg:py-3">
                       <div className="font-medium break-all">{u.email}</div>
                       <div className="mt-0.5 text-xs text-muted">
@@ -248,15 +249,17 @@ function Licenses({ selfId }: { selfId: number }) {
                       {!self && (
                         <div className="flex flex-wrap gap-1 lg:flex-nowrap lg:justify-end">
                           {!u.is_admin && (
-                            <button type="button" className="btn h-8 text-xs pointer-coarse:h-11" disabled={busy} onClick={() => toggle(u)}>
+                            <button type="button" className="btn h-8 text-xs pointer-coarse:h-11" disabled={busy} onClick={() => toggle(u)}
+                              aria-label={`${u.is_active ? "Bloquear" : "Liberar"} ${u.email}`}>
                               {u.is_active ? "Bloquear" : "Liberar"}
                             </button>
                           )}
-                          <button type="button" className="btn h-8 text-xs whitespace-nowrap pointer-coarse:h-11" disabled={busy} onClick={() => resetPassword(u)}>
+                          <button type="button" className="btn h-8 text-xs whitespace-nowrap pointer-coarse:h-11" disabled={busy} onClick={() => resetPassword(u)}
+                            aria-label={`Gerar nova senha para ${u.email}`}>
                             Nova senha
                           </button>
                           <button type="button" className="btn btn-ghost ml-auto h-8 text-xs text-muted hover:text-danger pointer-coarse:h-11 lg:ml-0"
-                            disabled={busy} onClick={() => remove(u)}>
+                            disabled={busy} onClick={(e) => remove(u, e)} aria-label={`Excluir a licença de ${u.email}`} data-undo-focus>
                             Excluir
                           </button>
                         </div>
@@ -285,7 +288,7 @@ function Licenses({ selfId }: { selfId: number }) {
           </ul>
         </section>
       )}
-      <UndoToast message={deletion.message} onUndo={deletion.undo} />
+      <UndoToast {...deletion.toast} />
     </div>
   );
 }

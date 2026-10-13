@@ -90,4 +90,9 @@ body {
   .btn-ghost {
     @apply border-transparent bg-transparent hover:border-transparent hover:bg-surface-2;
   }
+
+  /* Row actions and cross-links: neutral at rest, amber only under the pointer or keyboard focus. */
+  .pill {
+    @apply inline-flex items-center rounded-full border border-line px-2 py-0.5 text-micro text-foreground transition-colors hover:border-accent/60 hover:text-accent focus-visible:border-accent/60 focus-visible:text-accent pointer-coarse:min-h-11 pointer-coarse:py-2;
+  }
 }
