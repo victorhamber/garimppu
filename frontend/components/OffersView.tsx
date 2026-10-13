@@ -102,13 +102,7 @@ export function OffersView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Ofertas mais escaladas</h1>
-        <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted">
-          Anúncios agrupados pelo que vendem: produto no checkout (Hotmart, Kiwify...), produto de loja, app ou site.
-          Várias páginas anunciando a mesma oferta é o sinal mais forte de produto validado.
-        </p>
-      </div>
+      <h1 className="text-2xl font-semibold tracking-tight">Ofertas mais escaladas</h1>
 
       <form
         role="search"

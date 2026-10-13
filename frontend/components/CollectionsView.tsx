@@ -31,10 +31,7 @@ export function CollectionsView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Coleções</h1>
-        <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted">Separe ofertas e criativos de referência por cliente, nicho ou ângulo de copy.</p>
-      </div>
+      <h1 className="text-2xl font-semibold tracking-tight">Coleções</h1>
 
       <form onSubmit={create} className="flex max-w-md gap-2">
         <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da nova coleção" />

@@ -74,13 +74,7 @@ export function WebhookSettingsView() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Webhook de compra</h1>
-        <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted">
-          Uma única URL para Hotmart, Kiwify e Cakto. Compra aprovada cria a licença e envia a senha por e-mail;
-          reembolso, chargeback e cancelamento bloqueiam o acesso.
-        </p>
-      </div>
+      <h1 className="text-2xl font-semibold tracking-tight">Webhook de compra</h1>
 
       <section aria-labelledby="wh-url" className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4">
         <h2 id="wh-url" className="text-lg font-semibold">URL do webhook</h2>

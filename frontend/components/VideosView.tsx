@@ -128,14 +128,7 @@ export function VideosView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Vídeos em alta no YouTube</h1>
-        <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted">
-          Vídeos orgânicos dos últimos 30 dias que pegaram tração rápido: muitas visualizações por dia, bem acima do tamanho
-          do canal, com engajamento alto. Recoletas diárias mostram quem está acelerando. Links de checkout na descrição
-          viram oferta.
-        </p>
-      </div>
+      <h1 className="text-2xl font-semibold tracking-tight">Vídeos em alta no YouTube</h1>
 
       {data && !data.enabled && (
         <p role="note" className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-foreground">

@@ -138,14 +138,7 @@ export function Explorer() {
       ) : (
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Criativos mais escalados</h1>
-          <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted">
-            {filters.scope === "all" ? "Tudo o que já foi minerado no Garimppu" : "Os anúncios das suas buscas"}, do mais
-            escalado para o menos. Para coletar anúncios novos, crie uma busca em{" "}
-            <Link href="/buscas" className="text-foreground underline decoration-line underline-offset-2 transition-colors hover:decoration-accent">
-              Minerar
-            </Link>.
-            {lastRunAgo && <> Última coleta {lastRunAgo}.</>}
-          </p>
+          {lastRunAgo && <p className="mt-1 text-sm text-muted">Última coleta {lastRunAgo}</p>}
         </div>
       )}
 

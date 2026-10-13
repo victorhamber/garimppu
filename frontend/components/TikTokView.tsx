@@ -139,14 +139,7 @@ export function TikTokView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Top anúncios do TikTok</h1>
-        <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted">
-          Anúncios que o próprio TikTok aponta como os de melhor desempenho nos últimos 180 dias (Creative Center), por nicho.
-          O CTR é comparado com os outros anúncios do mesmo nicho: “top 5%” quer dizer que ele recebe mais cliques que 95% deles.
-          A página de destino vira oferta.
-        </p>
-      </div>
+      <h1 className="text-2xl font-semibold tracking-tight">Top anúncios do TikTok</h1>
 
       <form
         role="search"

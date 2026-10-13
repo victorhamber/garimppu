@@ -118,13 +118,7 @@ function Licenses({ selfId }: { selfId: number }) {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Licenças</h1>
-        <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted">
-          Quem tem licença ativa entra no Garimppu. Compras aprovadas pelo webhook liberam o acesso sozinhas;
-          reembolso, chargeback e cancelamento bloqueiam. Aqui você libera, bloqueia e define validade manualmente.
-        </p>
-      </div>
+      <h1 className="text-2xl font-semibold tracking-tight">Licenças</h1>
 
       {settings && (!settings.webhook_configured || !settings.email_configured) && (
         <p className="rounded-md border border-line bg-surface px-3 py-2 text-sm text-muted">
