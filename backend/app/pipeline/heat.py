@@ -11,6 +11,8 @@ WARM_SHARE = 0.20
 METRIC_SHARE = 0.10
 MIN_DUPLICATES = 2
 MIN_DAYS_ACTIVE = 7
+# Week-over-week change in active ads; a few percent is collection noise, not growth.
+MIN_GROWTH = 0.10
 
 
 def rank_cutoff(values: Sequence[float], share: float) -> float | None:

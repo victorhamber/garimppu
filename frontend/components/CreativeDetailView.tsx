@@ -15,6 +15,49 @@ import { ErrorState } from "./ErrorState";
 import { formatGrowth, ScoreBadge } from "./Metrics";
 import { Sparkline } from "./Sparkline";
 
+const AD_SOURCE: Record<string, string> = { api: "API da Meta", scraper: "Site da Biblioteca", both: "API e site" };
+
+const block = "rounded bg-surface-2 motion-safe:animate-pulse";
+
+/** Same frame as the loaded page (media left, header and stats right) so nothing jumps when it arrives. */
+function DetailSkeleton() {
+  return (
+    <div className="flex flex-col gap-8">
+      <p role="status" className="sr-only">Carregando criativo...</p>
+      <div aria-hidden="true" className={`h-5 w-40 ${block}`} />
+      <div aria-hidden="true" className="grid gap-8 lg:grid-cols-[minmax(0,460px)_1fr]">
+        <div className={`aspect-square rounded-lg ${block}`} />
+        <div className="flex flex-col gap-6">
+          <div className="flex items-center gap-3">
+            <div className={`size-10 rounded-full ${block}`} />
+            <div className="flex flex-1 flex-col gap-2">
+              <div className={`h-7 w-1/2 ${block}`} />
+              <div className={`h-4 w-1/3 ${block}`} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-3 md:grid-cols-5 lg:max-xl:grid-cols-3">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex flex-col gap-2 bg-surface px-4 py-3">
+                <div className={`h-3 w-2/3 ${block}`} />
+                <div className={`h-6 w-1/3 ${block}`} />
+              </div>
+            ))}
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            {[0, 1].map((i) => (
+              <div key={i} className="flex h-44 flex-col gap-3 rounded-lg border border-line bg-surface p-4">
+                <div className={`h-3 w-1/4 ${block}`} />
+                <div className={`h-4 w-full ${block}`} />
+                <div className={`h-4 w-4/5 ${block}`} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function CreativeDetailView() {
   const { id } = useParams<{ id: string }>();
   const [creative, setCreative] = useState<CreativeDetail | null>(null);
@@ -44,8 +87,13 @@ export function CreativeDetailView() {
     api<CreativePage>("/api/creatives?limit=1&scope=all").then((page) => setHeat(page.heat)).catch(() => setHeat(null));
   }, []);
 
+  const advertiser = creative?.page?.name ?? creative?.page?.page_id;
+  useEffect(() => {
+    if (advertiser) document.title = `${advertiser} · Garimppu`;
+  }, [advertiser]);
+
   if (error) return <ErrorState action="abrir o criativo" error={error} onRetry={() => setAttempt((n) => n + 1)} />;
-  if (!creative) return <p role="status" className="text-muted">Carregando criativo...</p>;
+  if (!creative) return <DetailSkeleton />;
 
   const s = creative.score;
   const activeAds = creative.ads.filter((a) => a.is_active);
@@ -143,7 +191,7 @@ export function CreativeDetailView() {
                 <th className="px-3 py-2 font-medium">Início</th>
                 <th className="px-3 py-2 font-medium">Cópias</th>
                 <th className="px-3 py-2 font-medium">Status</th>
-                <th className="px-3 py-2 font-medium">Fonte</th>
+                <th className="px-3 py-2 font-medium">Coletado por</th>
               </tr>
             </thead>
             <tbody className="block divide-y divide-line sm:table-row-group">
@@ -160,7 +208,7 @@ export function CreativeDetailView() {
                   <td className="sm:px-3 sm:py-2">
                     <span className={ad.is_active ? "text-ok" : "text-muted"}>{ad.is_active ? "Ativo" : "Inativo"}</span>
                   </td>
-                  <td className="text-muted sm:px-3 sm:py-2">{ad.source}</td>
+                  <td className="text-muted sm:px-3 sm:py-2"><span className="sm:hidden">via </span>{AD_SOURCE[ad.source] ?? ad.source}</td>
                 </tr>
               ))}
             </tbody>

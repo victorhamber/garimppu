@@ -16,7 +16,8 @@ function Card({ title, intro, children }: { title: string; intro: string; childr
           <p className="mt-1 text-sm leading-relaxed text-muted">{intro}</p>
         </div>
         {children}
-        <Link href="/login" className="text-xs text-muted underline decoration-line underline-offset-2 hover:text-foreground">
+        <Link href="/login"
+          className="inline-flex min-h-6 items-center self-start text-xs text-muted underline decoration-line underline-offset-2 hover:text-foreground pointer-coarse:min-h-11 pointer-coarse:text-sm">
           Voltar para o login
         </Link>
       </div>
@@ -116,7 +117,8 @@ export function ResetPasswordView() {
         <button type="submit" className="btn btn-primary w-full" disabled={saving || !token}>{saving ? "Salvando..." : "Salvar e entrar"}</button>
       </form>
       {error && !token && (
-        <Link href="/esqueci-senha" className="text-sm text-foreground underline decoration-line underline-offset-2 hover:decoration-accent">
+        <Link href="/esqueci-senha"
+          className="inline-flex min-h-6 items-center self-start text-sm text-foreground underline decoration-line underline-offset-2 hover:decoration-accent pointer-coarse:min-h-11">
           Pedir um link novo
         </Link>
       )}

@@ -6,7 +6,7 @@ export function SupportLink() {
   const external = /^https?:/.test(SUPPORT_URL);
   return (
     <a href={SUPPORT_URL} {...(external && { target: "_blank", rel: "noreferrer" })}
-      className="text-foreground underline decoration-line underline-offset-2 transition-colors hover:decoration-accent">
+      className="py-1 text-foreground underline decoration-line underline-offset-2 transition-colors hover:decoration-accent pointer-coarse:py-3.5">
       o suporte
     </a>
   );

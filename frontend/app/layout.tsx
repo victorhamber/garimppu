@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Garimppu",
+  title: { default: "Garimppu", template: "%s · Garimppu" },
   description: "Ache as ofertas e os criativos que estão escalando na Biblioteca de Anúncios da Meta",
 };
 

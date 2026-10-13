@@ -101,6 +101,10 @@ export function CollectionDetailView() {
     };
   }, [id, attempt]);
 
+  useEffect(() => {
+    if (collection?.name) document.title = `${collection.name} · Garimppu`;
+  }, [collection?.name]);
+
   const offerItems = offers?.items ?? [];
   const videoItems = videos?.items ?? [];
   const tiktokItems = tiktok?.items ?? [];

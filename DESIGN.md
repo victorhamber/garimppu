@@ -281,7 +281,7 @@ Quando a imagem falha ou é um quadro preto (amostra de 8×8 com brilho máximo 
 - **Cartão de criativo:** é um item de `ol` (grade ou lista) com título `h3`: o nome do anunciante, que leva ao detalhe; o leitor de tela ouve "Vídeo #3 de {anunciante}, top 5% deste resultado". A mídia repete o link só para o mouse (`tabIndex=-1`, `aria-hidden`). As paradas de Tab são o título, a oferta (quando há) e os dois botões de salvar. Biblioteca, página de destino e a página do anunciante ficam no detalhe.
 
 ### Inputs / Fields
-- **Style:** altura de 36px, fundo Ledge Slate, borda Seam Line de 1px, cantos de 6px, texto de 14px, placeholder Dust Gray a 70%.
+- **Style:** altura de 36px, fundo Ledge Slate, borda Seam Line de 1px, cantos de 6px, texto de 14px (16px em toque e abaixo de 640px, para o iOS não dar zoom ao focar; vale também para o select de ordenação), placeholder Dust Gray a 70%.
 - **Focus:** a borda vira Lantern Amber, sem glow; com teclado, ganha também o anel de foco.
 - **Placeholder:** Dust Gray pleno (5:1 sobre Ledge Slate).
 
@@ -316,7 +316,10 @@ Todo filtro vive na URL e se aplica sozinho: selects e caixas na hora, campos di
 Minerar consulta a Biblioteca da Meta por minutos, então nunca é um clique só. O botão primário abre, no próprio lugar, um painel Shaft Slate com o que vai acontecer (escopo, até 300 anúncios, segundo plano, onde acompanhar) e os botões "Minerar agora" (primário, recebe o foco) e "Cancelar" (ghost). Escape cancela e devolve o foco ao botão original. Usado no estado vazio do Explorar, na página do anunciante e em "Minerar no Meta" das palavras-chave (ali o botão que abre é uma pílula).
 
 ### Métrica sem histórico
-Enquanto um criativo só foi visto num dia de coleta, a célula de crescimento mostra "—" com a legenda "1ª coleta", e a ordenação por crescimento fica oculta.
+Enquanto um criativo só foi visto num dia de coleta, a célula de crescimento mostra "—" com a legenda "1ª coleta", e a ordenação por crescimento fica oculta. Como as outras métricas, o crescimento só fica âmbar no top 10% do resultado e a partir de +10%; abaixo disso, oscilação de coleta não acende nada.
+
+### Título da aba
+Cada página tem o seu título, no formato "Página · Garimppu" ("Minerar · Garimppu", "Criativos · Garimppu"). Os detalhes trocam pelo nome real quando ele chega: o anunciante no criativo e no anunciante, o nome da coleção na coleção.
 
 ### Status Pill
 Um rótulo de 4px a 12px em peso 500, com no mínimo 24px de altura, fundo da cor de estado a 15% e texto na cor de estado: "Na fila" (neutro), "Coletando" (âmbar, com um ponto desenhado que pulsa só sem reduced-motion), "Concluída" (verde) e "Erro" (vermelho). Clicar no rótulo abre e fecha o log da coleta (`aria-expanded`).

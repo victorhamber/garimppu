@@ -57,7 +57,8 @@ export function LoginView() {
         <div>
           <div className="flex items-baseline justify-between gap-3">
             <label className="label" htmlFor="password">Senha</label>
-            <Link href="/esqueci-senha" className="text-xs text-muted underline decoration-line underline-offset-2 hover:text-foreground">
+            <Link href="/esqueci-senha"
+              className="-my-1 py-1 text-xs text-muted underline decoration-line underline-offset-2 hover:text-foreground pointer-coarse:-my-3.5 pointer-coarse:py-3.5 pointer-coarse:text-sm">
               Esqueci minha senha
             </Link>
           </div>

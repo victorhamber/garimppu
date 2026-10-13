@@ -68,7 +68,7 @@ body {
 
 @layer components {
   .field {
-    @apply h-9 w-full rounded-md border border-line bg-surface-2 px-3 text-sm text-foreground transition-colors placeholder:text-muted focus:border-accent focus-visible:outline-offset-1 pointer-coarse:h-11 pointer-coarse:text-base;
+    @apply h-9 w-full rounded-md border border-line bg-surface-2 px-3 text-sm text-foreground transition-colors placeholder:text-muted focus:border-accent focus-visible:outline-offset-1 pointer-coarse:h-11 pointer-coarse:text-base max-sm:text-base;
   }
 
   .label {

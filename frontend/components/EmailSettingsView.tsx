@@ -248,7 +248,7 @@ function Template(props: {
         <div>
           <label className="label" htmlFor={`tpl-${props.id}-html`}>HTML</label>
           <textarea id={`tpl-${props.id}-html`} rows={12} spellCheck={false}
-            className="field h-auto min-h-64 py-2 font-mono text-xs leading-relaxed" value={props.html}
+            className="field h-auto min-h-64 py-2 font-mono text-xs leading-relaxed pointer-coarse:text-base max-sm:text-base" value={props.html}
             onChange={(e) => props.onHtml(e.target.value)} />
         </div>
         <div>

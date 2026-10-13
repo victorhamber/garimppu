@@ -85,7 +85,7 @@ export function SortSelect({ id, value, options, onChange }: {
   return (
     <span className="flex items-center gap-2">
       <label htmlFor={id} className="sr-only sm:not-sr-only">Ordenar por</label>
-      <select id={id} className="field h-8 w-auto py-0 text-xs pointer-coarse:h-11" value={value} onChange={(e) => onChange(e.target.value)}>
+      <select id={id} className="field h-8 w-auto py-0 text-xs pointer-coarse:h-11 pointer-coarse:text-base max-sm:text-base" value={value} onChange={(e) => onChange(e.target.value)}>
         {options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
       </select>
     </span>

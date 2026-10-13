@@ -34,6 +34,10 @@ export function AdvertiserView() {
     };
   }, [pageId, attempt]);
 
+  useEffect(() => {
+    if (page?.name) document.title = `${page.name} · Garimppu`;
+  }, [page?.name]);
+
   async function minePage() {
     if (existing) {
       await api(`/api/searches/${existing.id}/run`, { method: "POST" });

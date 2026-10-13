@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { VideosView } from "@/components/VideosView";
+
+export const metadata: Metadata = { title: "Vídeos do YouTube" };
 
 export default function VideosPage() {
   return (

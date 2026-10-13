@@ -22,7 +22,7 @@ from app.models import (
     SourceAd,
     User,
 )
-from app.pipeline.heat import HOT_SHARE, MIN_DAYS_ACTIVE, MIN_DUPLICATES, WARM_SHARE, metric_cutoffs, rank_cutoff, rank_cutoffs
+from app.pipeline.heat import HOT_SHARE, MIN_DAYS_ACTIVE, MIN_DUPLICATES, MIN_GROWTH, WARM_SHARE, metric_cutoffs, rank_cutoff, rank_cutoffs
 from app.pipeline.niche import NICHES
 from app.pipeline.sources import SCOPE_HELP, resolve_scope, user_search_source, user_source_ids
 from app.routes.collections import user_collection_ids
@@ -165,7 +165,8 @@ def list_creatives(
     stmt = build_query(f, user)
     signals = db.execute(
         stmt.order_by(None).with_only_columns(
-            CreativeScore.score, CreativeScore.duplicates, CreativeScore.days_active, maintain_column_froms=True
+            CreativeScore.score, CreativeScore.duplicates, CreativeScore.days_active, CreativeScore.growth_7d,
+            maintain_column_froms=True
         )
     ).all()
     creatives = list(db.scalars(stmt.options(*_load_options()).limit(limit).offset(offset)))
@@ -198,14 +199,18 @@ def creatives_with_history(db: Session, creative_ids: list[int]) -> set[int]:
 
 
 def creative_heat(signals) -> ScoreHeat:
-    scores = [s for s, _, _ in signals]
+    scores = [s for s, *_ in signals]
     return ScoreHeat(
         hot=rank_cutoff(scores, HOT_SHARE),
         warm=rank_cutoff(scores, WARM_SHARE),
         ranks=rank_cutoffs(scores),
         metrics=metric_cutoffs(
-            {"duplicates": [d for _, d, _ in signals], "days_active": [d for _, _, d in signals]},
-            {"duplicates": MIN_DUPLICATES, "days_active": MIN_DAYS_ACTIVE},
+            {
+                "duplicates": [d for _, d, _, _ in signals],
+                "days_active": [d for _, _, d, _ in signals],
+                "growth_7d": [g for _, _, _, g in signals],
+            },
+            {"duplicates": MIN_DUPLICATES, "days_active": MIN_DAYS_ACTIVE, "growth_7d": MIN_GROWTH},
         ),
     )
 

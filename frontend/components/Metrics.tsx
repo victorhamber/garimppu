@@ -89,7 +89,7 @@ export function MetricRow({ score, heat, hasHistory }: { score: Score | null; he
         <Metric
           label="cresc. 7d"
           value={formatGrowth(score.growth_7d)}
-          strong={score.growth_7d > 0}
+          strong={topMetric(heat, "growth_7d", score.growth_7d)}
           tone={score.growth_7d < 0 ? "text-danger" : undefined}
         />
       ) : (
