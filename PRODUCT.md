@@ -15,13 +15,22 @@ Primary users, once sold:
 - **Gestores de tráfego e agências** researching a client's niche and competitors and tracking specific advertisers over time.
 - **Lojistas de e-commerce / dropshipping** looking for physical products that several stores are scaling at once.
 
-Today the product is used personally by its owner; commercial users are the target audience going forward. All users work in Brazilian Portuguese and mostly target the Brazilian market (country BR).
+Today the product is live (app.garimppu.com) in a beta with a few users testing it alongside its owner; commercial users are the target audience going forward. All users work in Brazilian Portuguese and mostly target the Brazilian market (country BR).
 
 The job: "find what is scaling right now, before everyone else, and understand it well enough to model it."
 
 ## Product Purpose
 
 Garimppu collects active ads from Meta's public Ad Library by keyword, by Facebook page, or by recurring re-collection; groups repeated creatives; and ranks both **creatives** and **offers** by indirect scaling signals. Success means the user leaves with a short list of offers and creatives worth modeling, with enough evidence (advertisers, ad counts, longevity, growth) to trust the choice.
+
+Meta stays the core. Other sources support it rather than compete with it as equals:
+
+- **TikTok Ads:** top ads from TikTok Creative Center by industry (no keyword search there; CTR shown as a percentile within the industry).
+- **YouTube:** trending videos by theme or niche via the official API, with the most commercial link in each description classified like an ad destination.
+- **Palavras-chave:** the user's own word expanded through Google's public autocomplete (relative popularity, not real volume), plus Google Trends trending searches collected hourly; any term can become a Meta search in one click.
+- **Sites de venda:** the advertisers' own stores and sales pages behind the collected Meta ads, grouped by domain and niche to spy on competitors (checkouts, marketplaces, chat links and link hubs excluded).
+
+An offer that also shows up on TikTok or YouTube gains a cross-platform bonus in its score.
 
 ## Positioning
 
@@ -32,7 +41,7 @@ Two things neighboring tools (Spy Ads, MinerAI, Escalonador, AdEscala, Fusion Ad
 
 ## Operating Context
 
-- Workflow: create a search in **Minerar** (keyword, exact phrase in quotes, or a page via its Ad Library link / page ID) → collection runs in the background with a visible log → review **Ofertas** (ranked offers) and **Explorar** (ranked creatives) → open an advertiser or creative detail → save to **Coleções** → export CSV.
+- Workflow: create a search in **Minerar** (Meta Ads by keyword, exact phrase in quotes, or a page via its Ad Library link / page ID; or TikTok Ads, YouTube, Google trending keywords, each labeled with its platform; country picked from a list) → collection runs in the background with a visible log → review **Ofertas** (ranked offers) and **Explorar** (ranked creatives) → open an advertiser or creative detail → save to **Coleções** → export CSV.
 - Searches can re-collect automatically (daily to weekly; once a day is the ceiling, enough for daily snapshots and 7-day growth); a scheduler rescans due searches and rescores daily.
 - **Shared collection.** A search is a subscription to a *source*: one canonical Ad Library query (keyword or page, country, language, media type). Identical searches by different users share the source, its runs and its history, so a new subscriber to an already monitored term sees its creatives immediately with no new collection ("já era monitorada desde..."). The source collects at the most frequent refresh among its active subscribers (never more than once a day) and up to the largest cap. Subscribers never see each other.
 - Niches are always detected by the classifier; the niche chosen on a search only filters what that subscriber sees.
@@ -40,13 +49,14 @@ Two things neighboring tools (Spy Ads, MinerAI, Escalonador, AdEscala, Fusion Ad
 - Searches, collections and favorites are per user. Explorar and Ofertas default to **Minhas buscas** (ads from the user's own searches) with a **Toda a base** toggle for everything any customer has mined. Only searches of users with a valid license drive collection.
 - /admin has three tabs, mirroring the Trajettu admin: **Licenças** (grant, block, validity, new password, delete, event log), **Webhook de compra** (generate/regenerate the URL, product/offer codes that grant access, days of access per purchase or "until cancelled", per-platform setup steps, last notifications received) and **E-mail** (Resend or SMTP, sender, editable HTML templates for access data and password reset with live preview, test send). These settings live in the database; `.env` values (`WEBHOOK_SECRET`, `WEBHOOK_PRODUCT_IDS`, `SMTP_*`) are only fallbacks until saved in the admin.
 - Customers recover their own password from the login screen ("Esqueci minha senha"): a single-use link valid for 1 hour, sent by e-mail.
-- Deployment env: `APP_URL`, `API_PUBLIC_URL` (used in e-mail links and the webhook URL), `COOKIE_SECURE=true` in production (app and API must be served from the same site). First admin: `python -m app.create_admin email --senha-provisoria`. Production database is Postgres (`DATABASE_URL`, `postgres://` accepted); local dev stays on SQLite, and `python -m app.import_sqlite` copies a local database into an empty Postgres.
+- Deployment env: `APP_URL`, `API_PUBLIC_URL` (used in e-mail links and the webhook URL), `COOKIE_SECURE=true` in production (app and API must be served from the same site). First admin: `python -m app.create_admin email --senha-provisoria`. Production database is Postgres (`DATABASE_URL`, `postgres://` accepted); local dev stays on SQLite, and `python -m app.import_sqlite` copies a local database into an empty Postgres. Production runs on EasyPanel as `garimppu-api` (api.garimppu.com), `garimppu-web` (app.garimppu.com) and `garimppu-db`. Optional keys: `YOUTUBE_API_KEY`; `CLOUDFLARE_API_TOKEN` only feeds the legacy Radar ranking.
 - Users move constantly between Garimppu and the Ad Library, landing pages and checkouts; links out to those are part of the job.
 - Part of a marketing product ecosystem sold by the same owner: **Prisma Members**, **Trajettu**, **SendMaster**, **WP Links**. Garimppu is offered as one more product people can buy. How it connects to the others is not yet defined.
 
 ## Capabilities and Constraints
 
-- Sources: Playwright scraping of the public Ad Library (default, covers Brazilian commercial ads) plus the official Ad Library API when a token is configured (commercial ads only for EU delivery).
+- Sources: Playwright scraping of the public Ad Library (default, covers Brazilian commercial ads) plus the official Ad Library API when a token is configured (commercial ads only for EU delivery). TikTok Creative Center public endpoints (signed headers captured by Playwright, backoff on rate limits; no TikTok app scraping). YouTube Data API (10k daily quota). Google Trends RSS and Google autocomplete (gentle, sequential, cached 24h). Organic TikTok trends are not available for Brazil.
+- Cloudflare Radar was tried for "most visited sites by niche" and rejected: its category filter only applies inside the country's top 100 domains (Google, Facebook, WhatsApp...). Sales sites come from collected ads instead.
 - Meta does not expose spend or results for commercial ads in Brazil. Every ranking is built on **proxies** (duplication, number of advertisers, days active, platforms, growth, advertiser size) and must never be presented as revenue or spend.
 - Creative score: duplicates, longevity (saturates at 90 days), platforms, 7-day growth, advertiser size. Offer score: advertisers (heaviest), ads, distinct creatives, longevity.
 - Offer detection recognizes checkout platforms (Hotmart, Kiwify, Eduzz, Monetizze, Braip, PerfectPay, Ticto, Greenn, Cakto...), stores and marketplaces, app stores, and conversation links (WhatsApp/Instagram, grouped per page). Affiliate pages on their own domains cannot be linked to the product they sell.
@@ -63,8 +73,8 @@ Two things neighboring tools (Spy Ads, MinerAI, Escalonador, AdEscala, Fusion Ad
 
 ## Evidence on Hand
 
-- A working local app with real collected data (searches "renda extra", "forex" and a page search) in `backend/data/miner.db`, with media in `backend/data/media`.
-- No customers, testimonials, pricing, case studies or metrics exist yet. Do not fabricate them.
+- The live app at app.garimppu.com with real collected data in production Postgres, and a local SQLite copy in `backend/data/miner.db` with media in `backend/data/media`.
+- A few beta users are testing it. No paying customers, testimonials, pricing, case studies or metrics exist yet. Do not fabricate them.
 
 ## Product Principles
 
@@ -73,3 +83,4 @@ Two things neighboring tools (Spy Ads, MinerAI, Escalonador, AdEscala, Fusion Ad
 3. **Fresh beats big.** Catching an offer while it is starting to scale is worth more than a huge stale database; history and growth are the edge.
 4. **One click to the source.** Every ad, offer and advertiser links back to the Ad Library, landing page or checkout so the user can verify.
 5. **Respect the source.** Collect moderately and transparently; the product must survive Meta's scrutiny if sold.
+6. **Plain over explained.** Users want the tool, not a manual: short labels that name the platform, selectors instead of codes to type, no paragraphs of explanatory text in the UI.
