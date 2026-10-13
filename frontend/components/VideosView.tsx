@@ -8,8 +8,8 @@ import { digitsOnly, useUrlFilters } from "@/lib/useUrlFilters";
 import { CollectionMenu } from "./CollectionMenu";
 import { CoverImage, VideoFallback } from "./CoverImage";
 import { ExportCsv } from "./ExportCsv";
-import { CheckToggle, FilterChips, FilterSelect, FilterToggle, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
-import { Metric, MetricStrip, ScoreBadge, ScoreLegend, topMetric } from "./Metrics";
+import { CheckToggle, FilterChips, FilterSelect, FilterToggle, MoreFilters, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
+import { Metric, MetricStrip, ScoreBadge, ScoreLegend, ScoreParts, topMetric } from "./Metrics";
 
 const PAGE_SIZE = 30;
 const FILTER_KEYS = ["q", "niche", "search_id", "format", "period", "min_views", "has_offer", "offer", "scope", "sort"] as const;
@@ -130,7 +130,7 @@ export function VideosView() {
   else if (!error) status = `${count} ${total === 1 ? "vídeo encontrado" : "vídeos encontrados"}.`;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 md:gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Vídeos do YouTube</h1>
         <p className="mt-1 text-sm text-muted">Vídeos ganhando views mais rápido que o normal.</p>
@@ -156,16 +156,18 @@ export function VideosView() {
         className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-3"
       >
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <div className="relative min-w-0 flex-1 basis-full sm:basis-72">
+          <div className="relative min-w-0 flex-1 basis-0 sm:basis-72">
             <label className="sr-only" htmlFor="vq">Buscar nos vídeos</label>
             <input id="vq" type="search" enterKeyHint="search" className="field pr-9" value={draft.q ?? ""} aria-keyshortcuts="/"
               onChange={(e) => type("q", e.target.value)} placeholder="Buscar: título, canal, descrição ou link" />
             {!draft.q && <SlashHint />}
           </div>
-          {!filters.search_id && <ScopeToggle value={filters.scope} onChange={(v) => update("scope", v)} />}
           <FilterToggle open={panelOpen} count={panelCount} controls="videos-panel" onToggle={() => setPanelOpen((v) => !v)} />
-          <CheckToggle label="Só com link de oferta" checked={filters.has_offer === "true"}
-            onChange={(on) => update("has_offer", on ? "true" : "")} />
+          <MoreFilters open={panelOpen}>
+            {!filters.search_id && <ScopeToggle value={filters.scope} onChange={(v) => update("scope", v)} />}
+            <CheckToggle label="Só com link de oferta" checked={filters.has_offer === "true"}
+              onChange={(on) => update("has_offer", on ? "true" : "")} />
+          </MoreFilters>
         </div>
 
         <div id="videos-panel" hidden={!panelOpen} className="grid grid-cols-2 gap-3 border-t border-line pt-3 md:grid-cols-5">
@@ -314,9 +316,7 @@ export function VideoCard({ video, rank, heat, niche, collections, onCollections
           <Metric label="engaj." value={video.engagement != null ? `${(video.engagement * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%` : "—"}
             strong={topMetric(heat, "engagement", video.engagement)} title="(curtidas + 2×comentários) ÷ visualizações" />
         </MetricStrip>
-        <p className="text-micro text-muted">
-          Pontos: {parts.map((p) => `${p.label} ${fmtPart(p.value)}`).join(" · ")}
-        </p>
+        <ScoreParts parts={parts.map((p) => ({ label: p.label, value: fmtPart(p.value) }))} />
 
         <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
           {accel != null ? (

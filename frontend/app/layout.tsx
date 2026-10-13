@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
 import { AuthGate, AuthProvider } from "@/components/AuthProvider";
@@ -20,6 +20,8 @@ export const metadata: Metadata = {
   description: "Ache as ofertas e os criativos que estão escalando na Biblioteca de Anúncios da Meta",
 };
 
+export const viewport: Viewport = { viewportFit: "cover" };
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="pt-BR" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
@@ -28,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Suspense fallback={<div className="h-14 border-b border-line" />}>
             <Nav />
           </Suspense>
-          <main className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col px-4 py-6 sm:px-6">
+          <main className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col px-4 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-6 md:py-6">
             <Suspense fallback={null}>
               <AuthGate>{children}</AuthGate>
             </Suspense>

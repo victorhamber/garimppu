@@ -7,7 +7,7 @@ import { useCollections, useNiches } from "@/lib/hooks";
 import { useUrlFilters } from "@/lib/useUrlFilters";
 import { CollectionMenu } from "./CollectionMenu";
 import { ExportCsv } from "./ExportCsv";
-import { CheckToggle, FilterChips, FilterSelect, FilterToggle, ScopeToggle, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
+import { CheckToggle, FilterChips, FilterSelect, FilterToggle, MoreFilters, ScopeToggle, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
 import { CountrySelect } from "./CountrySelect";
 import { HEAT_HINT, ScoreBadge } from "./Metrics";
 
@@ -112,7 +112,7 @@ export function KeywordsView() {
   else if (!error) status = `${count} ${noun} ${total === 1 ? "encontrada" : "encontradas"}.`;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 md:gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Palavras-chave</h1>
         <p className="mt-1 text-sm text-muted">Termos que as pessoas mais buscam no Google.</p>
@@ -135,10 +135,12 @@ export function KeywordsView() {
         className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-3"
       >
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          {!filters.search_id && <ScopeToggle value={filters.scope} onChange={(v) => update("scope", v)} />}
           <FilterToggle open={panelOpen} count={panelCount} controls="keywords-panel" onToggle={() => setPanelOpen((v) => !v)} />
-          <CheckToggle label="Só com nicho identificado" checked={filters.has_niche === "true"}
-            onChange={(on) => update("has_niche", on ? "true" : "")} />
+          <MoreFilters open={panelOpen}>
+            {!filters.search_id && <ScopeToggle value={filters.scope} onChange={(v) => update("scope", v)} />}
+            <CheckToggle label="Só com nicho identificado" checked={filters.has_niche === "true"}
+              onChange={(on) => update("has_niche", on ? "true" : "")} />
+          </MoreFilters>
         </div>
 
         <div id="keywords-panel" hidden={!panelOpen} className="grid grid-cols-2 gap-3 border-t border-line pt-3 md:grid-cols-4">
@@ -161,7 +163,7 @@ export function KeywordsView() {
         </span>
         <SortSelect id="ksort" value={filters.sort ?? "traffic"} options={SORTS}
           onChange={(v) => update("sort", v === "traffic" ? "" : v)} />
-        <span className="text-xs" title={`Destaque do volume: ${HEAT_HINT}`}>
+        <span className="hidden text-xs sm:inline" title={`Destaque do volume: ${HEAT_HINT}`}>
           <span className="rounded bg-hot px-1 font-mono text-micro font-semibold text-accent-ink">brasa</span> top 5% ·{" "}
           <span className="rounded bg-accent px-1 font-mono text-micro font-semibold text-accent-ink">âmbar</span> top 20%
         </span>

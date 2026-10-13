@@ -8,7 +8,7 @@ import { digitsOnly, useUrlFilters } from "@/lib/useUrlFilters";
 import { CollectionMenu } from "./CollectionMenu";
 import { CoverImage, VideoFallback } from "./CoverImage";
 import { ExportCsv } from "./ExportCsv";
-import { CheckToggle, FilterChips, FilterSelect, FilterToggle, HiddenBrandsNote, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
+import { CheckToggle, FilterChips, FilterSelect, FilterToggle, HiddenBrandsNote, MoreFilters, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
 import { Metric, MetricStrip, ScoreBadge, ScoreLegend, topMetric } from "./Metrics";
 
 const PAGE_SIZE = 30;
@@ -102,7 +102,7 @@ export function OffersView() {
   else if (!error) status = `${count} ${total === 1 ? "oferta encontrada" : "ofertas encontradas"}.`;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 md:gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Ofertas</h1>
         <p className="mt-1 text-sm text-muted">Produtos com mais anunciantes e anúncios rodando.</p>
@@ -121,20 +121,22 @@ export function OffersView() {
         className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-3"
       >
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <div className="relative min-w-0 flex-1 basis-full sm:basis-72">
+          <div className="relative min-w-0 flex-1 basis-0 sm:basis-72">
             <label className="sr-only" htmlFor="oq">Buscar nas ofertas</label>
             <input id="oq" type="search" enterKeyHint="search" className="field pr-9" value={draft.q ?? ""} aria-keyshortcuts="/"
               onChange={(e) => type("q", e.target.value)} placeholder="Buscar: link, anunciante ou texto" />
             {!draft.q && <SlashHint />}
           </div>
-          {!filters.search_id && <ScopeToggle value={filters.scope} onChange={(v) => update("scope", v)} />}
           <FilterToggle open={panelOpen} count={panelCount} controls="offers-panel" onToggle={() => setPanelOpen((v) => !v)} />
-          <CheckToggle label="Somente ativos" checked={filters.active_only !== "false"}
-            onChange={(on) => update("active_only", on ? "" : "false")} />
-          <CheckToggle label="Incluir marcas grandes" checked={filters.include_brands === "true"}
-            onChange={(on) => update("include_brands", on ? "true" : "")} />
-          <CheckToggle label="Também no TikTok, YouTube ou ranking de sites" checked={filters.multi_platform === "true"}
-            onChange={(on) => update("multi_platform", on ? "true" : "")} />
+          <MoreFilters open={panelOpen}>
+            {!filters.search_id && <ScopeToggle value={filters.scope} onChange={(v) => update("scope", v)} />}
+            <CheckToggle label="Somente ativos" checked={filters.active_only !== "false"}
+              onChange={(on) => update("active_only", on ? "" : "false")} />
+            <CheckToggle label="Incluir marcas grandes" checked={filters.include_brands === "true"}
+              onChange={(on) => update("include_brands", on ? "true" : "")} />
+            <CheckToggle label="Também no TikTok, YouTube ou ranking de sites" checked={filters.multi_platform === "true"}
+              onChange={(on) => update("multi_platform", on ? "true" : "")} />
+          </MoreFilters>
         </div>
 
         <div id="offers-panel" hidden={!panelOpen} className="grid grid-cols-2 gap-3 border-t border-line pt-3 md:grid-cols-4">
@@ -221,35 +223,57 @@ type OfferRowProps = {
 
 export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }: OfferRowProps) {
   return (
-    <article className="grid gap-3 rounded-lg border border-line bg-surface p-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-x-4 xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:items-center">
-      <div className="grid grid-cols-4 gap-1.5 sm:row-span-2 sm:flex sm:self-start xl:row-span-1 xl:self-center">
-        {offer.previews.map((p, i) => (
-          <Link key={p.creative_id} href={`/criativos/${p.creative_id}`}
-            aria-label={`Criativo ${i + 1} da oferta ${offer.label}${p.media_type === "video" ? " (vídeo)" : ""}`}
-            className="relative aspect-square overflow-hidden rounded-md bg-surface-2 sm:size-16 sm:shrink-0 lg:size-20">
-            {p.image ? (
-              <CoverImage src={mediaUrl(p.image)!} alt="" className="h-full w-full object-cover"
-                fallback={p.media_type === "video" ? <VideoFallback compact /> : <span className="line-clamp-4 p-1.5 text-micro leading-tight text-muted">{p.text ?? "Sem mídia"}</span>} />
-            ) : (
-              <span className="line-clamp-4 p-1.5 text-micro leading-tight text-muted">{p.text ?? "Sem mídia"}</span>
+    <article className="grid gap-3 rounded-lg border border-line bg-surface p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end xl:grid-cols-[minmax(0,1fr)_minmax(22rem,26rem)_auto] xl:items-center xl:gap-x-5">
+      <div className="flex min-w-0 flex-col gap-2 sm:col-span-2 sm:flex-row sm:items-center sm:gap-3 xl:col-span-1">
+        <div className="flex shrink-0 gap-1.5">
+          {offer.previews.map((p, i) => (
+            <Link key={p.creative_id} href={`/criativos/${p.creative_id}`}
+              aria-label={`Criativo ${i + 1} da oferta ${offer.label}${p.media_type === "video" ? " (vídeo)" : ""}`}
+              className="relative size-14 shrink-0 overflow-hidden rounded-md bg-surface-2 sm:size-16">
+              {p.image ? (
+                <CoverImage src={mediaUrl(p.image)!} alt="" className="h-full w-full object-cover"
+                  fallback={p.media_type === "video" ? <VideoFallback compact /> : <span className="line-clamp-4 p-1.5 text-micro leading-tight text-muted">{p.text ?? "Sem mídia"}</span>} />
+              ) : (
+                <span className="line-clamp-4 p-1.5 text-micro leading-tight text-muted">{p.text ?? "Sem mídia"}</span>
+              )}
+              {p.media_type === "video" && (
+                <span className="absolute bottom-1 left-1 rounded border border-line bg-background/85 px-1 text-micro text-foreground">vídeo</span>
+              )}
+            </Link>
+          ))}
+        </div>
+
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="font-mono text-xs text-muted">#{rank}</span>
+            <h2 className="min-w-0 flex-1 truncate font-medium" title={offer.key}>{offer.label}</h2>
+            <ScoreBadge value={offer.score} heat={heat}
+              title="Score de oferta: anunciantes, anúncios, criativos, tempo no ar e +0,75 por plataforma extra" />
+          </div>
+          <p className="flex min-w-0 items-center gap-1.5 text-xs text-muted">
+            <span className="shrink-0">{OFFER_KIND_LABEL[offer.kind]}</span>
+            {offer.platform && (
+              <span className="shrink-0 rounded-full border border-line px-2 text-micro text-foreground">{offer.platform}</span>
             )}
-            {p.media_type === "video" && (
-              <span className="absolute bottom-1 left-1 rounded border border-line bg-background/85 px-1 text-micro text-foreground">vídeo</span>
+            {offer.url && (
+              <a href={offer.url} target="_blank" rel="noreferrer" className="min-w-0 truncate hover:text-foreground" title={offer.url}>
+                {offer.url.replace(/^https?:\/\/(www\.)?/, "")}
+              </a>
             )}
-          </Link>
-        ))}
+          </p>
+        </div>
       </div>
 
-      <div className="flex min-w-0 flex-col gap-1.5">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="font-mono text-xs text-muted">#{rank}</span>
-          <h2 className="min-w-0 truncate font-medium" title={offer.key}>{offer.label}</h2>
-          <span className="rounded-full bg-surface-2 px-2 py-0.5 text-micro text-muted">{OFFER_KIND_LABEL[offer.kind]}</span>
-          {offer.platform && (
-            <span className="rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent">{offer.platform}</span>
-          )}
+      <div className="flex min-w-0 flex-col gap-2">
+        <MetricStrip className="grid-cols-4">
+          <Metric label="anunciantes" value={offer.advertisers} strong={topMetric(heat, "advertisers", offer.advertisers)} />
+          <Metric label="anúncios" value={offer.ads} strong={topMetric(heat, "ads", offer.ads)} />
+          <Metric label="criativos" value={offer.creatives} strong={topMetric(heat, "creatives", offer.creatives)} />
+          <Metric label="dias no ar" value={offer.days_active} strong={topMetric(heat, "days_active", offer.days_active)} />
+        </MetricStrip>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
           {offer.platforms > 1 && (
-            <span title="A oferta aparece em mais de uma plataforma: dinheiro sendo investido em várias frentes"
+            <span title="A oferta aparece em mais de uma plataforma de anúncios"
               className="rounded-full border border-accent/60 px-2 py-0.5 text-micro font-semibold text-accent">
               {["Meta", offer.tiktok_ads > 0 && "TikTok", offer.videos > 0 && "YouTube"].filter(Boolean).join(" + ")}
             </span>
@@ -257,24 +281,9 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
           {offer.site_rank != null && (
             <Link href={`/sites?q=${encodeURIComponent(offer.key)}&scope=all`}
               title={`O site da oferta está em #${offer.site_rank} no ranking "${offer.site_ranking}" do Cloudflare Radar`}
-              className="rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent hover:bg-accent/10">
+              className="text-accent hover:underline">
               Site #{offer.site_rank}
             </Link>
-          )}
-        </div>
-        {offer.url && (
-          <a href={offer.url} target="_blank" rel="noreferrer" className="truncate text-xs text-muted hover:text-foreground" title={offer.url}>
-            {offer.url}
-          </a>
-        )}
-        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
-          {offer.top_advertisers.map((a) => (
-            <Link key={a.page_id} href={`/anunciantes/${a.page_id}`} className="hover:text-accent">
-              {a.name ?? a.page_id} <span className="font-mono">({a.ads})</span>
-            </Link>
-          ))}
-          {offer.advertisers > offer.top_advertisers.length && (
-            <span>+{offer.advertisers - offer.top_advertisers.length} anunciantes</span>
           )}
           {offer.videos > 0 && (
             <Link href={`/videos?offer=${encodeURIComponent(offer.key)}`} className="text-accent hover:underline">
@@ -283,30 +292,26 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
           )}
           {offer.tiktok_ads > 0 && (
             <Link href={`/tiktok?offer=${encodeURIComponent(offer.key)}`} className="text-accent hover:underline">
-              {offer.tiktok_ads} {offer.tiktok_ads === 1 ? "top anúncio" : "top anúncios"} no TikTok
+              {offer.tiktok_ads} no TikTok
             </Link>
+          )}
+          {offer.top_advertisers.map((a) => (
+            <Link key={a.page_id} href={`/anunciantes/${a.page_id}`} className="max-w-48 truncate hover:text-accent">
+              {a.name ?? a.page_id} <span className="font-mono">({a.ads})</span>
+            </Link>
+          ))}
+          {offer.advertisers > offer.top_advertisers.length && (
+            <span>+{offer.advertisers - offer.top_advertisers.length}</span>
           )}
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 sm:col-start-2 xl:col-start-3 xl:flex-nowrap">
-        <MetricStrip className="w-full grid-cols-2 min-[440px]:grid-cols-4 sm:w-auto sm:min-w-72 sm:flex-1 sm:max-md:grid-cols-2 md:min-w-96 xl:flex-none">
-          <Metric label="anunciantes" value={offer.advertisers} strong={topMetric(heat, "advertisers", offer.advertisers)} />
-          <Metric label="anúncios" value={offer.ads} strong={topMetric(heat, "ads", offer.ads)} />
-          <Metric label="criativos" value={offer.creatives} strong={topMetric(heat, "creatives", offer.creatives)} />
-          <Metric label="dias no ar" value={offer.days_active} strong={topMetric(heat, "days_active", offer.days_active)} />
-        </MetricStrip>
-        <div className="flex w-full items-center justify-between gap-3 sm:ml-auto sm:w-auto xl:flex-col xl:items-end xl:gap-2">
-          <ScoreBadge value={offer.score} heat={heat}
-            title="Score de oferta: anunciantes, anúncios, criativos, tempo no ar e +0,75 por plataforma extra" />
-          <div className="flex items-center gap-1">
-            <CollectionMenu target={{ offerKey: offer.key }} selected={offer.collection_ids} collections={collections}
-              onChange={onCollectionsChange} />
-            <Link href={`/criativos?offer=${encodeURIComponent(offer.key)}`} className="btn h-8 whitespace-nowrap text-xs pointer-coarse:h-11">
-              Ver criativos
-            </Link>
-          </div>
-        </div>
+      <div className="flex items-center justify-end gap-1">
+        <CollectionMenu target={{ offerKey: offer.key }} selected={offer.collection_ids} collections={collections}
+          onChange={onCollectionsChange} />
+        <Link href={`/criativos?offer=${encodeURIComponent(offer.key)}`} className="btn h-8 whitespace-nowrap text-xs pointer-coarse:h-11">
+          Ver criativos
+        </Link>
       </div>
     </article>
   );

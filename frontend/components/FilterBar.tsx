@@ -49,6 +49,11 @@ export function FilterChips<K extends string>({ chips, onRemove, onClear }: {
   );
 }
 
+/** Secondary controls of the filter row: inline from 768px, behind "Filtros" on phones so the first result fits the first screen. */
+export function MoreFilters({ open, children }: { open: boolean; children: React.ReactNode }) {
+  return <div className={open ? "contents" : "hidden md:contents"}>{children}</div>;
+}
+
 /** Labelled select for the filter panel; the empty option means "no filter". */
 export function FilterSelect({ id, label, value, options, onChange }: {
   id: string;
@@ -117,11 +122,12 @@ export function HiddenBrandsNote({ count, noun, onShow }: { count: number; noun:
   if (count <= 0) return null;
   return (
     <p className="text-xs text-muted">
-      <span className="font-mono tabular-nums text-foreground">{count.toLocaleString("pt-BR")}</span> {noun} de marcas
-      grandes fora do ranking: Boticário, 99, Amazon e afins não podem ser promovidas por afiliados.{" "}
+      <span title="Afiliados não podem promover marcas como Boticário, 99 e Amazon">
+        <span className="font-mono tabular-nums text-foreground">{count.toLocaleString("pt-BR")}</span> {noun} de marcas grandes fora do ranking.
+      </span>{" "}
       <button type="button" onClick={onShow}
         className="text-foreground underline decoration-line underline-offset-2 transition-colors hover:decoration-accent pointer-coarse:min-h-11">
-        Mostrar mesmo assim
+        Mostrar
       </button>
     </p>
   );

@@ -9,7 +9,7 @@ import { CollectionMenu } from "./CollectionMenu";
 import { CoverImage, VideoFallback } from "./CoverImage";
 import { ExportCsv } from "./ExportCsv";
 import { Metric, MetricStrip, ScoreBadge, ScoreLegend, topMetric } from "./Metrics";
-import { CheckToggle, FilterChips, FilterSelect, FilterToggle, HiddenBrandsNote, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
+import { CheckToggle, FilterChips, FilterSelect, FilterToggle, HiddenBrandsNote, MoreFilters, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
 
 const PAGE_SIZE = 30;
 const FILTER_KEYS = ["q", "niche", "search_id", "active_only", "include_brands", "scope", "sort"] as const;
@@ -99,7 +99,7 @@ export function SitesView() {
   else if (!error) status = `${count} ${total === 1 ? "site encontrado" : "sites encontrados"}.`;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 md:gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Sites de venda</h1>
         <p className="mt-1 text-sm text-muted">Sites dos concorrentes que mais anunciam.</p>
@@ -118,16 +118,18 @@ export function SitesView() {
         className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-3"
       >
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <div className="relative min-w-0 flex-1 basis-full sm:basis-72">
+          <div className="relative min-w-0 flex-1 basis-0 sm:basis-72">
             <label className="sr-only" htmlFor="sq">Buscar sites</label>
             <input id="sq" type="search" enterKeyHint="search" className="field pr-9" value={draft.q ?? ""} aria-keyshortcuts="/"
               onChange={(e) => type("q", e.target.value)} placeholder="Buscar: site ou anunciante" />
             {!draft.q && <SlashHint />}
           </div>
-          {!filters.search_id && <ScopeToggle value={filters.scope} onChange={(v) => update("scope", v)} />}
           <FilterToggle open={panelOpen} count={panelCount} controls="sites-panel" onToggle={() => setPanelOpen((v) => !v)} />
-          <CheckToggle label="Somente ativos" checked={filters.active_only !== "false"}
-            onChange={(on) => update("active_only", on ? "" : "false")} />
+          <MoreFilters open={panelOpen}>
+            {!filters.search_id && <ScopeToggle value={filters.scope} onChange={(v) => update("scope", v)} />}
+            <CheckToggle label="Somente ativos" checked={filters.active_only !== "false"}
+              onChange={(on) => update("active_only", on ? "" : "false")} />
+          </MoreFilters>
         </div>
 
         <div id="sites-panel" hidden={!panelOpen} className="grid grid-cols-2 gap-3 border-t border-line pt-3">

@@ -13,6 +13,8 @@ const REFRESH_OPTIONS = [
   { value: "168", label: "Semanal" },
 ];
 
+const LANGUAGES: Record<string, string> = { pt: "Português", es: "Espanhol", en: "Inglês" };
+
 const STATUS: Record<Run["status"], { label: string; className: string }> = {
   queued: { label: "Na fila", className: "bg-surface-2 text-muted" },
   running: { label: "Coletando", className: "bg-accent/15 text-accent" },
@@ -89,6 +91,7 @@ export function SearchManager() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<Search | null>(null);
   const [openLog, setOpenLog] = useState<number | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
   const { niches, label } = useNiches();
   const [industries, setIndustries] = useState<TikTokIndustry[]>([]);
 
@@ -185,6 +188,14 @@ export function SearchManager() {
   const tiktok = form.source === "tiktok";
   const sites = form.source === "sites";
   const trends = form.source === "trends";
+  const refreshLabel = REFRESH_OPTIONS.find((o) => o.value === form.refresh_hours)?.label ?? "Manual";
+  const optionsSummary = [
+    !sites && !trends && form.language && LANGUAGES[form.language]?.toLowerCase(),
+    form.source === "meta" && form.media_type !== "all" && (form.media_type === "image" ? "só imagens" : "só vídeos"),
+    (form.source === "meta" || youtube) && form.niche && `só ${label(form.niche) ?? form.niche}`,
+    !trends && `até ${form.max_ads} ${youtube ? "vídeos" : sites ? "sites" : "anúncios"}`,
+    trends ? "recoleta a cada hora" : `recoleta: ${refreshLabel.toLowerCase()}`,
+  ].filter(Boolean).join(" · ");
   const setKind = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     setForm((f) => {
@@ -201,130 +212,147 @@ export function SearchManager() {
         <p className="mt-1 text-sm text-muted">Crie buscas para coletar anúncios e tendências.</p>
       </div>
 
-      <form onSubmit={submit} className="grid grid-cols-2 gap-3 rounded-lg border border-line bg-surface p-4 md:grid-cols-4 xl:grid-cols-10">
-        <div className="col-span-2">
-          <label className="label" htmlFor="mode">Buscar por</label>
-          <select id="mode" className="field" value={form.source === "meta" ? form.mode : form.source} onChange={setKind}>
-            <option value="keyword">Meta Ads · palavra-chave</option>
-            <option value="page">Meta Ads · página do anunciante</option>
-            <option value="tiktok">TikTok Ads · top anúncios</option>
-            <option value="youtube">YouTube · vídeos em alta</option>
-            <option value="trends">Google · palavras-chave em alta</option>
-          </select>
-        </div>
-        {trends ? (
-          <div className="col-span-2 xl:col-span-2">
-            <label className="label" htmlFor="niche">Nicho</label>
-            <select id="niche" className="field" value={form.niche} onChange={set("niche")}
-              title="O Google Trends lista o que o país inteiro está pesquisando; o nicho de cada termo é detectado pelo termo e pelas notícias ligadas a ele">
-              <option value="">Todos os nichos</option>
-              {niches.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
+      <form onSubmit={submit} className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-[minmax(0,15rem)_minmax(0,1fr)_minmax(0,11rem)_auto] md:items-end">
+          <div className="col-span-2 md:col-span-1">
+            <label className="label" htmlFor="mode">Buscar por</label>
+            <select id="mode" className="field" value={form.source === "meta" ? form.mode : form.source} onChange={setKind}>
+              <option value="keyword">Meta Ads · palavra-chave</option>
+              <option value="page">Meta Ads · página do anunciante</option>
+              <option value="tiktok">TikTok Ads · top anúncios</option>
+              <option value="youtube">YouTube · vídeos em alta</option>
+              <option value="trends">Google · palavras-chave em alta</option>
             </select>
           </div>
-        ) : sites ? null : tiktok ? (
-          <div className="col-span-2 xl:col-span-2">
-            <label className="label" htmlFor="industry">Nicho do TikTok</label>
-            <select id="industry" className="field" value={form.industry} onChange={set("industry")}
-              title="O TikTok não permite busca por palavra-chave nos top anúncios; o filtro é pelo nicho (setor) do anunciante">
-              <option value="">Todos os nichos</option>
-              {industries.map((i) => <option key={i.id} value={i.id}>{i.label}</option>)}
-            </select>
-          </div>
-        ) : youtube || form.mode === "keyword" ? (
-          <div className="col-span-2 xl:col-span-2">
-            <label className="label" htmlFor="term">Tema ou palavra-chave</label>
-            <input id="term" className="field" value={form.term} onChange={set("term")} required={!youtube || !form.niche}
-              placeholder={youtube ? "opcional se escolher um nicho" : "ex.: renda extra, skincare"} />
-          </div>
-        ) : (
-          <div className="col-span-2 xl:col-span-2">
-            <label className="label" htmlFor="page">Link ou ID da página</label>
-            <input id="page" className="field" value={form.page} onChange={set("page")} required
-              placeholder="Link da Biblioteca ou ID" />
-          </div>
-        )}
-        <div>
-          <label className="label" htmlFor="country">País</label>
-          <CountrySelect id="country" value={form.country} onChange={(country) => setForm((f) => ({ ...f, country }))} />
-        </div>
-        <div hidden={sites || trends}>
-          <label className="label" htmlFor="language">Idioma</label>
-          <select id="language" className="field" value={form.language} onChange={set("language")}>
-            <option value="">{form.source === "meta" ? "Todos" : "Do país"}</option>
-            <option value="pt">Português</option>
-            <option value="es">Espanhol</option>
-            <option value="en">Inglês</option>
-          </select>
-        </div>
-        {youtube && (
-          <div>
-            <label className="label" htmlFor="niche">Nicho</label>
-            <select id="niche" className="field" value={form.niche} onChange={set("niche")}
-              title="Sem tema: busca os vídeos em alta do nicho inteiro. Com tema: mostra só os vídeos desse nicho ao abrir a busca">
-              <option value="">Todos</option>
-              {niches.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
-            </select>
-          </div>
-        )}
-        {form.source === "meta" && (
-          <>
-            <div>
-              <label className="label" htmlFor="media">Mídia</label>
-              <select id="media" className="field" value={form.media_type} onChange={set("media_type")}>
-                <option value="all">Todas</option>
-                <option value="image">Imagem</option>
-                <option value="video">Vídeo</option>
+          {trends ? (
+            <div className="col-span-2 md:col-span-1">
+              <label className="label" htmlFor="niche">Nicho</label>
+              <select id="niche" className="field" value={form.niche} onChange={set("niche")}
+                title="O Google Trends lista o que o país inteiro está pesquisando; o nicho de cada termo é detectado pelo termo e pelas notícias ligadas a ele">
+                <option value="">Todos os nichos</option>
+                {niches.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
               </select>
             </div>
+          ) : sites ? null : tiktok ? (
+            <div className="col-span-2 md:col-span-1">
+              <label className="label" htmlFor="industry">Nicho do TikTok</label>
+              <select id="industry" className="field" value={form.industry} onChange={set("industry")}
+                title="O TikTok não permite busca por palavra-chave nos top anúncios; o filtro é pelo nicho (setor) do anunciante">
+                <option value="">Todos os nichos</option>
+                {industries.map((i) => <option key={i.id} value={i.id}>{i.label}</option>)}
+              </select>
+            </div>
+          ) : youtube || form.mode === "keyword" ? (
+            <div className="col-span-2 md:col-span-1">
+              <label className="label" htmlFor="term">Tema ou palavra-chave</label>
+              <input id="term" className="field" value={form.term} onChange={set("term")} required={!youtube || !form.niche}
+                placeholder={youtube ? "opcional se escolher um nicho" : "ex.: renda extra, skincare"} />
+            </div>
+          ) : (
+            <div className="col-span-2 md:col-span-1">
+              <label className="label" htmlFor="page">Link ou ID da página</label>
+              <input id="page" className="field" value={form.page} onChange={set("page")} required
+                placeholder="Link da Biblioteca ou ID" />
+            </div>
+          )}
+          <div>
+            <label className="label" htmlFor="country">País</label>
+            <CountrySelect id="country" value={form.country} onChange={(country) => setForm((f) => ({ ...f, country }))} />
+          </div>
+          <button type="submit" className="btn btn-primary self-end" disabled={submitting}>
+            {submitting ? "Criando..." : "Minerar agora"}
+          </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <button type="button" className="btn btn-ghost -ml-2 h-8 text-sm pointer-coarse:h-11" aria-expanded={moreOpen}
+            aria-controls="mine-more" onClick={() => setMoreOpen((v) => !v)}>
+            Mais opções
+            <svg viewBox="0 0 24 24" className={`size-4 text-muted transition-transform ${moreOpen ? "rotate-180" : ""}`}
+              fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {!moreOpen && <span className="text-xs text-muted">{optionsSummary}</span>}
+        </div>
+
+        <div id="mine-more" hidden={!moreOpen} className="grid grid-cols-2 gap-3 border-t border-line pt-3 md:grid-cols-4 xl:grid-cols-6">
+          <div hidden={sites || trends}>
+            <label className="label" htmlFor="language">Idioma</label>
+            <select id="language" className="field" value={form.language} onChange={set("language")}>
+              <option value="">{form.source === "meta" ? "Todos" : "Do país"}</option>
+              {Object.entries(LANGUAGES).map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+            </select>
+          </div>
+          {youtube && (
             <div>
-              <label className="label" htmlFor="niche">Filtrar nicho</label>
+              <label className="label" htmlFor="niche">Nicho</label>
               <select id="niche" className="field" value={form.niche} onChange={set("niche")}
-                title="Mostra só criativos deste nicho ao abrir a busca; o nicho de cada criativo é detectado automaticamente">
+                title="Sem tema: busca os vídeos em alta do nicho inteiro. Com tema: mostra só os vídeos desse nicho ao abrir a busca">
                 <option value="">Todos</option>
                 {niches.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
               </select>
             </div>
-          </>
-        )}
-        <div hidden={trends}>
-          <label className="label" htmlFor="max">{youtube ? "Máx. vídeos" : sites ? "Máx. sites" : "Máx. anúncios"}</label>
-          <input id="max" type="number" min={10} max={MAX_BY_SOURCE[form.source]} step={10} className="field" value={form.max_ads}
-            onChange={set("max_ads")} title={youtube ? "Os mais vistos dos últimos 30 dias. Cada 50 vídeos gastam 100 da cota diária de 10 mil da API do YouTube."
-              : tiktok ? "Metade pelos melhores CTRs do nicho, metade pelos mais curtidos, nos últimos 180 dias."
-              : sites ? "O Cloudflare Radar entrega no máximo os 100 primeiros de cada ranking." : undefined} />
-        </div>
-        {trends ? (
-          <div>
-            <span className="label">Recoleta</span>
-            <p className="field flex items-center text-muted"
-              title="O Google Trends mostra só as últimas horas; a coleta roda sozinha a cada hora para não perder termos">
-              A cada hora
-            </p>
-          </div>
-        ) : (
-          <div>
-            <label className="label" htmlFor="refresh">Recoleta</label>
-            <select id="refresh" className="field" value={form.refresh_hours} onChange={set("refresh_hours")}>
-              {REFRESH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-          </div>
-        )}
-        <div className="col-span-2 flex items-center justify-end gap-3 md:col-span-3 xl:col-span-10">
-          {error && <span className="mr-auto text-sm text-danger">{error}</span>}
-          {notice && !error && (
-            <p role="status" className="mr-auto text-sm text-muted">
-              <span className="text-foreground">{notice.term}</span> já era monitorada desde{" "}
-              {formatDate(notice.monitored_since)}:{" "}
-              <Link href={creativesHref(notice)} className="text-foreground underline underline-offset-2 hover:text-accent">
-                <span className="font-mono tabular-nums">{notice.creatives_count}</span>{" "}
-                {UNIT[notice.source] ?? "criativos"} já {notice.source === "trends" ? "coletadas" : "coletados"}
-              </Link>
-            </p>
           )}
-          <button type="submit" className="btn btn-primary" disabled={submitting}>
-            {submitting ? "Criando..." : "Minerar agora"}
-          </button>
+          {form.source === "meta" && (
+            <>
+              <div>
+                <label className="label" htmlFor="media">Mídia</label>
+                <select id="media" className="field" value={form.media_type} onChange={set("media_type")}>
+                  <option value="all">Todas</option>
+                  <option value="image">Imagem</option>
+                  <option value="video">Vídeo</option>
+                </select>
+              </div>
+              <div>
+                <label className="label" htmlFor="niche">Filtrar nicho</label>
+                <select id="niche" className="field" value={form.niche} onChange={set("niche")}
+                  title="Mostra só criativos deste nicho ao abrir a busca; o nicho de cada criativo é detectado automaticamente">
+                  <option value="">Todos</option>
+                  {niches.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
+                </select>
+              </div>
+            </>
+          )}
+          <div hidden={trends}>
+            <label className="label" htmlFor="max">{youtube ? "Máx. vídeos" : sites ? "Máx. sites" : "Máx. anúncios"}</label>
+            <input id="max" type="number" min={10} max={MAX_BY_SOURCE[form.source]} step={10} className="field" value={form.max_ads}
+              onChange={set("max_ads")} title={youtube ? "Os mais vistos dos últimos 30 dias. Cada 50 vídeos gastam 100 da cota diária de 10 mil da API do YouTube."
+                : tiktok ? "Metade pelos melhores CTRs do nicho, metade pelos mais curtidos, nos últimos 180 dias."
+                : sites ? "O Cloudflare Radar entrega no máximo os 100 primeiros de cada ranking." : undefined} />
+          </div>
+          {trends ? (
+            <div>
+              <span className="label">Recoleta</span>
+              <p className="field flex items-center text-muted"
+                title="O Google Trends mostra só as últimas horas; a coleta roda sozinha a cada hora para não perder termos">
+                A cada hora
+              </p>
+            </div>
+          ) : (
+            <div>
+              <label className="label" htmlFor="refresh">Recoleta</label>
+              <select id="refresh" className="field" value={form.refresh_hours} onChange={set("refresh_hours")}>
+                {REFRESH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+          )}
         </div>
+        {(error || notice) && (
+          <div className="flex items-center gap-3">
+            {error && <span className="text-sm text-danger">{error}</span>}
+            {notice && !error && (
+              <p role="status" className="text-sm text-muted">
+                <span className="text-foreground">{notice.term}</span> já era monitorada desde{" "}
+                {formatDate(notice.monitored_since)}:{" "}
+                <Link href={creativesHref(notice)} className="text-foreground underline underline-offset-2 hover:text-accent">
+                  <span className="font-mono tabular-nums">{notice.creatives_count}</span>{" "}
+                  {UNIT[notice.source] ?? "criativos"} já {notice.source === "trends" ? "coletadas" : "coletados"}
+                </Link>
+              </p>
+            )}
+        </div>
+        )}
       </form>
 
       {/* Below 1024px each search is a two-column card; the same markup becomes the table from lg up. */}

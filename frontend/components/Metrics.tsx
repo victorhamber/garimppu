@@ -86,29 +86,57 @@ export function Metric({ label, value, strong, tone, title }: MetricProps) {
   );
 }
 
-/** Always-visible reading key for the score badge; the badge itself carries no words. */
+/** The parts that add up to a card's score, opened on demand; the badge's tooltip carries the same sum. */
+export function ScoreParts({ parts }: { parts: { label: string; value: string }[] }) {
+  return (
+    <details className="group text-micro text-muted">
+      <summary className="flex w-fit cursor-pointer list-none items-center gap-1 transition-colors hover:text-foreground pointer-coarse:min-h-11 [&::-webkit-details-marker]:hidden">
+        Pontos do score
+        <svg viewBox="0 0 24 24" className="size-3 transition-transform group-open:rotate-180" fill="none" stroke="currentColor"
+          strokeWidth={2} aria-hidden="true">
+          <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </summary>
+      <p className="mt-1">{parts.map((p) => `${p.label} ${p.value}`).join(" · ")}</p>
+    </details>
+  );
+}
+
 const FORMULAS = {
-  creative: "Score de escala: soma anúncios ativos, dias no ar, plataformas, crescimento e tamanho do anunciante.",
-  offer: "Score de oferta: soma anunciantes (peso maior), anúncios, criativos, tempo no ar e um bônus quando a oferta também aparece no TikTok, no YouTube ou no ranking de sites mais acessados.",
-  video: "Score de vídeo: soma visualizações por dia, quanto superou o tamanho do canal, engajamento e aceleração.",
-  tiktok: "Score TikTok: soma o CTR comparado ao nicho (peso maior), curtidas, comentários e compartilhamentos, e a faixa de verba.",
-  site: "Score do site: soma anunciantes (peso maior), anúncios, criativos e tempo no ar de todos os produtos do site.",
+  creative: "Soma anúncios ativos, dias no ar, plataformas, crescimento e tamanho do anunciante.",
+  offer: "Soma anunciantes (peso maior), anúncios, criativos e dias no ar, com bônus se a oferta também está no TikTok, no YouTube ou no ranking de sites.",
+  video: "Soma views por dia, quanto o vídeo superou o canal, engajamento e aceleração.",
+  tiktok: "Soma o CTR comparado ao nicho (peso maior), curtidas, comentários, compartilhamentos e verba.",
+  site: "Soma anunciantes (peso maior), anúncios, criativos e dias no ar de todos os produtos do site.",
 };
 
+const HEAT_KEY = (
+  <>
+    <span className="flex items-center gap-1.5">
+      <span className="rounded bg-hot px-1 font-mono text-micro font-semibold text-accent-ink">brasa</span>top 5%
+    </span>
+    <span className="flex items-center gap-1.5">
+      <span className="rounded bg-accent px-1 font-mono text-micro font-semibold text-accent-ink">âmbar</span>top 20%
+    </span>
+  </>
+);
+
+/** Reading key for the score badge: one line on desktop, a single "Legenda" link on phones; the formula opens on demand. */
 export function ScoreLegend({ kind = "creative" }: { kind?: keyof typeof FORMULAS }) {
-  const formula = FORMULAS[kind];
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-      <span>{formula}</span>
-      <span className="flex items-center gap-1.5">
-        <span className="rounded bg-hot px-1 font-mono text-micro font-semibold text-accent-ink">brasa</span>
-        top 5%
-      </span>
-      <span className="flex items-center gap-1.5">
-        <span className="rounded bg-accent px-1 font-mono text-micro font-semibold text-accent-ink">âmbar</span>
-        top 20% deste resultado
-      </span>
-    </div>
+    <details className="group text-xs text-muted">
+      <summary className="flex w-fit cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 transition-colors hover:text-foreground pointer-coarse:min-h-11 [&::-webkit-details-marker]:hidden">
+        <span className="hidden items-center gap-x-3 sm:flex">{HEAT_KEY}</span>
+        <span className="underline decoration-line underline-offset-2 group-open:decoration-accent">
+          <span className="sm:hidden">Legenda do score</span>
+          <span className="hidden sm:inline">Como o score é calculado</span>
+        </span>
+      </summary>
+      <div className="mt-1.5 flex max-w-prose flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="flex items-center gap-x-3 sm:hidden">{HEAT_KEY}</span>
+        <p>{FORMULAS[kind]} Cores relativas a este resultado.</p>
+      </div>
+    </details>
   );
 }
 

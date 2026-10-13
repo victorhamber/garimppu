@@ -9,7 +9,7 @@ import { useNiches } from "@/lib/hooks";
 import { digitsOnly, useUrlFilters } from "@/lib/useUrlFilters";
 import { ConfirmMine } from "./ConfirmMine";
 import { CreativeGrid } from "./CreativeGrid";
-import { CheckToggle, FilterChips, FilterSelect, FilterToggle, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
+import { CheckToggle, FilterChips, FilterSelect, FilterToggle, MoreFilters, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
 const FILTER_KEYS: (keyof CreativeFilters)[] = [
   "q", "search_id", "offer", "country", "niche", "media_type", "min_days", "min_duplicates", "active_only",
   "include_brands", "scope", "sort",
@@ -116,7 +116,7 @@ export function Explorer() {
   const scoped = !filters.offer && !filters.search_id;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 md:gap-6">
       {filters.offer ? (
         <div>
           <BackLink href="/">Ofertas</BackLink>
@@ -155,20 +155,22 @@ export function Explorer() {
         className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-3"
       >
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <div className="relative min-w-0 flex-1 basis-full sm:basis-72">
+          <div className="relative min-w-0 flex-1 basis-0 sm:basis-72">
             <label className="sr-only" htmlFor="q">Buscar nos anúncios minerados</label>
             <input id="q" type="search" enterKeyHint="search" className="field pr-9" value={draft.q ?? ""} aria-keyshortcuts="/"
               onChange={(e) => type("q", e.target.value)} placeholder="Buscar: texto, anunciante ou site" />
             {!draft.q && <SlashHint />}
           </div>
-          {scoped && <ScopeToggle value={filters.scope} onChange={(v) => update("scope", v)} />}
           <FilterToggle open={panelOpen} count={panelCount} controls="explorer-panel" onToggle={() => setPanelOpen((v) => !v)} />
-          <CheckToggle label="Somente ativos" checked={filters.active_only !== "false"}
-            onChange={(on) => update("active_only", on ? "" : "false")} />
-          {!filters.offer && (
-            <CheckToggle label="Incluir marcas grandes" checked={filters.include_brands === "true"}
-              onChange={(on) => update("include_brands", on ? "true" : "")} />
-          )}
+          <MoreFilters open={panelOpen}>
+            {scoped && <ScopeToggle value={filters.scope} onChange={(v) => update("scope", v)} />}
+            <CheckToggle label="Somente ativos" checked={filters.active_only !== "false"}
+              onChange={(on) => update("active_only", on ? "" : "false")} />
+            {!filters.offer && (
+              <CheckToggle label="Incluir marcas grandes" checked={filters.include_brands === "true"}
+                onChange={(on) => update("include_brands", on ? "true" : "")} />
+            )}
+          </MoreFilters>
         </div>
 
         <div id="explorer-panel" hidden={!panelOpen} className="grid grid-cols-2 gap-3 border-t border-line pt-3 md:grid-cols-5">
