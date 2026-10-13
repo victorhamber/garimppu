@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.auth import current_user
-from app.collectors.radar import CATEGORIES as SITE_CATEGORIES, MAX_LIMIT as SITE_MAX, RANKINGS as SITE_RANKINGS
+from app.collectors.radar import MAX_LIMIT as SITE_MAX, RANKINGS as SITE_RANKINGS
 from app.collectors.radar import source_term as site_source_term
 from app.collectors.google_trends import source_term as trends_source_term
 from app.collectors.tiktok_ads import INDUSTRIES as TIKTOK_INDUSTRIES, PREFIX as TIKTOK_PREFIX
@@ -140,12 +140,10 @@ def create_search(payload: SearchCreate, db: Session = Depends(get_db), user: Us
     if payload.source == "sites":
         if not get_settings().cloudflare_api_token:
             raise HTTPException(503, "Busca de sites desativada: falta configurar CLOUDFLARE_API_TOKEN no servidor.")
-        category = payload.site_category or None
-        if category is not None and category not in SITE_CATEGORIES:
-            raise HTTPException(422, f"Categoria de site desconhecida: {category}")
-        source_term = site_source_term(payload.site_ranking, category)
-        label = SITE_CATEGORIES[category] if category else "todas as categorias"
-        term = f"Sites: {label} ({SITE_RANKINGS[payload.site_ranking].lower()})"
+        # Radar applies the category filter after its top-100 cut and its trending lists ignore the
+        # country, so only the plain popularity ranking is useful.
+        source_term = site_source_term("POPULAR", None)
+        term = f"Sites: {SITE_RANKINGS['POPULAR'].lower()} ({payload.country.upper()})"
         payload.page = None
         payload.niche = None
         payload.language = None

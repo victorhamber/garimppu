@@ -7,9 +7,9 @@ import { useUrlFilters } from "@/lib/useUrlFilters";
 import { CheckToggle, FilterChips, FilterSelect, FilterToggle, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
 
 const PAGE_SIZE = 50;
-const FILTER_KEYS = ["q", "category", "ranking", "search_id", "has_ads", "scope", "sort"] as const;
+const FILTER_KEYS = ["q", "category", "search_id", "has_ads", "scope", "sort"] as const;
 const TYPED_KEYS = ["q"] as const;
-const PANEL_KEYS = ["category", "ranking", "search_id"] as const;
+const PANEL_KEYS = ["category", "search_id"] as const;
 type FilterKey = (typeof FILTER_KEYS)[number];
 
 const SORTS = [
@@ -40,9 +40,6 @@ export function SitesView() {
   const chips: FilterChip<FilterKey>[] = [];
   if (filters.category) {
     chips.push({ key: "category", label: options.categories.find((c) => c.id === filters.category)?.label ?? filters.category });
-  }
-  if (filters.ranking) {
-    chips.push({ key: "ranking", label: options.rankings.find((r) => r.id === filters.ranking)?.label ?? filters.ranking });
   }
   if (filters.search_id) {
     const search = searches.find((s) => String(s.id) === filters.search_id);
@@ -98,14 +95,7 @@ export function SitesView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Sites mais acessados</h1>
-        <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted">
-          Ranking dos sites mais acessados e dos que estão subindo, por país e categoria, medido pelo tráfego que passa
-          pela Cloudflare (Cloudflare Radar). Mostra a posição, não o número de visitas. Sites com anúncios já coletados
-          no Meta ou no TikTok aparecem marcados.
-        </p>
-      </div>
+      <h1 className="text-2xl font-semibold tracking-tight">Sites mais acessados</h1>
 
       {data && !data.enabled && (
         <p role="note" className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-foreground">
@@ -139,11 +129,9 @@ export function SitesView() {
             onChange={(on) => update("has_ads", on ? "true" : "")} />
         </div>
 
-        <div id="sites-panel" hidden={!panelOpen} className="grid grid-cols-2 gap-3 border-t border-line pt-3 md:grid-cols-3">
+        <div id="sites-panel" hidden={!panelOpen} className="grid grid-cols-2 gap-3 border-t border-line pt-3">
           <FilterSelect id="s-categoria" label="Categoria" value={filters.category} onChange={(v) => update("category", v)}
             options={options.categories} />
-          <FilterSelect id="s-ranking" label="Ranking" value={filters.ranking} onChange={(v) => update("ranking", v)}
-            options={options.rankings} />
           <FilterSelect id="s-busca" label="Busca" value={filters.search_id} onChange={(v) => update("search_id", v)}
             options={siteSearches.map((s) => ({ id: String(s.id), label: `${s.term} (${s.country})` }))} />
         </div>
@@ -232,7 +220,7 @@ function SiteRow({ site }: { site: Site }) {
       <div className="min-w-0">
         <a href={site.url} target="_blank" rel="noreferrer" className="truncate font-medium hover:text-accent">{site.domain}</a>
         <p className="truncate text-xs text-muted">
-          {[site.ranking_label, site.category_label ?? "todas as categorias", site.country, site.categories.join(", ")]
+          {[site.country, site.categories.join(", ")]
             .filter(Boolean).join(" · ")}
         </p>
       </div>

@@ -35,9 +35,11 @@ def offer_counts(db: Session, offer_keys: set[str]) -> tuple[dict[str, int], dic
 
 
 @router.get("/options")
-def list_options():
+def list_options(db: Session = Depends(get_db)):
+    seen = {c.strip() for row in db.scalars(select(Site.categories).where(Site.categories.is_not(None)))
+            for c in row.split(",") if c.strip()}
     return {
-        "categories": sorted((SiteOption(id=k, label=v) for k, v in CATEGORIES.items()), key=lambda o: o.label),
+        "categories": sorted((SiteOption(id=c, label=CATEGORIES.get(c, c)) for c in seen), key=lambda o: o.label),
         "rankings": [SiteOption(id=k, label=v) for k, v in RANKINGS.items()],
     }
 
@@ -63,7 +65,7 @@ def list_sites(
     elif scope == "mine":
         stmt = stmt.where(SourceSite.source_id.in_(user_source_ids(user.id)))
     if category:
-        stmt = stmt.where(Source.term.like(f"{PREFIX}%:{category}"))
+        stmt = stmt.where(Site.categories.like(f"%{category}%"))
     if ranking:
         stmt = stmt.where(Source.term.like(f"{PREFIX}{ranking}:%"))
     if q:
@@ -81,7 +83,7 @@ def list_sites(
             domain=site.domain, url=f"https://{site.domain}", rank=link.rank, previous_rank=link.previous_rank,
             pct_rank_change=link.pct_rank_change, ranking=rank_type, ranking_label=RANKINGS.get(rank_type, rank_type),
             category=cat, category_label=CATEGORIES.get(cat, cat) if cat else None,
-            categories=[c.strip() for c in (site.categories or "").split(",") if c.strip()],
+            categories=[CATEGORIES.get(c.strip(), c.strip()) for c in (site.categories or "").split(",") if c.strip()],
             country=source.country, search_term=terms.get(source.id), offer_key=key,
             meta_ads=meta.get(key, 0) if key else 0, tiktok_ads=tiktok.get(key, 0) if key else 0,
             first_seen_at=link.first_seen_at,

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { api, formatDate, formatDateTime, type Run, type Search, type SiteOptions, type TikTokIndustry } from "@/lib/api";
+import { api, formatDate, formatDateTime, type Run, type Search, type TikTokIndustry } from "@/lib/api";
 import { useNiches } from "@/lib/hooks";
 
 const REFRESH_OPTIONS = [
@@ -29,8 +29,6 @@ const EMPTY_FORM = {
   media_type: "all",
   niche: "",
   industry: "",
-  site_category: "",
-  site_ranking: "POPULAR",
   max_ads: "300",
   refresh_hours: "24",
 };
@@ -92,11 +90,9 @@ export function SearchManager() {
   const [openLog, setOpenLog] = useState<number | null>(null);
   const { niches, label } = useNiches();
   const [industries, setIndustries] = useState<TikTokIndustry[]>([]);
-  const [siteOptions, setSiteOptions] = useState<SiteOptions>({ categories: [], rankings: [] });
 
   useEffect(() => {
     api<TikTokIndustry[]>("/api/tiktok/industries").then(setIndustries).catch(() => setIndustries([]));
-    api<SiteOptions>("/api/sites/options").then(setSiteOptions).catch(() => undefined);
   }, []);
 
   const load = useCallback(() => {
@@ -140,8 +136,8 @@ export function SearchManager() {
           media_type: form.source === "meta" ? form.media_type : sites || trends ? "all" : "video",
           niche: tiktok || sites ? null : form.niche || null,
           tiktok_industry: tiktok && form.industry ? Number(form.industry) : null,
-          site_category: sites ? form.site_category || null : null,
-          site_ranking: form.site_ranking,
+          site_category: null,
+          site_ranking: "POPULAR",
           source: form.source === "meta" ? "hybrid" : form.source,
           max_ads: Math.min(Number(form.max_ads), MAX_BY_SOURCE[form.source]),
           refresh_hours: trends ? null : form.refresh_hours ? Number(form.refresh_hours) : null,
@@ -222,24 +218,7 @@ export function SearchManager() {
               {niches.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
             </select>
           </div>
-        ) : sites ? (
-          <>
-            <div className="col-span-2 xl:col-span-2">
-              <label className="label" htmlFor="site-category">Categoria</label>
-              <select id="site-category" className="field" value={form.site_category} onChange={set("site_category")}>
-                <option value="">Todas as categorias</option>
-                {siteOptions.categories.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="label" htmlFor="site-ranking">Ranking</label>
-              <select id="site-ranking" className="field" value={form.site_ranking} onChange={set("site_ranking")}
-                title="Mais acessados: posição pelo volume de tráfego. Subindo agora: os que mais ganharam posições nos últimos dias">
-                {siteOptions.rankings.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
-              </select>
-            </div>
-          </>
-        ) : tiktok ? (
+        ) : sites ? null : tiktok ? (
           <div className="col-span-2 xl:col-span-2">
             <label className="label" htmlFor="industry">Nicho do TikTok</label>
             <select id="industry" className="field" value={form.industry} onChange={set("industry")}
