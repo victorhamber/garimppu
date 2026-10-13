@@ -187,6 +187,8 @@ class OfferOut(BaseModel):
     previews: list[OfferPreview]
     collection_ids: list[int] = []
     videos: int = 0
+    tiktok_ads: int = 0
+    platforms: int = 1  # Meta plus TikTok and/or YouTube when the offer shows up there too
 
 
 class VideoOut(ORM):

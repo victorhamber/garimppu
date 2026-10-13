@@ -1,7 +1,8 @@
 """Offers: ads grouped by what they sell (checkout product, store product, app, site).
 
-score = 2.5*log(advertisers) + log(1+ads) + 0.5*log(1+creatives) + min(days,90)/90
+score = 2.5*log(advertisers) + log(1+ads) + 0.5*log(1+creatives) + min(days,90)/90 + 0.75*other platforms
 Several advertisers on the same offer weighs most: it means affiliates/resellers are scaling it.
+Other platforms: the offer also shows up in TikTok top ads and/or YouTube videos, money flowing on more than one front.
 """
 
 import math
@@ -16,7 +17,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.auth import current_user
 from app.config import get_settings
 from app.db import get_db
-from app.models import Ad, CollectionOffer, Creative, Page, SourceAd, User, Video
+from app.models import Ad, CollectionOffer, Creative, Page, SourceAd, TikTokAd, User, Video
 from app.pipeline.heat import HOT_SHARE, WARM_SHARE, rank_cutoff
 from app.pipeline.offers import offer_label
 from app.pipeline.scoring import MAX_LONGEVITY_DAYS, count_duplicates, days_running
@@ -28,12 +29,14 @@ from app.serializers import media_path
 router = APIRouter(prefix="/api/offers", tags=["offers"])
 
 OfferKind = Literal["infoproduto", "loja", "app", "conversa", "site"]
-OfferSort = Literal["score", "advertisers", "ads", "creatives", "days_active", "recent"]
+OfferSort = Literal["score", "platforms", "advertisers", "ads", "creatives", "days_active", "recent"]
 MAX_PREVIEWS = 4
 MAX_ADVERTISERS = 3
+PLATFORM_BONUS = 0.75
 
 
 def offer_score(advertisers: int, ads: int, creatives: int, days: int) -> float:
+    """Meta part of the score; the other-platforms bonus is added once TikTok/YouTube counts are known."""
     return round(
         2.5 * math.log(max(advertisers, 1))
         + math.log1p(ads)
@@ -41,6 +44,17 @@ def offer_score(advertisers: int, ads: int, creatives: int, days: int) -> float:
         + min(days, MAX_LONGEVITY_DAYS) / MAX_LONGEVITY_DAYS,
         4,
     )
+
+
+def _cross_platform_counts(db: Session, keys: list[str]) -> tuple[dict[str, int], dict[str, int]]:
+    """YouTube videos and TikTok top ads pointing at each offer."""
+    if not keys:
+        return {}, {}
+    videos = dict(db.execute(
+        select(Video.offer_key, func.count()).where(Video.offer_key.in_(keys)).group_by(Video.offer_key)).all())
+    tiktok = dict(db.execute(
+        select(TikTokAd.offer_key, func.count()).where(TikTokAd.offer_key.in_(keys)).group_by(TikTokAd.offer_key)).all())
+    return videos, tiktok
 
 
 def _creative_rank(creative: Creative) -> float:
@@ -87,6 +101,7 @@ def _build_offer(key: str, ads: list[Ad], today: date) -> OfferOut:
 
 SORT_KEYS = {
     "score": lambda o: o.score,
+    "platforms": lambda o: (o.platforms, o.score),
     "advertisers": lambda o: (o.advertisers, o.score),
     "ads": lambda o: (o.ads, o.score),
     "creatives": lambda o: (o.creatives, o.score),
@@ -106,6 +121,7 @@ def list_offers(
     collection_id: int | None = None,
     min_advertisers: int | None = Query(None, ge=0),
     min_ads: int | None = Query(None, ge=0),
+    multi_platform: bool = Query(False, description="Só ofertas que também aparecem no TikTok ou no YouTube"),
     active_only: bool = True,
     include_brands: bool = Query(False, description="Inclui páginas de marcas grandes, que afiliados não promovem"),
     scope: Literal["mine", "all"] = Query("mine", description="mine = só anúncios das buscas do usuário"),
@@ -163,6 +179,15 @@ def list_offers(
 
     today = date.today()
     offers = [_build_offer(key, ads, today) for key, ads in groups.items()]
+    videos, tiktok = _cross_platform_counts(db, list(groups))
+    for offer in offers:
+        offer.videos = videos.get(offer.key, 0)
+        offer.tiktok_ads = tiktok.get(offer.key, 0)
+        offer.platforms = 1 + (offer.videos > 0) + (offer.tiktok_ads > 0)
+        if offer.platforms > 1:
+            offer.score = round(offer.score + PLATFORM_BONUS * (offer.platforms - 1), 4)
+    if multi_platform:
+        offers = [o for o in offers if o.platforms > 1]
     if min_advertisers is not None:
         offers = [o for o in offers if o.advertisers >= min_advertisers]
     if min_ads is not None:
@@ -181,10 +206,5 @@ def list_offers(
     )
     for offer_key, cid in saved:
         by_key[offer_key].collection_ids.append(cid)
-    video_counts = db.execute(
-        select(Video.offer_key, func.count()).where(Video.offer_key.in_(by_key)).group_by(Video.offer_key)
-    )
-    for offer_key, count in video_counts:
-        by_key[offer_key].videos = count
     return OfferPage(total=len(offers), items=page, platforms=platforms, heat=heat,
                      hidden_brands=len(brand_keys - groups.keys()))

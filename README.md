@@ -87,9 +87,13 @@ A aba **Ofertas** agrupa os anúncios pelo destino do link para mostrar produtos
 
 ```
 score_oferta = 2.5*log(anunciantes) + log(1+anúncios) + 0.5*log(1+criativos) + min(dias,90)/90
+             + 0.75 por plataforma extra (TikTok Top Ads, vídeos do YouTube)
 ```
 
 Várias páginas na mesma oferta pesa mais: afiliados e revendedores só entram em massa no que converte.
+Uma oferta do Meta que também aparece nos top anúncios do TikTok ou em vídeos do YouTube ganha o selo das
+plataformas (ex.: "Meta + TikTok"), o bônus no score, o filtro "Também no TikTok ou YouTube" e a ordenação
+"Em mais plataformas".
 As regras ficam em `backend/app/pipeline/offers.py`; depois de alterá-las rode `python -m app.reclassify_offers`.
 
 ## Vídeos (YouTube)

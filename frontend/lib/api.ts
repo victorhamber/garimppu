@@ -120,6 +120,10 @@ export type Offer = {
   collection_ids: number[];
   /** Organic videos (YouTube) whose description links to this offer. */
   videos: number;
+  /** TikTok Creative Center top ads landing on this offer. */
+  tiktok_ads: number;
+  /** Meta plus TikTok and/or YouTube when the offer shows up there too. */
+  platforms: number;
 };
 
 export type Video = {

@@ -50,7 +50,7 @@ export function MetricRow({ score, heat, hasHistory }: { score: Score | null; he
 /** Always-visible reading key for the score badge; the badge itself carries no words. */
 const FORMULAS = {
   creative: "Score de escala: soma anúncios ativos, dias no ar, plataformas, crescimento e tamanho do anunciante.",
-  offer: "Score de oferta: soma anunciantes (peso maior), anúncios, criativos e tempo no ar.",
+  offer: "Score de oferta: soma anunciantes (peso maior), anúncios, criativos, tempo no ar e um bônus quando a oferta também aparece no TikTok ou no YouTube.",
   video: "Score de vídeo: soma visualizações por dia, quanto superou o tamanho do canal, engajamento e aceleração.",
   tiktok: "Score TikTok: soma o CTR comparado ao nicho (peso maior), curtidas, comentários e compartilhamentos, e a faixa de verba.",
 };

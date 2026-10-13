@@ -11,13 +11,14 @@ import { CheckToggle, FilterChips, FilterSelect, FilterToggle, HiddenBrandsNote,
 import { HEAT_HINT, heatClass, ScoreLegend } from "./Metrics";
 
 const PAGE_SIZE = 30;
-const FILTER_KEYS = ["q", "kind", "platform", "search_id", "min_advertisers", "active_only", "include_brands", "scope", "sort"] as const;
+const FILTER_KEYS = ["q", "kind", "platform", "search_id", "min_advertisers", "active_only", "include_brands", "multi_platform", "scope", "sort"] as const;
 const TYPED_KEYS = ["q", "min_advertisers"] as const;
 const PANEL_KEYS = ["kind", "platform", "search_id", "min_advertisers"] as const;
 type FilterKey = (typeof FILTER_KEYS)[number];
 
 const SORTS = [
   { id: "score", label: "Score de oferta" },
+  { id: "platforms", label: "Em mais plataformas" },
   { id: "advertisers", label: "Mais anunciantes" },
   { id: "ads", label: "Mais anúncios" },
   { id: "creatives", label: "Mais criativos" },
@@ -134,6 +135,8 @@ export function OffersView() {
             onChange={(on) => update("active_only", on ? "" : "false")} />
           <CheckToggle label="Incluir marcas grandes" checked={filters.include_brands === "true"}
             onChange={(on) => update("include_brands", on ? "true" : "")} />
+          <CheckToggle label="Também no TikTok ou YouTube" checked={filters.multi_platform === "true"}
+            onChange={(on) => update("multi_platform", on ? "true" : "")} />
         </div>
 
         <div id="offers-panel" hidden={!panelOpen} className="grid grid-cols-2 gap-3 border-t border-line pt-3 md:grid-cols-4">
@@ -246,6 +249,12 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
           {offer.platform && (
             <span className="rounded-full border border-accent/40 px-2 py-0.5 text-micro text-accent">{offer.platform}</span>
           )}
+          {offer.platforms > 1 && (
+            <span title="A oferta aparece em mais de uma plataforma: dinheiro sendo investido em várias frentes"
+              className="rounded-full bg-hot px-2 py-0.5 text-micro font-semibold text-accent-ink">
+              {["Meta", offer.tiktok_ads > 0 && "TikTok", offer.videos > 0 && "YouTube"].filter(Boolean).join(" + ")}
+            </span>
+          )}
         </div>
         {offer.url && (
           <a href={offer.url} target="_blank" rel="noreferrer" className="truncate text-xs text-muted hover:text-foreground" title={offer.url}>
@@ -266,6 +275,11 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
               {offer.videos} {offer.videos === 1 ? "vídeo" : "vídeos"} no YouTube
             </Link>
           )}
+          {offer.tiktok_ads > 0 && (
+            <Link href={`/tiktok?offer=${encodeURIComponent(offer.key)}`} className="text-accent hover:underline">
+              {offer.tiktok_ads} {offer.tiktok_ads === 1 ? "top anúncio" : "top anúncios"} no TikTok
+            </Link>
+          )}
         </div>
       </div>
 
@@ -277,7 +291,7 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
           <Metric label="dias no ar" value={offer.days_active} strong={offer.days_active >= 30} />
         </dl>
         <div className="flex w-full items-center justify-between gap-3 sm:ml-auto sm:w-auto xl:flex-col xl:items-end xl:gap-2">
-          <span title={`Score de oferta: anunciantes, anúncios, criativos e tempo no ar (${HEAT_HINT})`}
+          <span title={`Score de oferta: anunciantes, anúncios, criativos, tempo no ar e +0,75 por plataforma extra (${HEAT_HINT})`}
             className={`rounded px-1.5 py-0.5 font-mono text-xs font-semibold tabular-nums ${heatClass(offer.score, heat)}`}>
             {offer.score.toFixed(2)}
           </span>
