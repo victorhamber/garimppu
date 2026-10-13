@@ -20,7 +20,7 @@ export type Search = {
   language: string | null;
   media_type: "all" | "image" | "video";
   niche: string | null;
-  source: "scraper" | "api" | "hybrid" | "youtube" | "tiktok";
+  source: "scraper" | "api" | "hybrid" | "youtube" | "tiktok" | "sites";
   max_ads: number;
   refresh_hours: number | null;
   is_active: boolean;
@@ -122,7 +122,10 @@ export type Offer = {
   videos: number;
   /** TikTok Creative Center top ads landing on this offer. */
   tiktok_ads: number;
-  /** Meta plus TikTok and/or YouTube when the offer shows up there too. */
+  /** Best position of the offer's site in a collected sites ranking, and that ranking's label. */
+  site_rank: number | null;
+  site_ranking: string | null;
+  /** Meta plus TikTok, YouTube and/or a sites ranking when the offer shows up there too. */
   platforms: number;
 };
 
@@ -192,6 +195,32 @@ export type TikTokAd = {
 };
 
 export type TikTokAdPage = { total: number; items: TikTokAd[]; heat: ScoreHeat };
+
+/** A domain's position in a collected Cloudflare Radar ranking (country + category + ranking type). */
+export type Site = {
+  domain: string;
+  url: string;
+  rank: number;
+  /** Position in the previous collection, when it changed. */
+  previous_rank: number | null;
+  /** Radar's own rank change, only in trending rankings. */
+  pct_rank_change: number | null;
+  ranking: "POPULAR" | "TRENDING_RISE" | "TRENDING_STEADY";
+  ranking_label: string;
+  category: string | null;
+  category_label: string | null;
+  categories: string[];
+  country: string;
+  search_term: string | null;
+  offer_key: string | null;
+  meta_ads: number;
+  tiktok_ads: number;
+  first_seen_at: string;
+};
+
+/** `enabled`: false while the server has no CLOUDFLARE_API_TOKEN. */
+export type SitePage = { total: number; items: Site[]; enabled: boolean };
+export type SiteOptions = { categories: { id: string; label: string }[]; rankings: { id: string; label: string }[] };
 export type TikTokIndustry = { id: number; label: string };
 
 /** Cutoffs relative to the current result set; null when the set is too small to rank. */

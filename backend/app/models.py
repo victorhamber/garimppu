@@ -374,6 +374,33 @@ class SourceTikTokAd(Base):
     ad_id: Mapped[str] = mapped_column(ForeignKey("tiktok_ads.id", ondelete="CASCADE"), primary_key=True, index=True)
 
 
+class Site(Base):
+    """A domain seen in a Cloudflare Radar ranking; offer_key matches Ad/TikTokAd offers on the same site."""
+
+    __tablename__ = "sites"
+
+    domain: Mapped[str] = mapped_column(String(255), primary_key=True)
+    categories: Mapped[str | None] = mapped_column(Text)  # Cloudflare content subcategories, comma separated
+    offer_key: Mapped[str | None] = mapped_column(String(255), index=True)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class SourceSite(Base):
+    """A site's position in one ranking (country + category + ranking type); previous_rank is the last collection's."""
+
+    __tablename__ = "source_sites"
+
+    source_id: Mapped[int] = mapped_column(ForeignKey("sources.id", ondelete="CASCADE"), primary_key=True)
+    domain: Mapped[str] = mapped_column(ForeignKey("sites.domain", ondelete="CASCADE"), primary_key=True, index=True)
+    rank: Mapped[int] = mapped_column(Integer)
+    previous_rank: Mapped[int | None] = mapped_column(Integer)
+    pct_rank_change: Mapped[float | None] = mapped_column(Float)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    site: Mapped[Site] = relationship()
+
+
 class Collection(Base):
     __tablename__ = "collections"
     __table_args__ = (UniqueConstraint("user_id", "name", name="uq_collections_user_name"),)

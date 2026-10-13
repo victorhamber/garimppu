@@ -5,12 +5,14 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.auth import current_user
+from app.collectors.radar import CATEGORIES as SITE_CATEGORIES, MAX_LIMIT as SITE_MAX, RANKINGS as SITE_RANKINGS
+from app.collectors.radar import source_term as site_source_term
 from app.collectors.tiktok_ads import INDUSTRIES as TIKTOK_INDUSTRIES, PREFIX as TIKTOK_PREFIX
 from app.collectors.youtube import NICHE_PREFIX
 from app.config import get_settings
 from app.db import get_db
 from app.jobs import enqueue_source
-from app.models import AdCreative, Page, Run, Search, SourceAd, SourceTikTokAd, SourceVideo, User
+from app.models import AdCreative, Page, Run, Search, SourceAd, SourceSite, SourceTikTokAd, SourceVideo, User
 from app.pipeline.niche import NICHES
 from app.pipeline.sources import find_or_create_source, is_fresh, sync_source
 from app.schemas import RunOut, SearchCreate, SearchOut, SearchUpdate
@@ -25,6 +27,8 @@ def _search_out(db: Session, search: Search, reused: bool = False) -> SearchOut:
         creatives = db.scalar(select(func.count()).select_from(SourceVideo).where(SourceVideo.source_id == source.id))
     elif source.collector == "tiktok":
         creatives = db.scalar(select(func.count()).select_from(SourceTikTokAd).where(SourceTikTokAd.source_id == source.id))
+    elif source.collector == "sites":
+        creatives = db.scalar(select(func.count()).select_from(SourceSite).where(SourceSite.source_id == source.id))
     else:
         creatives = db.scalar(
             select(func.count(func.distinct(AdCreative.creative_id)))
@@ -113,6 +117,20 @@ def create_search(payload: SearchCreate, db: Session = Depends(get_db), user: Us
         payload.niche = None
         payload.media_type = "video"
         payload.language = payload.language or COUNTRY_LANGUAGE.get(payload.country.upper())
+    if payload.source == "sites":
+        if not get_settings().cloudflare_api_token:
+            raise HTTPException(503, "Busca de sites desativada: falta configurar CLOUDFLARE_API_TOKEN no servidor.")
+        category = payload.site_category or None
+        if category is not None and category not in SITE_CATEGORIES:
+            raise HTTPException(422, f"Categoria de site desconhecida: {category}")
+        source_term = site_source_term(payload.site_ranking, category)
+        label = SITE_CATEGORIES[category] if category else "todas as categorias"
+        term = f"Sites: {label} ({SITE_RANKINGS[payload.site_ranking].lower()})"
+        payload.page = None
+        payload.niche = None
+        payload.language = None
+        payload.media_type = "all"
+        payload.max_ads = min(payload.max_ads, SITE_MAX)
     if payload.page and payload.page.strip():
         page_id = parse_page_id(payload.page)
         if page_id is None:

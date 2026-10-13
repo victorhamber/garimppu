@@ -15,8 +15,10 @@ class SearchCreate(BaseModel):
     language: str | None = Field(default=None, max_length=8)
     media_type: Literal["all", "image", "video"] = "all"
     niche: str | None = None
-    source: Literal["scraper", "api", "hybrid", "youtube", "tiktok"] = "hybrid"
+    source: Literal["scraper", "api", "hybrid", "youtube", "tiktok", "sites"] = "hybrid"
     tiktok_industry: int | None = None  # TikTok top-level industry id; None = all
+    site_category: str | None = Field(default=None, max_length=64)  # Cloudflare subcategory; None = all
+    site_ranking: Literal["POPULAR", "TRENDING_RISE", "TRENDING_STEADY"] = "POPULAR"
     max_ads: int = Field(default=300, ge=10, le=3000)
     refresh_hours: int | None = Field(default=None, ge=24, le=720)
     run_now: bool = True
@@ -188,7 +190,9 @@ class OfferOut(BaseModel):
     collection_ids: list[int] = []
     videos: int = 0
     tiktok_ads: int = 0
-    platforms: int = 1  # Meta plus TikTok and/or YouTube when the offer shows up there too
+    site_rank: int | None = None  # best position of the offer's site in a collected Cloudflare Radar ranking
+    site_ranking: str | None = None  # label of that ranking, e.g. "Mais acessados"
+    platforms: int = 1  # Meta plus TikTok, YouTube and/or a sites ranking when the offer shows up there too
 
 
 class VideoOut(ORM):
@@ -260,6 +264,36 @@ class TikTokAdPage(BaseModel):
 
 class TikTokIndustry(BaseModel):
     id: int
+    label: str
+
+
+class SiteOut(BaseModel):
+    domain: str
+    url: str
+    rank: int
+    previous_rank: int | None
+    pct_rank_change: float | None
+    ranking: str
+    ranking_label: str
+    category: str | None
+    category_label: str | None
+    categories: list[str]
+    country: str
+    search_term: str | None
+    offer_key: str | None
+    meta_ads: int = 0
+    tiktok_ads: int = 0
+    first_seen_at: datetime
+
+
+class SitePage(BaseModel):
+    total: int
+    items: list[SiteOut]
+    enabled: bool = True
+
+
+class SiteOption(BaseModel):
+    id: str
     label: str
 
 

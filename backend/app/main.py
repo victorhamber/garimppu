@@ -11,7 +11,7 @@ from app.config import get_settings
 from app.create_admin import sync_env_admin
 from app.db import SessionLocal
 from app.jobs import fail_orphaned_runs
-from app.routes import admin, auth, collections, creatives, offers, pages, searches, tiktok, videos, webhooks
+from app.routes import admin, auth, collections, creatives, offers, pages, searches, sites, tiktok, videos, webhooks
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 settings = get_settings()
@@ -49,7 +49,7 @@ app.include_router(auth.router)
 app.include_router(webhooks.router)
 app.include_router(admin.router)
 licensed = [Depends(current_user)]
-for router in (searches.router, creatives.router, offers.router, pages.router, collections.router, videos.router, tiktok.router):
+for router in (searches.router, creatives.router, offers.router, pages.router, collections.router, videos.router, tiktok.router, sites.router):
     app.include_router(router, dependencies=licensed)
 
 

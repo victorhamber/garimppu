@@ -24,6 +24,8 @@ def source_key(*, term: str, page_id: str | None, country: str, language: str | 
         return f"yt:{country.upper()}:{(language or '*').lower()}:{normalize_term(term)}"
     if collector == "tiktok":
         return f"tt:{country.upper()}:{(language or '*').lower()}:{normalize_term(term)}"
+    if collector == "sites":
+        return f"st:{country.upper()}:{term}"
     if page_id:
         return f"page:{scope}:{page_id}"
     return f"kw:{scope}:{normalize_term(term)}"

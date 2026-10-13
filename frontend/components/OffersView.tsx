@@ -135,7 +135,7 @@ export function OffersView() {
             onChange={(on) => update("active_only", on ? "" : "false")} />
           <CheckToggle label="Incluir marcas grandes" checked={filters.include_brands === "true"}
             onChange={(on) => update("include_brands", on ? "true" : "")} />
-          <CheckToggle label="Também no TikTok ou YouTube" checked={filters.multi_platform === "true"}
+          <CheckToggle label="Também no TikTok, YouTube ou ranking de sites" checked={filters.multi_platform === "true"}
             onChange={(on) => update("multi_platform", on ? "true" : "")} />
         </div>
 
@@ -254,6 +254,13 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
               className="rounded-full bg-hot px-2 py-0.5 text-micro font-semibold text-accent-ink">
               {["Meta", offer.tiktok_ads > 0 && "TikTok", offer.videos > 0 && "YouTube"].filter(Boolean).join(" + ")}
             </span>
+          )}
+          {offer.site_rank != null && (
+            <Link href={`/sites?q=${encodeURIComponent(offer.key)}&scope=all`}
+              title={`O site da oferta está em #${offer.site_rank} no ranking "${offer.site_ranking}" do Cloudflare Radar`}
+              className="rounded-full border border-hot/50 px-2 py-0.5 text-micro font-semibold text-hot hover:bg-hot/10">
+              Site #{offer.site_rank}
+            </Link>
           )}
         </div>
         {offer.url && (

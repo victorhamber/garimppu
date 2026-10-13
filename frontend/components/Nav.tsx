@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/ofertas", label: "Ofertas" },
   { href: "/videos", label: "Vídeos" },
   { href: "/tiktok", label: "TikTok" },
+  { href: "/sites", label: "Sites" },
   { href: "/buscas", label: "Minerar" },
   { href: "/colecoes", label: "Coleções" },
 ];
@@ -34,7 +35,7 @@ export function Nav() {
             <div className="ml-auto sm:order-last">
               <AccountMenu />
             </div>
-            <nav className="-mx-1 grid w-full grid-cols-3 gap-1 pb-2 sm:mx-0 sm:flex sm:w-auto sm:items-center sm:pb-0">
+            <nav className="-mx-1 grid w-full grid-cols-4 gap-1 pb-2 sm:mx-0 sm:flex sm:w-auto sm:items-center sm:pb-0">
               {LINKS.map((link) => (
                 <Link
                   key={link.href}

@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     youtube_window_days: int = 30  # only videos published this recently are collected
     youtube_max_results: int = 150
     tiktok_max_results: int = 200
+    # Cloudflare API token with Account > Radar > Read, for the most visited / rising sites rankings.
+    cloudflare_api_token: str | None = None
 
     scraper_headless: bool = True
     scraper_min_delay: float = 1.5

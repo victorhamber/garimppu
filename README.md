@@ -87,13 +87,14 @@ A aba **Ofertas** agrupa os anúncios pelo destino do link para mostrar produtos
 
 ```
 score_oferta = 2.5*log(anunciantes) + log(1+anúncios) + 0.5*log(1+criativos) + min(dias,90)/90
-             + 0.75 por plataforma extra (TikTok Top Ads, vídeos do YouTube)
+             + 0.75 por plataforma extra (TikTok Top Ads, vídeos do YouTube, ranking de sites)
 ```
 
 Várias páginas na mesma oferta pesa mais: afiliados e revendedores só entram em massa no que converte.
 Uma oferta do Meta que também aparece nos top anúncios do TikTok ou em vídeos do YouTube ganha o selo das
-plataformas (ex.: "Meta + TikTok"), o bônus no score, o filtro "Também no TikTok ou YouTube" e a ordenação
-"Em mais plataformas".
+plataformas (ex.: "Meta + TikTok"); se o site dela está num ranking de sites coletado, ganha o selo "Site #N".
+Os dois casos dão o bônus no score, entram no filtro "Também no TikTok, YouTube ou ranking de sites" e na
+ordenação "Em mais plataformas".
 As regras ficam em `backend/app/pipeline/offers.py`; depois de alterá-las rode `python -m app.reclassify_offers`.
 
 ## Vídeos (YouTube)
@@ -133,6 +134,15 @@ score_tiktok = 3*(1 - percentil do CTR no nicho)          # top 1% -> ~3
 O Creative Center não tem API pública: uma visita com o Playwright captura a assinatura de sessão da própria página e
 as consultas seguem por HTTP, com pausa entre requisições. A página de destino vira oferta, igual aos anúncios da Meta.
 Código: `backend/app/collectors/tiktok_ads.py` e `backend/app/pipeline/tiktok_ingest.py`.
+
+## Sites (Cloudflare Radar)
+
+Em **Minerar**, *Buscar por: Sites* coleta pela API do Cloudflare Radar (precisa de `CLOUDFLARE_API_TOKEN`) o
+ranking dos domínios no país, por categoria: *Mais acessados* (volume de tráfego), *Subindo agora* e *Crescimento
+constante* (os que mais ganharam posições). O Radar dá a posição, não o número de visitas, e no máximo 100 domínios
+por ranking. A aba **Sites** mostra a posição, quanto o site subiu ou caiu desde a coleta anterior e quantos anúncios
+do Meta e do TikTok já coletados levam para ele. As categorias ficam em `CATEGORIES` em `collectors/radar.py`.
+Código: `backend/app/collectors/radar.py`, `backend/app/pipeline/site_ingest.py` e `backend/app/routes/sites.py`.
 
 ## Recoleta e crescimento
 

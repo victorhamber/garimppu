@@ -140,6 +140,17 @@ A aba **TikTok** não precisa de chave: usa o Chromium do Playwright, que já ve
 TikTok Creative Center e depois consulta os Top Ads por HTTP. `TIKTOK_MAX_RESULTS` (padrão 200) limita cada coleta.
 Se o TikTok mudar a página, a coleta termina em erro com a mensagem no log da busca.
 
+## Sites (Cloudflare Radar)
+
+A aba **Sites** usa a API gratuita do Cloudflare Radar:
+
+1. Entre em [dash.cloudflare.com](https://dash.cloudflare.com) (a conta gratuita serve).
+2. **Meu perfil → Tokens de API → Criar token → Token personalizado**.
+3. Em **Permissões**: *Conta* → *Radar* → *Ler*. Crie e copie o token.
+4. No EasyPanel, serviço `garimppu-api` → **Environment**: `CLOUDFLARE_API_TOKEN=<o token>` → **Deploy**.
+
+Sem o token, a aba mostra um aviso e o Minerar recusa buscas de sites.
+
 ## Atualizações
 
 Cada `git push` na branch `main` pode disparar o deploy automático (ative **Auto Deploy** nos dois apps).
