@@ -128,7 +128,10 @@ export function VideosView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Vídeos em alta no YouTube</h1>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Vídeos em alta no YouTube</h1>
+        <p className="mt-1 text-sm text-muted">Vídeos ganhando views mais rápido que o normal.</p>
+      </div>
 
       {data && !data.enabled && (
         <p role="note" className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-foreground">

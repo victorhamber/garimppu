@@ -196,7 +196,10 @@ export function SearchManager() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="text-2xl font-semibold tracking-tight">Minerar</h1>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Minerar</h1>
+        <p className="mt-1 text-sm text-muted">Crie buscas para coletar anúncios e tendências.</p>
+      </div>
 
       <form onSubmit={submit} className="grid grid-cols-2 gap-3 rounded-lg border border-line bg-surface p-4 md:grid-cols-4 xl:grid-cols-10">
         <div className="col-span-2">

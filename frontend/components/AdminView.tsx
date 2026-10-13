@@ -118,7 +118,10 @@ function Licenses({ selfId }: { selfId: number }) {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="text-2xl font-semibold tracking-tight">Licenças</h1>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Licenças</h1>
+        <p className="mt-1 text-sm text-muted">Quem tem acesso ao Garimppu.</p>
+      </div>
 
       {settings && (!settings.webhook_configured || !settings.email_configured) && (
         <p className="rounded-md border border-line bg-surface px-3 py-2 text-sm text-muted">

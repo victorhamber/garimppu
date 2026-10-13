@@ -102,7 +102,10 @@ export function OffersView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Ofertas mais escaladas</h1>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Ofertas mais escaladas</h1>
+        <p className="mt-1 text-sm text-muted">Produtos com mais anunciantes e anúncios rodando.</p>
+      </div>
 
       <form
         role="search"

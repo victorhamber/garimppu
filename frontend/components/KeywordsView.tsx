@@ -110,7 +110,10 @@ export function KeywordsView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Palavras-chave</h1>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Palavras-chave</h1>
+        <p className="mt-1 text-sm text-muted">Termos que as pessoas mais buscam no Google.</p>
+      </div>
 
       <KeywordSearch nicheLabel={label} />
 

@@ -110,7 +110,8 @@ export function EmailSettingsView() {
     <form onSubmit={save} className="flex flex-col gap-8">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">E-mail</h1>
-        <p className="mt-1 text-sm">
+        <p className="mt-1 text-sm text-muted">
+          Envia o acesso por e-mail para quem compra.{" "}
           {settings.configured ? <span className="text-ok">Envio ativo</span> : <span className="text-muted">Envio desativado</span>}
         </p>
       </div>

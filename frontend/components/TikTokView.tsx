@@ -139,7 +139,10 @@ export function TikTokView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Top anúncios do TikTok</h1>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Top anúncios do TikTok</h1>
+        <p className="mt-1 text-sm text-muted">Anúncios com melhor desempenho no TikTok.</p>
+      </div>
 
       <form
         role="search"

@@ -138,7 +138,9 @@ export function Explorer() {
       ) : (
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Criativos mais escalados</h1>
-          {lastRunAgo && <p className="mt-1 text-sm text-muted">Última coleta {lastRunAgo}</p>}
+          <p className="mt-1 text-sm text-muted">
+            Anúncios do Meta que mais estão escalando.{lastRunAgo && ` Última coleta ${lastRunAgo}.`}
+          </p>
         </div>
       )}
 

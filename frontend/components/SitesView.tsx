@@ -96,7 +96,10 @@ export function SitesView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Sites de venda</h1>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Sites de venda</h1>
+        <p className="mt-1 text-sm text-muted">Sites dos concorrentes que mais anunciam.</p>
+      </div>
 
       <form
         role="search"
