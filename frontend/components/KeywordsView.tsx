@@ -6,6 +6,7 @@ import { api, timeAgo, toQuery, type Collection, type Keyword, type KeywordPage,
 import { useCollections, useNiches } from "@/lib/hooks";
 import { useUrlFilters } from "@/lib/useUrlFilters";
 import { CollectionMenu } from "./CollectionMenu";
+import { ErrorState } from "./ErrorState";
 import { ExportCsv } from "./ExportCsv";
 import { CheckToggle, FilterChips, FilterSelect, FilterToggle, MoreFilters, ScopeToggle, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
 import { CountrySelect } from "./CountrySelect";
@@ -171,12 +172,7 @@ export function KeywordsView() {
       </div>
 
       {error && (
-        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
-          <span title={error}>Não foi possível carregar as palavras-chave: o servidor do Garimppu não respondeu.</span>
-          <button type="button" className="btn h-8 text-xs pointer-coarse:h-11" onClick={() => setAttempt((n) => n + 1)}>
-            Tentar de novo
-          </button>
-        </div>
+        <ErrorState action="carregar as palavras-chave" error={error} onRetry={() => setAttempt((n) => n + 1)} />
       )}
 
       {!loading && !error && items.length === 0 && (
@@ -274,7 +270,7 @@ function KeywordSearch({ nicheLabel }: { nicheLabel: (id: string | null) => stri
       </form>
 
       {busy && <p role="status" className="text-sm text-muted">Consultando o Google (leva uns 10 segundos)...</p>}
-      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+      {error && <ErrorState action="pesquisar no Google" error={error} compact />}
       {result && !busy && (
         items.length === 0 ? (
           <p className="text-sm text-muted">Nenhuma busca encontrada para “{result.term}”.</p>

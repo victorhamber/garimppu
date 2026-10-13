@@ -366,24 +366,64 @@ export class ApiError extends Error {
 
 /** Fired on any 401 outside the login call; the auth provider sends the user to /login with the message. */
 export const AUTH_EVENT = "garimppu:unauthorized";
+/** Fired when a search is created or run, so the nav's "Coletando" indicator refreshes at once. */
+export const MINING_EVENT = "garimppu:mining";
+
+const REQUEST_TIMEOUT_MS = 60_000;
+const MINING_PATH = /^\/api\/searches(\/\d+\/run)?$/;
+
+/** FastAPI puts the reason in `detail`: a string, or a list of field errors on 422. */
+function detailOf(body: unknown): string | null {
+  const detail = (body as { detail?: unknown } | null)?.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    const msgs = detail.map((d) => (d as { msg?: string }).msg).filter(Boolean);
+    return msgs.length ? `Dados inválidos: ${msgs.join("; ")}` : null;
+  }
+  return null;
+}
+
+/** The reason shown to the user: the server's own words when it gave them, otherwise what the status means. */
+function reasonFor(status: number, detail: string | null): string {
+  if (detail && status < 500) return detail;
+  if (status === 401) return "Sua sessão expirou. Entre de novo.";
+  if (status === 403) return "Sua conta não tem acesso a isto.";
+  if (status === 404) return "Não encontrado: o item pode ter sido excluído.";
+  if (status === 429) return "Muitas requisições seguidas. Espere alguns segundos.";
+  if (status === 502 || status === 503 || status === 504) return `O servidor do Garimppu está fora do ar ou reiniciando (erro ${status}).`;
+  return `O servidor do Garimppu teve um erro interno (erro ${status})${detail ? `: ${detail}` : "."}`;
+}
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    cache: "no-store",
-    credentials: "include",
-    ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      cache: "no-store",
+      credentials: "include",
+      signal: init?.signal ?? AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      ...init,
+      headers: { "Content-Type": "application/json", ...init?.headers },
+    });
+  } catch (e) {
+    const timedOut = e instanceof DOMException && e.name === "TimeoutError";
+    const offline = typeof navigator !== "undefined" && !navigator.onLine;
+    throw new ApiError(0, timedOut
+      ? "O servidor do Garimppu demorou demais para responder."
+      : offline ? "Sem internet. Confira sua conexão." : "Sem conexão com o servidor do Garimppu.");
+  }
   if (!res.ok) {
-    let message = res.statusText;
+    let detail: string | null = null;
     try {
-      const body = await res.json();
-      message = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
+      detail = detailOf(await res.json());
     } catch {}
+    const message = reasonFor(res.status, detail);
     if (res.status === 401 && !path.startsWith("/api/auth/login") && typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent(AUTH_EVENT, { detail: message }));
     }
     throw new ApiError(res.status, message);
+  }
+  if (init?.method === "POST" && MINING_PATH.test(path) && typeof window !== "undefined") {
+    window.dispatchEvent(new Event(MINING_EVENT));
   }
   return (res.status === 204 ? undefined : await res.json()) as T;
 }

@@ -11,6 +11,7 @@ import {
 import { useCollections, useNiches } from "@/lib/hooks";
 import { CollectionMenu } from "./CollectionMenu";
 import { CreativeMedia } from "./CreativeMedia";
+import { ErrorState } from "./ErrorState";
 import { formatGrowth, ScoreBadge } from "./Metrics";
 import { Sparkline } from "./Sparkline";
 
@@ -23,15 +24,27 @@ export function CreativeDetailView() {
 
   const [heat, setHeat] = useState<ScoreHeat | null>(null);
 
+  const [attempt, setAttempt] = useState(0);
+
   useEffect(() => {
-    api<CreativeDetail>(`/api/creatives/${id}`).then(setCreative).catch((e: Error) => setError(e.message));
-  }, [id]);
+    let cancelled = false;
+    api<CreativeDetail>(`/api/creatives/${id}`)
+      .then((c) => {
+        if (cancelled) return;
+        setCreative(c);
+        setError(null);
+      })
+      .catch((e: Error) => !cancelled && setError(e.message));
+    return () => {
+      cancelled = true;
+    };
+  }, [id, attempt]);
 
   useEffect(() => {
     api<CreativePage>("/api/creatives?limit=1").then((page) => setHeat(page.heat)).catch(() => setHeat(null));
   }, []);
 
-  if (error) return <p className="text-danger">{error}</p>;
+  if (error) return <ErrorState action="abrir o criativo" error={error} onRetry={() => setAttempt((n) => n + 1)} />;
   if (!creative) return <p className="text-muted">Carregando...</p>;
 
   const s = creative.score;

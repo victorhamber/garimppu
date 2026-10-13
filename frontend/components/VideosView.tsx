@@ -7,6 +7,7 @@ import { useCollections, useNiches } from "@/lib/hooks";
 import { digitsOnly, useUrlFilters } from "@/lib/useUrlFilters";
 import { CollectionMenu } from "./CollectionMenu";
 import { CoverImage, VideoFallback } from "./CoverImage";
+import { ErrorState } from "./ErrorState";
 import { ExportCsv } from "./ExportCsv";
 import { CheckToggle, FilterChips, FilterSelect, FilterToggle, MoreFilters, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
 import { Metric, MetricStrip, ScoreBadge, ScoreLegend, ScoreParts, topMetric } from "./Metrics";
@@ -200,12 +201,7 @@ export function VideosView() {
       </div>
 
       {error && (
-        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
-          <span title={error}>Não foi possível carregar os vídeos: o servidor do Garimppu não respondeu.</span>
-          <button type="button" className="btn h-8 text-xs pointer-coarse:h-11" onClick={() => setAttempt((n) => n + 1)}>
-            Tentar de novo
-          </button>
-        </div>
+        <ErrorState action="carregar os vídeos" error={error} onRetry={() => setAttempt((n) => n + 1)} />
       )}
 
       {!loading && !error && items.length === 0 && (

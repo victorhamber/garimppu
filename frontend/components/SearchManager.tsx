@@ -5,6 +5,7 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 import { api, formatDate, formatDateTime, type Run, type Search, type TikTokIndustry } from "@/lib/api";
 import { useNiches } from "@/lib/hooks";
 import { CountrySelect } from "./CountrySelect";
+import { ErrorState } from "./ErrorState";
 
 const REFRESH_OPTIONS = [
   { value: "", label: "Manual" },
@@ -12,6 +13,8 @@ const REFRESH_OPTIONS = [
   { value: "72", label: "A cada 3 dias" },
   { value: "168", label: "Semanal" },
 ];
+
+const LOAD_ACTION = "carregar suas buscas";
 
 const LANGUAGES: Record<string, string> = { pt: "Português", es: "Espanhol", en: "Inglês" };
 
@@ -88,7 +91,7 @@ export function SearchManager() {
   const [now, setNow] = useState(0);
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ action: string; message: string } | null>(null);
   const [notice, setNotice] = useState<Search | null>(null);
   const [openLog, setOpenLog] = useState<number | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -104,9 +107,9 @@ export function SearchManager() {
       .then((data) => {
         setSearches(data);
         setNow(Date.now());
-        setError(null);
+        setError((e) => (e?.action === LOAD_ACTION ? null : e));
       })
-      .catch((e: Error) => setError(e.message));
+      .catch((e: Error) => setError({ action: LOAD_ACTION, message: e.message }));
   }, []);
 
   useEffect(load, [load]);
@@ -152,34 +155,36 @@ export function SearchManager() {
         max_ads: DEFAULT_BY_SOURCE[form.source] });
       load();
     } catch (err) {
-      setError((err as Error).message);
+      setError({ action: "criar a busca", message: (err as Error).message });
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function runNow(id: number) {
+  /** Runs a search action, and names it in the error when it fails; the list reloads either way. */
+  async function attempt(action: string, request: () => Promise<unknown>) {
+    setError(null);
     try {
-      await api(`/api/searches/${id}/run`, { method: "POST" });
+      await request();
     } catch (err) {
-      setError((err as Error).message);
+      setError({ action, message: (err as Error).message });
     }
     load();
   }
 
-  async function setRefresh(id: number, value: string) {
-    await api(`/api/searches/${id}`, {
+  const runNow = (search: Search) =>
+    attempt(`iniciar a coleta de "${search.term}"`, () => api(`/api/searches/${search.id}/run`, { method: "POST" }));
+
+  const setRefresh = (search: Search, value: string) =>
+    attempt(`mudar a recoleta de "${search.term}"`, () => api(`/api/searches/${search.id}`, {
       method: "PATCH",
       body: JSON.stringify({ refresh_hours: value ? Number(value) : null }),
-    });
-    load();
-  }
+    }));
 
-  async function remove(search: Search) {
+  function remove(search: Search) {
     const kept = `Os ${UNIT[search.source] ?? "criativos"} coletados`;
     if (!confirm(`Excluir a busca "${search.term}"? ${kept} continuam salvos.`)) return;
-    await api(`/api/searches/${search.id}`, { method: "DELETE" });
-    load();
+    attempt(`excluir "${search.term}"`, () => api(`/api/searches/${search.id}`, { method: "DELETE" }));
   }
 
   const set = (key: keyof typeof EMPTY_FORM) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -338,10 +343,9 @@ export function SearchManager() {
             </div>
           )}
         </div>
-        {(error || notice) && (
+        {notice && !error && (
           <div className="flex items-center gap-3">
-            {error && <span className="text-sm text-danger">{error}</span>}
-            {notice && !error && (
+            {notice && (
               <p role="status" className="text-sm text-muted">
                 <span className="text-foreground">{notice.term}</span> já era monitorada desde{" "}
                 {formatDate(notice.monitored_since)}:{" "}
@@ -354,6 +358,11 @@ export function SearchManager() {
         </div>
         )}
       </form>
+
+      {error && (
+        <ErrorState action={error.action} error={error.message}
+          onRetry={error.action === LOAD_ACTION ? load : undefined} compact={error.action !== LOAD_ACTION} />
+      )}
 
       {/* Below 1024px each search is a two-column card; the same markup becomes the table from lg up. */}
       <section className="rounded-lg border border-line">
@@ -435,7 +444,7 @@ export function SearchManager() {
                           <label className="label lg:hidden" htmlFor={`refresh-${s.id}`}>Recoleta</label>
                           <select id={`refresh-${s.id}`} aria-label={`Recoleta de ${s.term}`}
                             className="field h-8 w-full pointer-coarse:h-11 lg:w-36" value={s.refresh_hours ? String(s.refresh_hours) : ""}
-                            onChange={(e) => setRefresh(s.id, e.target.value)}>
+                            onChange={(e) => setRefresh(s, e.target.value)}>
                             {REFRESH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                             {s.refresh_hours && !REFRESH_OPTIONS.some((o) => o.value === String(s.refresh_hours)) && (
                               <option value={String(s.refresh_hours)}>A cada {s.refresh_hours}h</option>
@@ -452,7 +461,7 @@ export function SearchManager() {
                             <button type="button" className="btn h-8 text-xs pointer-coarse:h-11" disabled>Coletada</button>
                           </span>
                         ) : (
-                          <button type="button" className="btn h-8 text-xs pointer-coarse:h-11" onClick={() => runNow(s.id)}
+                          <button type="button" className="btn h-8 text-xs pointer-coarse:h-11" onClick={() => runNow(s)}
                             disabled={!!run && ["queued", "running"].includes(run.status)}>
                             Coletar
                           </button>

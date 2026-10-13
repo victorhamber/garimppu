@@ -15,6 +15,7 @@ import {
 } from "@/lib/api";
 import { useCollections, useNiches } from "@/lib/hooks";
 import { CreativeGrid } from "./CreativeGrid";
+import { ErrorState } from "./ErrorState";
 import { KeywordRow } from "./KeywordsView";
 import { OfferRow } from "./OffersView";
 import { SiteRow } from "./SitesView";
@@ -25,14 +26,25 @@ const SAVED_LIMIT = 200;
 
 type Page = { items: { collection_ids: number[] }[] };
 
-/** One saved list of the collection; null until loaded or when the request fails. */
-function useSavedPage<P>(path: string, id: string, extra: Record<string, string> = {}) {
+/** One saved list of the collection; null until loaded or when the request fails, with the reason in `error`. */
+function useSavedPage<P>(path: string, id: string, attempt: number, extra: Record<string, string> = {}) {
   const [page, setPage] = useState<P | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const query = toQuery({ ...extra, collection_id: id, scope: "all", limit: SAVED_LIMIT });
   useEffect(() => {
-    api<P>(`${path}${query}`).then(setPage).catch(() => setPage(null));
-  }, [path, query]);
-  return [page, setPage] as const;
+    let cancelled = false;
+    api<P>(`${path}${query}`)
+      .then((p) => {
+        if (cancelled) return;
+        setPage(p);
+        setError(null);
+      })
+      .catch((e: Error) => !cancelled && setError(e.message));
+    return () => {
+      cancelled = true;
+    };
+  }, [path, query, attempt]);
+  return [page, setPage, error] as const;
 }
 
 /** Updates an item's collections; drops it from the page once it leaves this collection. */
@@ -63,18 +75,31 @@ export function CollectionDetailView() {
   const { id } = useParams<{ id: string }>();
   const collectionId = Number(id);
   const [collection, setCollection] = useState<Collection | null>(null);
+  const [collectionError, setCollectionError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const { collections, reload } = useCollections();
   const { label } = useNiches();
 
-  const [offers, setOffers] = useSavedPage<OfferPage>("/api/offers", id, { active_only: "false" });
-  const [videos, setVideos] = useSavedPage<VideoPage>("/api/videos", id);
-  const [tiktok, setTikTok] = useSavedPage<TikTokAdPage>("/api/tiktok/ads", id);
-  const [sites, setSites] = useSavedPage<SitePage>("/api/sites", id, { active_only: "false" });
-  const [keywords, setKeywords] = useSavedPage<KeywordPage>("/api/keywords", id);
+  const [offers, setOffers, offersError] = useSavedPage<OfferPage>("/api/offers", id, attempt, { active_only: "false" });
+  const [videos, setVideos, videosError] = useSavedPage<VideoPage>("/api/videos", id, attempt);
+  const [tiktok, setTikTok, tiktokError] = useSavedPage<TikTokAdPage>("/api/tiktok/ads", id, attempt);
+  const [sites, setSites, sitesError] = useSavedPage<SitePage>("/api/sites", id, attempt, { active_only: "false" });
+  const [keywords, setKeywords, keywordsError] = useSavedPage<KeywordPage>("/api/keywords", id, attempt);
+  const error = collectionError ?? offersError ?? sitesError ?? videosError ?? tiktokError ?? keywordsError;
 
   useEffect(() => {
-    api<Collection>(`/api/collections/${id}`).then(setCollection).catch(() => setCollection(null));
-  }, [id]);
+    let cancelled = false;
+    api<Collection>(`/api/collections/${id}`)
+      .then((c) => {
+        if (cancelled) return;
+        setCollection(c);
+        setCollectionError(null);
+      })
+      .catch((e: Error) => !cancelled && setCollectionError(e.message));
+    return () => {
+      cancelled = true;
+    };
+  }, [id, attempt]);
 
   const offerItems = offers?.items ?? [];
   const videoItems = videos?.items ?? [];
@@ -87,6 +112,10 @@ export function CollectionDetailView() {
     <div className="flex flex-col gap-6">
       <BackLink href="/colecoes">Coleções</BackLink>
       <h1 className="text-2xl font-semibold tracking-tight">{collection?.name ?? "Coleção"}</h1>
+      {error && (
+        <ErrorState action={collectionError ? "abrir a coleção" : "carregar parte da coleção"} error={error}
+          onRetry={() => setAttempt((n) => n + 1)} backHref="/colecoes" />
+      )}
 
       {offerItems.length > 0 && (
         <Section id="col-offers" title="Ofertas">

@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { api, toQuery, type Collection, type CollectionRefKind } from "@/lib/api";
+import { ErrorState } from "./ErrorState";
 
 export type CollectionTarget = { creativeId: number } | { offerKey: string } | { kind: CollectionRefKind; ref: string };
 
@@ -33,6 +35,7 @@ function remove(collectionId: number, target: CollectionTarget) {
 export function CollectionMenu({ target, selected, collections, onChange }: Props) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<{ action: string; message: string } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const panelId = useId();
@@ -49,15 +52,21 @@ export function CollectionMenu({ target, selected, collections, onChange }: Prop
   }, [open]);
 
   async function toggle(collectionId: number) {
+    const removing = selected.includes(collectionId);
     setBusy(true);
+    setError(null);
     try {
-      if (selected.includes(collectionId)) {
+      if (removing) {
         await remove(collectionId, target);
         onChange(selected.filter((id) => id !== collectionId));
       } else {
         await add(collectionId, target);
         onChange([...selected, collectionId]);
       }
+    } catch (e) {
+      const name = collections.find((c) => c.id === collectionId)?.name ?? "coleção";
+      setError({ action: removing ? `tirar de "${name}"` : `salvar em "${name}"`, message: (e as Error).message });
+      setOpen(true);
     } finally {
       setBusy(false);
     }
@@ -85,7 +94,7 @@ export function CollectionMenu({ target, selected, collections, onChange }: Prop
         onClick={() => favorites && toggle(favorites.id)}
         aria-pressed={isFavorite}
         aria-label="Favorito"
-        title={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+        title={!favorites ? "Crie uma coleção para salvar" : isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
         className={`btn btn-ghost h-8 rounded-r-none px-2 pointer-coarse:h-11 pointer-coarse:px-3 ${isFavorite ? "text-accent" : "text-muted"}`}
       >
         <svg viewBox="0 0 24 24" className="size-4" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2} aria-hidden="true">
@@ -95,7 +104,10 @@ export function CollectionMenu({ target, selected, collections, onChange }: Prop
       <button
         ref={toggleRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          setOpen((v) => !v);
+          setError(null);
+        }}
         aria-expanded={open}
         aria-controls={panelId}
         aria-label="Salvar em coleção"
@@ -107,8 +119,17 @@ export function CollectionMenu({ target, selected, collections, onChange }: Prop
         </svg>
       </button>
       {open && (
-        <div id={panelId} role="group" aria-label="Coleções" className="absolute right-0 bottom-full z-20 mb-1 w-52 rounded-md border border-line bg-surface p-1 shadow-xl">
-          {collections.length === 0 && <p className="px-2 py-1.5 text-sm text-muted">Nenhuma coleção</p>}
+        <div id={panelId} role="group" aria-label="Coleções" className="absolute right-0 bottom-full z-20 mb-1 w-64 rounded-md border border-line bg-surface p-1 shadow-xl">
+          {error && (
+            <div className="mb-1">
+              <ErrorState action={error.action} error={error.message} compact />
+            </div>
+          )}
+          {collections.length === 0 && (
+            <p className="px-2 py-1.5 text-sm text-muted">
+              Nenhuma coleção. <Link href="/colecoes" className="text-foreground underline decoration-line underline-offset-2 hover:decoration-accent">Criar</Link>
+            </p>
+          )}
           {collections.map((c) => (
             <label key={c.id} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-surface-2 pointer-coarse:py-3">
               <input

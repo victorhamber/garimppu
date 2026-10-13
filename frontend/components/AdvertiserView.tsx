@@ -8,20 +8,31 @@ import { useEffect, useState } from "react";
 import { api, type PageInfo, type Search } from "@/lib/api";
 import { ConfirmMine } from "./ConfirmMine";
 import { CreativeGrid } from "./CreativeGrid";
+import { ErrorState } from "./ErrorState";
 
 export function AdvertiserView() {
   const { pageId } = useParams<{ pageId: string }>();
   const [page, setPage] = useState<PageInfo | null>(null);
   const [activeOnly, setActiveOnly] = useState(true);
   const [existing, setExisting] = useState<Search | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
-    api<PageInfo>(`/api/pages/${pageId}`).then(setPage).catch(() => setPage(null));
-    api<Search[]>("/api/searches")
-      .then((all) => setExisting(all.find((s) => s.page_id === pageId) ?? null))
-      .catch(() => setExisting(null));
-  }, [pageId]);
+    let cancelled = false;
+    Promise.all([api<PageInfo>(`/api/pages/${pageId}`), api<Search[]>("/api/searches")])
+      .then(([info, all]) => {
+        if (cancelled) return;
+        setPage(info);
+        setExisting(all.find((s) => s.page_id === pageId) ?? null);
+        setError(null);
+      })
+      .catch((e: Error) => !cancelled && setError(e.message));
+    return () => {
+      cancelled = true;
+    };
+  }, [pageId, attempt]);
 
   async function minePage() {
     if (existing) {
@@ -70,6 +81,7 @@ export function AdvertiserView() {
           />
         </div>
       </div>
+      {error && <ErrorState action="carregar o anunciante" error={error} onRetry={() => setAttempt((n) => n + 1)} />}
       <CreativeGrid filters={{ page_id: pageId, active_only: activeOnly ? undefined : "false" }} />
     </div>
   );

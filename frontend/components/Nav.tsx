@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
+import { useMining } from "@/lib/hooks";
 import { useAuth } from "./AuthProvider";
 
 const SOURCES = [
@@ -71,6 +72,7 @@ export function Nav() {
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
   const mining = isActive("/buscas");
   const source = SOURCES.find((s) => isActive(s.href));
+  const running = useMining(!!user);
 
   return (
     <>
@@ -86,6 +88,15 @@ export function Nav() {
           {user && (
             <>
               <div className="ml-auto flex items-center gap-2 lg:order-last">
+                <div role="status" className="contents">
+                  {running > 0 && (
+                    <Link href="/buscas" title={`${running} ${running === 1 ? "busca coletando ou na fila" : "buscas coletando ou na fila"}`}
+                      className="inline-flex min-h-6 items-center gap-1.5 rounded bg-accent/15 px-2 py-1 text-xs font-medium whitespace-nowrap text-accent transition-colors hover:bg-accent/25 pointer-coarse:min-h-11">
+                      <span aria-hidden="true" className="size-1.5 rounded-full bg-current motion-safe:animate-pulse" />
+                      Coletando{running > 1 && <span className="font-mono tabular-nums">{running}</span>}
+                    </Link>
+                  )}
+                </div>
                 <Link
                   href="/buscas"
                   aria-current={mining ? "page" : undefined}

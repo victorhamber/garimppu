@@ -320,6 +320,12 @@ Enquanto um criativo só foi visto num dia de coleta, a célula de crescimento m
 ### Status Pill
 Um rótulo de 4px a 12px em peso 500, com no mínimo 24px de altura, fundo da cor de estado a 15% e texto na cor de estado: "Na fila" (neutro), "Coletando" (âmbar, com um ponto desenhado que pulsa só sem reduced-motion), "Concluída" (verde) e "Erro" (vermelho). Clicar no rótulo abre e fecha o log da coleta (`aria-expanded`).
 
+### Indicador "Coletando" (navegação)
+Enquanto alguma busca do usuário está na fila ou coletando, o cabeçalho mostra, antes de Minerar, o Status Pill âmbar "Coletando" (com a contagem quando são várias) e o ponto que pulsa só sem reduced-motion. Leva a Minerar. Consulta a cada 5s enquanto há coleta e a cada 60s sem coleta, pausa em aba oculta e reconsulta na hora quando uma busca é criada ou executada. Aparece também no celular, ao lado do avatar.
+
+### Erro (um componente só)
+`ErrorState`: caixa Alarm Red a 10% com borda a 40%, `role="alert"`. Primeira linha em 500 e Alarm Red: "Não foi possível {ação}." (ex.: "carregar as ofertas", "salvar em \"Favoritos\""). Segunda linha em Quartz White a 80%: o motivo real, como `api()` traduziu: a mensagem do servidor quando ele explica (4xx), ou o que o código significa ("Sem conexão com o servidor do Garimppu.", "O servidor do Garimppu está fora do ar ou reiniciando (erro 503).", "Sua sessão expirou.", "Muitas requisições seguidas."). À direita, "Tentar de novo" e "Voltar" (página anterior, ou o destino da tela, como Coleções). A variante compacta (menus, confirmação de mineração, ações de linha) não tem "Voltar". Nenhuma ação falha calada: o menu de coleção abre e mostra o erro dentro dele.
+
 ### Back Link
 `BackLink`: seta SVG de 16px (traço 2) e texto de 14px em Dust Gray, que clareia no hover. Ocupa só a largura do texto, nunca a linha inteira. Usado no detalhe do criativo, no anunciante, na coleção e nos criativos de uma oferta. Setas e ícones são sempre SVG, nunca caracteres como "←" ou "→".
 

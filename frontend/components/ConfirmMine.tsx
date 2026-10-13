@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { ErrorState } from "./ErrorState";
 
 type Props = {
   /** Label of the button that opens the confirmation, e.g. `Minerar "forex" na Biblioteca`. */
@@ -68,7 +69,7 @@ export function ConfirmMine({ label, consequence, confirmLabel = "Minerar agora"
           Cancelar
         </button>
       </div>
-      {error && <p role="alert" className="text-sm text-danger">Não foi possível iniciar a coleta: {error}</p>}
+      {error && <ErrorState action="iniciar a coleta" error={error} compact />}
     </div>
   );
 }
