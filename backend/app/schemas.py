@@ -174,6 +174,15 @@ class OfferAdvertiser(BaseModel):
     ads: int
 
 
+class OfferEntry(BaseModel):
+    """When an advertiser started running this offer: its earliest ad start (or first sighting)."""
+    page_id: str
+    name: str | None
+    since: date
+    ads: int
+    active: bool
+
+
 class OfferOut(BaseModel):
     key: str
     label: str
@@ -192,6 +201,7 @@ class OfferOut(BaseModel):
     videos: int = 0
     tiktok_ads: int = 0
     platforms: int = 1  # Meta plus TikTok and/or YouTube when the offer shows up there too
+    entries: list[OfferEntry] = []  # only when one offer is asked for by key, oldest first
 
 
 class VideoOut(ORM):

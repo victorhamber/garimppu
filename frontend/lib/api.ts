@@ -124,7 +124,11 @@ export type Offer = {
   tiktok_ads: number;
   /** Meta plus TikTok and/or YouTube when the offer shows up there too. */
   platforms: number;
+  /** When each advertiser started on it, oldest first; only sent when one offer is asked for by `key`. */
+  entries?: OfferEntry[];
 };
+
+export type OfferEntry = { page_id: string; name: string | null; since: string; ads: number; active: boolean };
 
 export type Video = {
   id: string;
@@ -276,6 +280,15 @@ export const OFFER_KINDS: { id: OfferKind; label: string }[] = [
 ];
 
 export const OFFER_KIND_LABEL = Object.fromEntries(OFFER_KINDS.map((k) => [k.id, k.label])) as Record<OfferKind, string>;
+
+/** Label for the button that opens where the offer sells. */
+export const OFFER_OPEN_LABEL: Record<OfferKind, string> = {
+  infoproduto: "Abrir checkout",
+  loja: "Abrir produto",
+  app: "Abrir na loja de apps",
+  conversa: "Abrir conversa",
+  site: "Abrir site",
+};
 
 /** Platform when known (Hotmart, Google Play...), else the offer kind. */
 export function offerTag(offer: { kind: OfferKind; platform: string | null }): string {

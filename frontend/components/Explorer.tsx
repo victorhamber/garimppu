@@ -5,7 +5,8 @@ import { BackLink } from "./BackLink";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, offerTag, timeAgo, toQuery, type CreativeFilters, type Offer, type OfferPage, type Scope, type Search } from "@/lib/api";
-import { useNiches } from "@/lib/hooks";
+import { useCollections, useNiches } from "@/lib/hooks";
+import { OfferDossier } from "./OfferDossier";
 import { digitsOnly, useUrlFilters } from "@/lib/useUrlFilters";
 import { ConfirmMine } from "./ConfirmMine";
 import { CreativeGrid } from "./CreativeGrid";
@@ -32,6 +33,7 @@ export function Explorer() {
   const router = useRouter();
   const { niches, label: nicheLabel } = useNiches();
   const [searches, setSearches] = useState<Search[]>([]);
+  const { collections, reload: reloadCollections } = useCollections();
   const { filters, draft, hasFilters, type, set: update, flush, clear } = useUrlFilters(FILTER_KEYS, TYPED_KEYS);
 
   useEffect(() => {
@@ -118,21 +120,19 @@ export function Explorer() {
 
   return (
     <div className="flex flex-col gap-4 md:gap-6">
-      {filters.offer ? (
+      {filters.offer && offer ? (
+        <OfferDossier offer={offer} collections={collections}
+          onCollectionsChange={(ids) => {
+            setOfferInfo((info) => info?.offer ? { ...info, offer: { ...info.offer, collection_ids: ids } } : info);
+            reloadCollections();
+          }} />
+      ) : filters.offer ? (
         <div>
           <BackLink href="/">Ofertas</BackLink>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-balance">
             Criativos da oferta {offerName && <span className="break-all">{offerName}</span>}
           </h1>
-          {offer && (
-            <p className="mt-1 text-sm text-muted">
-              {offerTag(offer)} ·{" "}
-              <span className="font-mono tabular-nums text-foreground">{offer.advertisers}</span>{" "}
-              {offer.advertisers === 1 ? "anunciante" : "anunciantes"} ·{" "}
-              <span className="font-mono tabular-nums text-foreground">{offer.ads}</span> anúncios ·{" "}
-              <span className="font-mono tabular-nums text-foreground">{offer.days_active}</span> dias no ar
-            </p>
-          )}
+          {!offerResolved && <p role="status" className="mt-1 text-sm text-muted">Carregando a oferta...</p>}
         </div>
       ) : (
         <div>

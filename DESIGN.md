@@ -361,7 +361,13 @@ Um `details` em Micro e Dust Gray logo abaixo da faixa de métricas, fechado por
 Um `details` em texto de 12px: fechado, mostra "brasa top 5% · âmbar top 20% · Como o score é calculado" (no celular, só "Legenda do score"); aberto, a fórmula em uma frase.
 
 ### Linha de oferta
-Três blocos, nesta ordem: **produto** (até 4 miniaturas de 64px, 56px no celular; "#N", nome, selo de score à direita; tipo, chip neutro da plataforma de venda e o link sem "https://"), **sinais** (faixa de métricas de 4 células; abaixo, selo multiplataforma, vídeos e anúncios do TikTok em âmbar, e os anunciantes principais em Dust Gray) e **ações** (coleção e "Ver criativos", alinhadas à direita). A partir de 1280px os três ficam lado a lado; abaixo disso, produto em cima e sinais e ações dividindo a linha de baixo.
+Três blocos, nesta ordem: **produto** (até 4 miniaturas de 64px, 56px no celular; "#N", nome, selo de score à direita; tipo, chip neutro da plataforma de venda e o link sem "https://"), **sinais** (faixa de métricas de 4 células; abaixo, selo multiplataforma, vídeos e anúncios do TikTok em âmbar, e os anunciantes principais em Dust Gray) e **ações** (só a coleção, à direita). O nome da oferta é o link para o dossiê; as miniaturas também levam ao criativo, mas ficam fora do Tab e do leitor de tela. A partir de 1280px os três ficam lado a lado; abaixo disso, produto em cima e sinais e ações dividindo a linha de baixo.
+
+### Dossiê da oferta
+Cabeçalho do Explorar quando há filtro de oferta. Nome em h1, chip da plataforma, tipo e domínio; à direita, o botão para onde ela vende (rótulo pelo tipo: "Abrir checkout", "Abrir produto", "Abrir na loja de apps", "Abrir conversa", "Abrir site", com seta de link externo) e salvar em coleção. Abaixo, dois blocos a partir de 1024px: **Anunciantes entrando** (curva acumulada em degraus, do primeiro anunciante até hoje, no traço âmbar com 12% de preenchimento como a Sparkline; "+N nos últimos 7 dias" em âmbar; os 5 mais recentes com data de entrada e anúncios, "parou" quando nenhum anúncio está ativo) e, ao lado, a faixa de 4 métricas e **Presença** (Meta, TikTok e YouTube; os dois últimos viram link quando há algo, senão "não apareceu"). Com um anunciante só, uma frase substitui a curva. A data de entrada é o início do anúncio mais antigo daquela página na oferta.
+
+### Oferta no detalhe do criativo
+Faixa logo abaixo do anunciante: rótulo "Oferta", nome com o chip da plataforma (link para o dossiê) e o botão para onde ela vende, alinhado à direita. Sem oferta identificada, a faixa mostra "não identificada" e o botão "Abrir página de destino". O painel de copy não repete esse link.
 
 ### Selo multiplataforma
 Quando uma oferta aparece em mais de uma fonte, uma pílula com borda Lantern Amber a 60% e texto âmbar em 600 lista as fontes ("Meta + TikTok + YouTube"). É sinal acima do limiar, por isso âmbar; nunca Ember.

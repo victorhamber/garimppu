@@ -6,12 +6,13 @@ import { BackLink } from "./BackLink";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  api, formatDate, formatDateTime, PLATFORM_LABELS, type CreativeDetail, type ScoreHeat, type CreativePage,
+  api, formatDate, formatDateTime, OFFER_OPEN_LABEL, offerTag, PLATFORM_LABELS, type CreativeDetail, type ScoreHeat, type CreativePage,
 } from "@/lib/api";
 import { useCollections, useNiches } from "@/lib/hooks";
 import { CollectionMenu } from "./CollectionMenu";
 import { CreativeMedia } from "./CreativeMedia";
 import { ErrorState } from "./ErrorState";
+import { ExternalIcon } from "./ExternalIcon";
 import { formatGrowth, ScoreBadge } from "./Metrics";
 import { Sparkline } from "./Sparkline";
 
@@ -140,6 +141,27 @@ export function CreativeDetailView() {
             </div>
           </div>
 
+          {(creative.offer || creative.link_url) && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-line bg-surface px-4 py-3">
+              <span className="label mb-0">Oferta</span>
+              {creative.offer ? (
+                <Link href={`/criativos?offer=${encodeURIComponent(creative.offer.key)}`}
+                  className="flex min-w-0 items-center gap-2 font-medium transition-colors hover:text-accent">
+                  <span className="truncate">{creative.offer.label}</span>
+                  <span className="shrink-0 rounded-full border border-line px-2 text-micro font-normal text-muted">{offerTag(creative.offer)}</span>
+                </Link>
+              ) : (
+                <span className="text-sm text-muted">não identificada</span>
+              )}
+              {creative.link_url && (
+                <a href={creative.link_url} target="_blank" rel="noreferrer" className="btn ml-auto h-8 text-xs pointer-coarse:h-11">
+                  {creative.offer ? OFFER_OPEN_LABEL[creative.offer.kind] : "Abrir página de destino"}
+                  <ExternalIcon />
+                </a>
+              )}
+            </div>
+          )}
+
           {s && (
             <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-3 md:grid-cols-5 lg:max-xl:grid-cols-3">
               <Stat label="Anúncios ativos" value={s.duplicates} hint="soma das cópias deste criativo, incluindo as agrupadas pela Meta" />
@@ -161,9 +183,6 @@ export function CreativeDetailView() {
               <p className="max-w-prose whitespace-pre-line text-sm leading-relaxed">{creative.body ?? "Sem texto"}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {creative.cta_text && <span className="rounded bg-surface-2 px-2 py-1 text-xs">{creative.cta_text}</span>}
-                {creative.link_url && (
-                  <a href={creative.link_url} target="_blank" rel="noreferrer" className="btn h-7 text-xs pointer-coarse:h-11">Abrir página de destino</a>
-                )}
                 {creative.library_url && (
                   <a href={creative.library_url} target="_blank" rel="noreferrer" className="btn h-7 text-xs pointer-coarse:h-11">Ver na Biblioteca</a>
                 )}

@@ -226,9 +226,8 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
     <article className="grid gap-3 rounded-lg border border-line bg-surface p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end xl:grid-cols-[minmax(0,1fr)_minmax(22rem,26rem)_auto] xl:items-center xl:gap-x-5">
       <div className="flex min-w-0 flex-col gap-2 sm:col-span-2 sm:flex-row sm:items-center sm:gap-3 xl:col-span-1">
         <div className="flex shrink-0 gap-1.5">
-          {offer.previews.map((p, i) => (
-            <Link key={p.creative_id} href={`/criativos/${p.creative_id}`}
-              aria-label={`Criativo ${i + 1} da oferta ${offer.label}${p.media_type === "video" ? " (vídeo)" : ""}`}
+          {offer.previews.map((p) => (
+            <Link key={p.creative_id} href={`/criativos/${p.creative_id}`} tabIndex={-1} aria-hidden="true"
               className="relative size-14 shrink-0 overflow-hidden rounded-md bg-surface-2 sm:size-16">
               {p.image ? (
                 <CoverImage src={mediaUrl(p.image)!} alt="" className="h-full w-full object-cover"
@@ -246,7 +245,12 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex min-w-0 items-center gap-2">
             <span className="font-mono text-xs text-muted">#{rank}</span>
-            <h2 className="min-w-0 flex-1 truncate font-medium" title={offer.key}>{offer.label}</h2>
+            <h2 className="min-w-0 flex-1 truncate font-medium" title={offer.key}>
+              <Link href={`/criativos?offer=${encodeURIComponent(offer.key)}`}
+                className="underline decoration-transparent underline-offset-2 transition-colors hover:text-accent hover:decoration-accent">
+                {offer.label}
+              </Link>
+            </h2>
             <ScoreBadge value={offer.score} heat={heat}
               title="Score da oferta: soma anunciantes, anúncios, criativos e dias no ar, com bônus se também está no TikTok ou no YouTube" />
           </div>
@@ -302,9 +306,6 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
       <div className="flex items-center justify-end gap-1">
         <CollectionMenu target={{ offerKey: offer.key }} selected={offer.collection_ids} collections={collections}
           onChange={onCollectionsChange} />
-        <Link href={`/criativos?offer=${encodeURIComponent(offer.key)}`} className="btn h-8 whitespace-nowrap text-xs pointer-coarse:h-11">
-          Ver criativos
-        </Link>
       </div>
     </article>
   );

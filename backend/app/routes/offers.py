@@ -24,7 +24,7 @@ from app.pipeline.offers import offer_label
 from app.pipeline.scoring import MAX_LONGEVITY_DAYS, count_duplicates, days_running
 from app.pipeline.sources import SCOPE_HELP, resolve_scope, user_search_source, user_source_ids
 from app.routes.collections import user_collection_ids
-from app.schemas import OfferAdvertiser, OfferOut, OfferPage, OfferPreview, ScoreHeat
+from app.schemas import OfferAdvertiser, OfferEntry, OfferOut, OfferPage, OfferPreview, ScoreHeat
 from app.serializers import media_path
 
 router = APIRouter(prefix="/api/offers", tags=["offers"])
@@ -98,6 +98,24 @@ def _build_offer(key: str, ads: list[Ad], today: date) -> OfferOut:
             for c in previews
         ],
     )
+
+
+def _entries(ads: list[Ad]) -> list[OfferEntry]:
+    by_page: dict[str, list[Ad]] = {}
+    for ad in ads:
+        if ad.page_id:
+            by_page.setdefault(ad.page_id, []).append(ad)
+    entries = [
+        OfferEntry(
+            page_id=pid,
+            name=next((a.page.name for a in page_ads if a.page and a.page.name), None),
+            since=min(a.start_date or a.first_seen_at.date() for a in page_ads),
+            ads=count_duplicates(page_ads),
+            active=any(a.is_active for a in page_ads),
+        )
+        for pid, page_ads in by_page.items()
+    ]
+    return sorted(entries, key=lambda e: e.since)
 
 
 SORT_KEYS = {
@@ -181,6 +199,8 @@ def list_offers(
 
     today = date.today()
     offers = [_build_offer(key, ads, today) for key, ads in groups.items()]
+    if key and offers:
+        offers[0].entries = _entries(groups[key])
     videos, tiktok = _cross_platform_counts(db, list(groups))
     for offer in offers:
         offer.videos = videos.get(offer.key, 0)
