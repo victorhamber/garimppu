@@ -123,6 +123,7 @@ export function SearchManager() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<{ action: string; message: string } | null>(null);
+  const [refreshNote, setRefreshNote] = useState<{ id: number; text: string } | null>(null);
   const [notice, setNotice] = useState<Search | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [createdId, setCreatedId] = useState<number | null>(null);
@@ -211,24 +212,32 @@ export function SearchManager() {
   }
 
   /** Runs a search action, and names it in the error when it fails; the list reloads either way. */
-  async function attempt(action: string, request: () => Promise<unknown>) {
+  async function attempt(action: string, request: () => Promise<unknown>): Promise<boolean> {
     setError(null);
+    let ok = true;
     try {
       await request();
     } catch (err) {
       setError({ action, message: (err as Error).message });
+      ok = false;
     }
     load();
+    return ok;
   }
 
   const runNow = (search: Search) =>
     attempt(`iniciar a coleta de "${search.term}"`, () => api(`/api/searches/${search.id}/run`, { method: "POST" }));
 
-  const setRefresh = (search: Search, value: string) =>
-    attempt(`mudar a recoleta de "${search.term}"`, () => api(`/api/searches/${search.id}`, {
+  async function setRefresh(search: Search, value: string) {
+    setRefreshNote({ id: search.id, text: "Salvando..." });
+    const ok = await attempt(`mudar a recoleta de "${search.term || KIND_LABEL[search.source]}"`, () => api(`/api/searches/${search.id}`, {
       method: "PATCH",
       body: JSON.stringify({ refresh_hours: value ? Number(value) : null }),
     }));
+    const label = REFRESH_OPTIONS.find((o) => o.value === value)?.label ?? `A cada ${value}h`;
+    setRefreshNote(ok ? { id: search.id, text: `Salvo: ${label.toLowerCase()}` } : null);
+    if (ok) setTimeout(() => setRefreshNote((n) => (n?.id === search.id ? null : n)), 3000);
+  }
 
   function remove(search: Search) {
     const name = search.term || KIND_LABEL[search.source];
@@ -527,6 +536,9 @@ export function SearchManager() {
                               <option value={String(s.refresh_hours)}>A cada {s.refresh_hours}h</option>
                             )}
                           </select>
+                          <p role="status" className="mt-1 text-micro text-muted empty:hidden">
+                            {refreshNote?.id === s.id ? refreshNote.text : ""}
+                          </p>
                         </>
                       )}
                     </td>

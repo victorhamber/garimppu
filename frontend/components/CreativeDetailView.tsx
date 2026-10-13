@@ -16,8 +16,6 @@ import { ExternalIcon } from "./ExternalIcon";
 import { formatGrowth, ScoreBadge } from "./Metrics";
 import { Sparkline } from "./Sparkline";
 
-const AD_SOURCE: Record<string, string> = { api: "API da Meta", scraper: "Site da Biblioteca", both: "API e site" };
-
 const block = "rounded bg-surface-2 motion-safe:animate-pulse";
 
 /** Same frame as the loaded page (media left, header and stats right) so nothing jumps when it arrives. */
@@ -210,7 +208,6 @@ export function CreativeDetailView() {
                 <th className="px-3 py-2 font-medium">Início</th>
                 <th className="px-3 py-2 font-medium">Cópias</th>
                 <th className="px-3 py-2 font-medium">Status</th>
-                <th className="px-3 py-2 font-medium">Coletado por</th>
               </tr>
             </thead>
             <tbody className="block divide-y divide-line sm:table-row-group">
@@ -226,9 +223,7 @@ export function CreativeDetailView() {
                   </td>
                   <td className="sm:px-3 sm:py-2">
                     <span className={ad.is_active ? "text-ok" : "text-muted"}>{ad.is_active ? "Ativo" : "Inativo"}</span>
-                  </td>
-                  <td className="text-muted sm:px-3 sm:py-2"><span className="sm:hidden">via </span>{AD_SOURCE[ad.source] ?? ad.source}</td>
-                </tr>
+                  </td>                </tr>
               ))}
             </tbody>
           </table>

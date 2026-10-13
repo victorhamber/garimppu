@@ -104,6 +104,24 @@ def get_collection(collection_id: int, db: Session = Depends(get_db), user: User
     return _out(db, _get(db, collection_id, user))
 
 
+@router.patch("/{collection_id}", response_model=CollectionOut)
+def rename_collection(collection_id: int, payload: CollectionCreate, db: Session = Depends(get_db),
+                      user: User = Depends(current_user)):
+    collection = _get(db, collection_id, user)
+    name = payload.name.strip()
+    if not name:
+        raise HTTPException(422, "Dê um nome à coleção")
+    if collection.name == DEFAULT_COLLECTION or name == DEFAULT_COLLECTION:
+        raise HTTPException(409, f'"{DEFAULT_COLLECTION}" é a coleção da estrela e não muda de nome')
+    collection.name = name
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, "Já existe uma coleção com esse nome")
+    return _out(db, collection)
+
+
 @router.delete("/{collection_id}", status_code=204)
 def delete_collection(collection_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
     db.delete(_get(db, collection_id, user))

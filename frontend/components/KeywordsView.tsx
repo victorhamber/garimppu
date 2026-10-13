@@ -222,7 +222,7 @@ function Growth({ keyword }: { keyword: Keyword }) {
   if (traffic == null || before == null || before === 0 || traffic === before) return null;
   const up = traffic > before;
   return (
-    <span className={up ? "text-ok" : "text-danger"} title={`No dia anterior em alta: ${formatTraffic(before)} buscas`}>
+    <span className={up ? "text-foreground" : "text-danger"} title={`No dia anterior em alta: ${formatTraffic(before)} buscas`}>
       {up ? "▲" : "▼"} {Math.round(Math.abs(traffic / before - 1) * 100)}%
     </span>
   );
@@ -293,7 +293,7 @@ function KeywordSearch({ nicheLabel }: { nicheLabel: (id: string | null) => stri
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-baseline gap-x-2">
                       <span className="font-medium">{s.term}</span>
-                      {s.trending && <span className="rounded bg-ok/15 px-1.5 text-micro font-medium text-ok">em alta</span>}
+                      {s.trending && <span className="inline-flex items-center gap-1 rounded bg-surface-2 px-1.5 text-micro font-medium text-foreground"><span aria-hidden="true" className="size-1.5 rounded-full bg-accent" />em alta</span>}
                     </div>
                     <div className="mt-1 flex items-center gap-2 text-xs text-muted">
                       <span className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-2" aria-hidden="true">
@@ -391,7 +391,7 @@ export function KeywordRow({ keyword, heat, nicheLabel, collections, onCollectio
         <div className="flex flex-wrap items-baseline gap-x-2">
           <span className="font-medium">{keyword.term}</span>
           {keyword.trending_now && (
-            <span className="rounded bg-ok/15 px-1.5 text-micro font-medium text-ok">agora</span>
+            <span className="inline-flex items-center gap-1 rounded bg-surface-2 px-1.5 text-micro font-medium text-foreground"><span aria-hidden="true" className="size-1.5 rounded-full bg-accent" />em alta agora</span>
           )}
         </div>
         <p className="text-xs text-muted">

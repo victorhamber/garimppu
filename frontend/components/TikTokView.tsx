@@ -282,7 +282,7 @@ export function TikTokCard({ ad, rank, heat, collections, onCollectionsChange }:
         )}
         {ad.ctr_rank != null && (
           <span className={`absolute left-2 top-2 rounded px-1.5 py-0.5 text-micro font-semibold ${topCtr ? "bg-accent text-accent-ink" : "border border-line bg-background/85 text-foreground"}`}>
-            CTR top {formatCtr(ad.ctr_rank)}
+            CTR no top {formatCtr(ad.ctr_rank)} do nicho
           </span>
         )}
         {duration && (
@@ -305,8 +305,8 @@ export function TikTokCard({ ad, rank, heat, collections, onCollectionsChange }:
         </p>
 
         <MetricStrip className="grid-cols-4">
-          <Metric label="CTR top" value={formatCtr(ad.ctr_rank)} strong={topCtr}
-            title="Posição do CTR entre os anúncios do mesmo nicho: 3% = melhor que 97% deles" />
+          <Metric label="CTR no nicho" value={ad.ctr_rank != null ? `top ${formatCtr(ad.ctr_rank)}` : "—"} strong={topCtr}
+            title="Posição do CTR entre os anúncios do mesmo nicho: top 3% = melhor que 97% deles" />
           <Metric label="curtidas" value={compact.format(ad.likes)} strong={topMetric(heat, "likes", ad.likes)} />
           <Metric label="coment." value={ad.comments != null ? compact.format(ad.comments) : "—"}
             strong={topMetric(heat, "comments", ad.comments)} />

@@ -146,7 +146,7 @@ const FORMULAS = {
 
 const GLOSSARY: Partial<Record<keyof typeof FORMULAS, string>> = {
   video: "Vs. inscritos: quantas vezes as views passam o número de inscritos do canal. Engaj.: curtidas e comentários por view (comentário vale o dobro). Acelerando ou desacelerando: views por dia desde a última coleta contra a média desde a publicação; aparece a partir da 2ª coleta.",
-  tiktok: "CTR top 3%: o CTR do anúncio é melhor que o de 97% dos anúncios do mesmo nicho.",
+  tiktok: "CTR no top 3% do nicho: a taxa de cliques do anúncio é melhor que a de 97% dos anúncios do mesmo nicho.",
 };
 
 const HEAT_KEY = (

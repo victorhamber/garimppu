@@ -2,7 +2,7 @@
 
 import { BackLink } from "./BackLink";
 import { useParams } from "next/navigation";
-import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import {
   api,
   toQuery,
@@ -17,12 +17,14 @@ import { useCollections, useNiches } from "@/lib/hooks";
 import { CreativeGrid } from "./CreativeGrid";
 import { ErrorState } from "./ErrorState";
 import { KeywordRow } from "./KeywordsView";
+import { ListSkeleton } from "./Skeleton";
 import { OfferRow } from "./OffersView";
 import { SiteRow } from "./SitesView";
 import { TikTokCard } from "./TikTokView";
 import { VideoCard } from "./VideosView";
 
 const SAVED_LIMIT = 200;
+const DEFAULT_COLLECTION = "Favoritos";
 
 type Page = { items: { collection_ids: number[] }[] };
 
@@ -71,6 +73,63 @@ function Section({ id, title, children }: { id: string; title: string; children:
   );
 }
 
+/** The name, renamed in place; "Favoritos" is the star's collection and keeps its name. */
+function CollectionTitle({ collection, onRenamed }: { collection: Collection; onRenamed: (c: Collection) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(collection.name);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const renameRef = useRef<HTMLButtonElement>(null);
+  const fixed = collection.name === DEFAULT_COLLECTION;
+
+  function close() {
+    setEditing(false);
+    setError(null);
+    requestAnimationFrame(() => renameRef.current?.focus());
+  }
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    const next = name.trim();
+    if (!next || next === collection.name) return close();
+    setSaving(true);
+    try {
+      onRenamed(await api<Collection>(`/api/collections/${collection.id}`, { method: "PATCH", body: JSON.stringify({ name: next }) }));
+      close();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!editing) {
+    return (
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h1 className="min-w-0 text-2xl font-semibold tracking-tight break-words">{collection.name}</h1>
+        {!fixed && (
+          <button ref={renameRef} type="button" className="btn btn-ghost h-8 text-xs text-muted pointer-coarse:h-11"
+            onClick={() => { setName(collection.name); setEditing(true); }}>
+            Renomear
+          </button>
+        )}
+      </div>
+    );
+  }
+  return (
+    <form onSubmit={save} className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="sr-only" htmlFor="collection-name">Nome da coleção</label>
+        <input id="collection-name" className="field h-10 w-80 max-w-full text-lg font-semibold" value={name} maxLength={128}
+          autoFocus onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Escape" && close()} />
+        <button type="submit" className="btn btn-primary h-10" disabled={saving}>{saving ? "Salvando..." : "Salvar"}</button>
+        <button type="button" className="btn btn-ghost h-10" onClick={close}>Cancelar</button>
+      </div>
+      {error && <ErrorState action="renomear a coleção" error={error} compact />}
+    </form>
+  );
+}
+
 export function CollectionDetailView() {
   const { id } = useParams<{ id: string }>();
   const collectionId = Number(id);
@@ -111,15 +170,34 @@ export function CollectionDetailView() {
   const siteItems = sites?.items ?? [];
   const keywordItems = keywords?.items ?? [];
   const hasOthers = offerItems.length + videoItems.length + tiktokItems.length + siteItems.length + keywordItems.length > 0;
+  /** Offers or other sources but no creatives: an empty creatives grid would read as "0" next to saved items. */
+  const onlyOthers = !!collection && collection.items_count === 0 && collection.offers_count + collection.refs_count > 0;
+  const offersLoading = !!collection && collection.offers_count > 0 && !offers && !offersError;
+  const refsLoading = !!collection && collection.refs_count > 0
+    && [sites ?? sitesError, videos ?? videosError, tiktok ?? tiktokError, keywords ?? keywordsError].some((p) => p == null);
 
   return (
     <div className="flex flex-col gap-6">
       <BackLink href="/colecoes">Coleções</BackLink>
-      <h1 className="text-2xl font-semibold tracking-tight">{collection?.name ?? "Coleção"}</h1>
+      {collection ? (
+        <CollectionTitle collection={collection} onRenamed={(c) => { setCollection(c); reload(); }} />
+      ) : collectionError ? (
+        <h1 className="text-2xl font-semibold tracking-tight">Coleção</h1>
+      ) : (
+        <div aria-hidden="true" className="h-8 w-56 rounded bg-surface-2 motion-safe:animate-pulse" />
+      )}
+      <p role="status" className="sr-only">{!collection && !collectionError || offersLoading || refsLoading ? "Carregando a coleção..." : ""}</p>
       {error && (
         <ErrorState action={collectionError ? "abrir a coleção" : "carregar parte da coleção"} error={error}
           onRetry={() => setAttempt((n) => n + 1)} backHref="/colecoes" />
       )}
+
+      {offersLoading && (
+        <Section id="col-offers-loading" title="Ofertas">
+          <ListSkeleton variant="thumb-rows" count={Math.min(collection?.offers_count ?? 1, 3)} />
+        </Section>
+      )}
+      {refsLoading && <ListSkeleton variant="rows" count={Math.min(collection?.refs_count ?? 1, 3)} />}
 
       {offerItems.length > 0 && (
         <Section id="col-offers" title="Ofertas">
@@ -193,16 +271,18 @@ export function CollectionDetailView() {
         </Section>
       )}
 
-      <section aria-labelledby={hasOthers ? "col-creatives" : undefined} className="flex flex-col gap-3">
-        {hasOthers && <h2 id="col-creatives" className="text-lg font-semibold">Criativos</h2>}
-        <CreativeGrid
-          filters={{ collection_id: id, active_only: "false" }}
-          heading={!hasOthers}
-          emptyMessage={hasOthers ? "Nenhum criativo nesta coleção."
-            : collection?.name === "Favoritos" ? "Nada salvo ainda. A estrela de qualquer card salva aqui."
-            : `Nada salvo ainda. Na seta ao lado da estrela de qualquer card, escolha "${collection?.name ?? "esta coleção"}".`}
-        />
-      </section>
+      {!onlyOthers && (
+        <section aria-labelledby={hasOthers ? "col-creatives" : undefined} className="flex flex-col gap-3">
+          {hasOthers && <h2 id="col-creatives" className="text-lg font-semibold">Criativos</h2>}
+          <CreativeGrid
+            filters={{ collection_id: id, active_only: "false" }}
+            heading={!hasOthers}
+            emptyMessage={hasOthers ? "Nenhum criativo nesta coleção."
+              : collection?.name === DEFAULT_COLLECTION ? "Nada salvo ainda. A estrela de qualquer card salva aqui."
+              : `Nada salvo ainda. Na seta ao lado da estrela de qualquer card, escolha "${collection?.name ?? "esta coleção"}".`}
+          />
+        </section>
+      )}
     </div>
   );
 }

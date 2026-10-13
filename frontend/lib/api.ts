@@ -409,6 +409,21 @@ function reasonFor(status: number, detail: string | null): string {
 }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await request(path, init);
+  if (init?.method === "POST" && MINING_PATH.test(path) && typeof window !== "undefined") {
+    window.dispatchEvent(new Event(MINING_EVENT));
+  }
+  return (res.status === 204 ? undefined : await res.json()) as T;
+}
+
+/** A file from the API (CSV export), with the same error messages as `api()`. */
+export async function apiFile(path: string): Promise<{ blob: Blob; filename: string | null }> {
+  const res = await request(path, { headers: { Accept: "text/csv" } });
+  const filename = /filename="?([^";]+)"?/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? null;
+  return { blob: await res.blob(), filename };
+}
+
+async function request(path: string, init?: RequestInit): Promise<Response> {
   let res: Response;
   try {
     res = await fetch(`${API_URL}${path}`, {
@@ -436,10 +451,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     }
     throw new ApiError(res.status, message);
   }
-  if (init?.method === "POST" && MINING_PATH.test(path) && typeof window !== "undefined") {
-    window.dispatchEvent(new Event(MINING_EVENT));
-  }
-  return (res.status === 204 ? undefined : await res.json()) as T;
+  return res;
 }
 
 export function toQuery(params: Record<string, string | number | undefined | null>): string {

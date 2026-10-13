@@ -304,7 +304,7 @@ O selo nunca mostra o score bruto: mostra a posição relativa, "top 1%", "top 5
 Uma faixa de 3 a 5 células iguais, com divisórias de 1px desenhadas pelo gap sobre fundo Seam Line e cantos externos de 8px. No código, o rótulo (`dt`) vem antes do valor (`dd`), e `flex-col-reverse` mantém o valor em cima. Cada célula tem o valor em Metric (âmbar se passa do limiar, Alarm Red se negativo) e a legenda em Micro, na cor Dust Gray. É um componente só (`MetricStrip` + `Metric`) e aparece nos cartões de criativo (anúncios, dias, crescimento), nas linhas de oferta e de site (anunciantes, anúncios, criativos ou produtos, dias), nos cartões de vídeo e de TikTok e no detalhe do criativo.
 
 ### Exportar e salvar (toda lista)
-Toda lista (Criativos, Ofertas, Sites, Vídeos, TikTok, Palavras-chave) tem "Exportar CSV" à direita da linha do contador, com os filtros atuais e até 5.000 linhas. Todo item tem o menu de coleção; uma coleção guarda criativos, ofertas, sites, vídeos, anúncios do TikTok e palavras-chave, e a tela da coleção mostra uma seção por tipo.
+Toda lista (Criativos, Ofertas, Sites, Vídeos, TikTok, Palavras-chave) tem "Exportar CSV" à direita da linha do contador, com os filtros atuais e até 5.000 linhas. Ao lado do botão, uma linha `role="status"` diz "Gerando o CSV...", depois "CSV baixado: N linhas" por 4 s, ou o motivo da falha em Alarm Red com o botão virando "Tentar de novo". Mudar a recoleta de uma busca mostra "Salvando..." e "Salvo: diário" logo abaixo do select por 3 s. Todo item tem o menu de coleção; uma coleção guarda criativos, ofertas, sites, vídeos, anúncios do TikTok e palavras-chave, e a tela da coleção mostra uma seção por tipo.
 
 ### Offer Line (cartão de criativo)
 Logo abaixo da faixa de métricas: um chip neutro (borda Seam Line, texto Quartz White, 11px) com a plataforma de venda ou o tipo de oferta, seguido do nome curto em Dust Gray. A linha inteira leva aos criativos daquela oferta. O chip é neutro de propósito: âmbar em todos os cartões quebraria The One Lantern Rule.
@@ -327,6 +327,12 @@ Cada página tem o seu título, no formato "Página · Garimppu" ("Minerar · Ga
 - **Mineração:** o filtro que limita a lista ao que uma busca de Minerar coletou ("Mineração: renda extra", "Todas"). "Buscar" fica só para o campo de texto.
 - **Sites de venda:** o nome das buscas de sites, igual ao menu.
 - **Frase exata:** no campo de Minerar, aspas buscam a frase exata; o exemplo do campo e a legenda dizem isso.
+
+### Verde é só sucesso
+Vein Green marca o que deu certo ou está em ordem: "Concluída", "Pronto", "Ativa", "Envio ativo", mensagens salvas. Sinal de tendência não é sucesso: "em alta" e "em alta agora" das palavras-chave são um chip Ledge Slate com texto Quartz White e um ponto Lantern Amber de 6px; a alta do volume aparece em Quartz White, e a queda em Alarm Red.
+
+### Coleção
+O título tem "Renomear" ao lado (menos em Favoritos, a coleção da estrela); o nome vira um campo no lugar, com Salvar, Cancelar e Escape, e o foco volta ao botão. Enquanto carrega, o título é uma barra de esqueleto e cada seção que a contagem da coleção promete aparece como esqueleto (ofertas com miniaturas, outras fontes em linhas). Coleção sem criativos não mostra a grade de criativos. Na lista de coleções, a linha diz só o que existe ("2 ofertas", "3 criativos · 1 item de outras fontes"), ou "Vazia".
 
 ### Dicas visíveis
 Nada essencial mora só no `title`, porque no toque ele não existe. Em Minerar, uma legenda de uma linha (12px, Dust Gray, `aria-describedby` dos campos) muda com a fonte e diz o que ela coleta e o limite. Métricas com nome curto ("vs. inscritos", "engaj.", "CTR top 3%") são explicadas ao abrir a legenda do score. A nota de marcas grandes diz o porquê na própria frase. O `title` fica só como repetição para o mouse.
@@ -365,7 +371,7 @@ Primeiro foco da página: "Pular para o conteúdo" (botão âmbar que desce do t
 `BackLink`: seta SVG de 16px (traço 2) e texto de 14px em Dust Gray, que clareia no hover. Ocupa só a largura do texto, nunca a linha inteira. Usado no detalhe do criativo, no anunciante, na coleção e nos criativos de uma oferta. Setas e ícones são sempre SVG, nunca caracteres como "←" ou "→".
 
 ### Cartão de mídia (Vídeos e TikTok)
-Cartão Shaft Slate com a capa no topo (16:9 no YouTube, quadrada no TikTok, sempre recortada) e, sobre ela, selos de mídia: Mine Black a 85% com borda Seam Line e texto Quartz White ("Short", duração em Geist Mono no canto inferior direito). O selo "CTR top N%" do TikTok vira Lantern Amber com Ore Ink só quando o CTR do anúncio está no top 10% do resultado (mesmo corte da faixa de métricas). Abaixo: posição "#N", título em 2 linhas, selo de score à direita, linha de contexto em Dust Gray (canal ou marca, nicho, data), faixa de métricas de 4 células e "Pontos do score" fechado.
+Cartão Shaft Slate com a capa no topo (16:9 no YouTube, quadrada no TikTok, sempre recortada) e, sobre ela, selos de mídia: Mine Black a 85% com borda Seam Line e texto Quartz White ("Short", duração em Geist Mono no canto inferior direito). O selo "CTR no top N% do nicho" do TikTok (na faixa: "CTR no nicho", valor "top N%") vira Lantern Amber com Ore Ink só quando o CTR do anúncio está no top 10% do resultado (mesmo corte da faixa de métricas). Abaixo: posição "#N", título em 2 linhas, selo de score à direita, linha de contexto em Dust Gray (canal ou marca, nicho, data), faixa de métricas de 4 células e "Pontos do score" fechado.
 
 ### Pontos do score (decomposição, sob demanda)
 Um `details` em Micro e Dust Gray logo abaixo da faixa de métricas, fechado por padrão ("Pontos do score ▾"). Aberto, lista as parcelas que somam o score ("views/dia 3,1 · acima do canal 0,8 · ..."), com "—" para parcela ainda sem dado. O mesmo texto aparece no title do selo de score.

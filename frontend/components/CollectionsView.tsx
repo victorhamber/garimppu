@@ -2,10 +2,22 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { api, formatDate } from "@/lib/api";
+import { api, formatDate, type Collection } from "@/lib/api";
 import { useCollections } from "@/lib/hooks";
 import { ErrorState } from "./ErrorState";
 import { UndoToast, useUndoableDelete } from "./UndoToast";
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/** Only what the collection holds: "2 ofertas", never "2 ofertas · 0 criativos". */
+function summary(c: Collection): string {
+  const parts = [
+    c.offers_count > 0 && plural(c.offers_count, "oferta", "ofertas"),
+    c.items_count > 0 && plural(c.items_count, "criativo", "criativos"),
+    c.refs_count > 0 && plural(c.refs_count, "item de outras fontes", "itens de outras fontes"),
+  ].filter(Boolean);
+  return parts.length ? parts.join(" · ") : "Vazia";
+}
 
 export function CollectionsView() {
   const { collections, reload } = useCollections();
@@ -58,8 +70,7 @@ export function CollectionsView() {
           <div key={c.id} className="flex items-center justify-between rounded-lg border border-line bg-surface p-4">
             <Link href={`/colecoes/${c.id}`} className="min-w-0">
               <p className="truncate font-medium hover:text-accent">{c.name}</p>
-              <p className="text-xs text-muted">{c.offers_count > 0 && `${c.offers_count} ${c.offers_count === 1 ? "oferta" : "ofertas"} · `}
-                {c.items_count} criativos{c.refs_count > 0 && ` · ${c.refs_count} de outras fontes`} · criada em {formatDate(c.created_at)}</p>
+              <p className="text-xs text-muted">{summary(c)} · criada em {formatDate(c.created_at)}</p>
             </Link>
             {c.name !== "Favoritos" && (
               <button type="button" onClick={() => remove(c.id, c.name)} aria-label={`Excluir a coleção ${c.name}`}
