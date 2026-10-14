@@ -21,6 +21,7 @@ function showAccount(account) {
 async function start() {
   const { account } = await chrome.storage.local.get("account");
   showAccount(account || null);
+  place();
   if (!account?.subscriber) return;
   const result = await chrome.runtime.sendMessage({ type: "me" });
   if (!result.ok && result.status === 401) {
@@ -51,6 +52,49 @@ connectForm.addEventListener("submit", async (event) => {
     upgrade_url: result.data.upgrade_url };
   await chrome.storage.local.set({ account, leadPingAt: Date.now() });
   showAccount(account);
+  place();
+});
+
+const go = document.getElementById("go");
+const note = document.getElementById("note");
+let mineTab = null;
+
+async function place() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  mineTab = tab || null;
+  if (!tab?.id) return;
+  let here = null;
+  try {
+    here = await chrome.tabs.sendMessage(tab.id, { type: "where" });
+  } catch {}
+  if (here?.page !== "youtube") return;
+  go.dataset.youtube = "1";
+  go.removeAttribute("target");
+  if (here.results) {
+    note.textContent = `Busca “${here.term}”. Os filtros e a rolagem ficam na barra da página.`;
+    go.textContent = "Minerar esta busca";
+  } else {
+    note.textContent = "Pesquise um termo no YouTube. A barra abre na página de resultados.";
+    go.textContent = "Ativar na próxima busca";
+  }
+}
+
+go.addEventListener("click", async (event) => {
+  if (go.dataset.youtube !== "1" || !mineTab?.id) return;
+  event.preventDefault();
+  let result = null;
+  try {
+    result = await chrome.tabs.sendMessage(mineTab.id, { type: "mine" });
+  } catch {
+    note.textContent = "Recarregue a página do YouTube e clique de novo.";
+    return;
+  }
+  if (result?.armed) {
+    note.textContent = "Ativado. Pesquise um termo no YouTube.";
+    go.textContent = "Ativado";
+    return;
+  }
+  window.close();
 });
 
 document.getElementById("disconnect").addEventListener("click", async () => {

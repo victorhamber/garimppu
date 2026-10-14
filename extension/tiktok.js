@@ -270,8 +270,8 @@
       render();
       return;
     }
-    if (room < 80 && idleTicks % 4 === 3) root.scrollBy({ top: -700, behavior: "smooth" });
-    else root.scrollBy({ top: Math.round(root.clientHeight * 0.85), behavior: "smooth" });
+    if (room < 80 && idleTicks % 4 === 3) root.scrollBy(0, -700);
+    else root.scrollBy(0, Math.round(root.clientHeight * 0.85));
     if (ads.size === before) lastCount = ads.size;
   }
 
@@ -293,6 +293,7 @@
   style.textContent = `html[data-garimppu-tt="open"] body { margin-right: ${B.WIDTH}px !important; }`;
   document.documentElement.appendChild(style);
   const bar = B.open("garimppu-tt", "garimppuTt");
+  bar.tick = scrollTick;
 
   function render() {
     const links = [];

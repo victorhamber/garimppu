@@ -205,11 +205,23 @@
   const NOTA_TIP = "Nota de escala, de 0 a 100, como no Garimppu: anúncios com este criativo, dias no ar, anúncios do anunciante nesta busca e plataformas. Escalado a partir de 65, quente de 50, morno de 35.";
   const STAR_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.8 6.2.9-4.5 4.4 1 6.3L12 17.5 6.5 20.4l1-6.3L3 9.7l6.2-.9z"/></svg>';
 
+  function hasAnotherId(el, label) {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+      acceptNode(text) {
+        if (text.length > 120 || text.parentElement === label || label.contains(text.parentElement)) return NodeFilter.FILTER_REJECT;
+        const value = text.data;
+        return value.includes("biblioteca:") || value.includes("Library ID:")
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_REJECT;
+      },
+    });
+    return Boolean(walker.nextNode());
+  }
+
   function findCard(label) {
     let node = label;
     while (node.parentElement && node.parentElement !== document.body) {
-      const ids = node.parentElement.textContent.match(ID_LABEL);
-      if (ids && ids.length > 1) break;
+      if (hasAnotherId(node.parentElement, label)) break;
       node = node.parentElement;
     }
     return node;
@@ -294,13 +306,14 @@
   };
   let view = { ...F.viewDefaults };
   let sortTimer = null;
+  let sortRoot = null;
 
   function scheduleSort() {
     if (sortTimer) return;
     sortTimer = setTimeout(() => {
       sortTimer = null;
       applySort();
-    }, 300);
+    }, 800);
   }
 
   function clearSort() {
@@ -309,6 +322,7 @@
       delete el.dataset.garimppuSorted;
     }
     for (const el of document.querySelectorAll("[data-garimppu-card]")) el.style.removeProperty("order");
+    sortRoot = null;
   }
 
   function commonAncestor(elements) {
@@ -318,23 +332,34 @@
   }
 
   function applySort() {
-    clearSort();
     const sort = SORTS[view.sort];
-    if (!sort?.value || !account || !searchKey) return;
+    if (!sort?.value || !account || !searchKey) {
+      if (sortRoot) clearSort();
+      return;
+    }
     const list = [...cards].filter(([, entry]) => entry.card.isConnected);
     if (list.length < 2) return;
     const root = commonAncestor(list.map(([, entry]) => entry.card));
     if (!root || root === document.body) return;
-    for (const [, { card }] of list) {
-      for (let el = card.parentElement; el && el !== root; el = el.parentElement) el.dataset.garimppuFlat = "";
+    if (sortRoot !== root) {
+      clearSort();
+      sortRoot = root;
+      root.dataset.garimppuSorted = "";
     }
-    root.dataset.garimppuSorted = "";
+    for (const [, { card }] of list) {
+      for (let el = card.parentElement; el && el !== root; el = el.parentElement) {
+        if (!el.dataset.garimppuFlat) el.dataset.garimppuFlat = "";
+      }
+    }
     const ranked = list.map(([id, { card }]) => {
       const node = nodes.get(id);
       return { card, value: node ? sort.value(node) : -Infinity, fails: node ? Number(failures(node).length > 0) : 1 };
     });
     ranked.sort((a, b) => a.fails - b.fails || b.value - a.value);
-    ranked.forEach((item, i) => item.card.style.setProperty("order", String(i + 1)));
+    ranked.forEach((item, i) => {
+      const order = String(i + 1);
+      if (item.card.style.order !== order) item.card.style.setProperty("order", order);
+    });
   }
 
   function say(id, html, error = false) {
@@ -423,8 +448,9 @@
       return;
     }
     // At the bottom with nothing new, backing up a little makes the Library try loading again.
+    // Instant jumps: smooth scrolling on this page fights the layout and makes the tab stutter.
     if (atBottom && idleTicks % 4 === 3) window.scrollBy(0, -900);
-    else window.scrollBy({ top: Math.round(window.innerHeight * 0.85), behavior: "smooth" });
+    else window.scrollBy(0, Math.round(window.innerHeight * 0.85));
   }
 
   // --- Sidebar ---------------------------------------------------------------------------------------------
@@ -679,12 +705,15 @@
       if (script.textContent.includes("ad_archive_id")) take(script.textContent);
     }
     let pending = null;
-    new MutationObserver(() => {
+    new MutationObserver((mutations) => {
       if (pending) return;
+      const own = mutations.every((mutation) => mutation.target instanceof Element
+        && mutation.target.closest(".garimppu-tools, #garimppu-panel"));
+      if (own) return;
       pending = setTimeout(() => {
         pending = null;
         scanCards();
-      }, 400);
+      }, 1000);
     }).observe(document.body, { childList: true, subtree: true });
     loadSettings();
     message({ type: "ping" });

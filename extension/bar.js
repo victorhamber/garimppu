@@ -37,6 +37,7 @@ const GARIMPPU_BAR = {
           <div class="stats" role="status" aria-live="polite">
             <div class="line seen"></div><div class="line sent"></div><div class="status"></div><div class="links"></div>
           </div>
+          <div class="extra"></div>
           <section>
             <h2>Rolagem automática</h2>
             <button class="primary" type="button" data-act="scroll">Rolar sozinho</button>
@@ -86,6 +87,10 @@ const GARIMPPU_BAR = {
         else bar.paint();
       });
     }
+    bar.show = () => {
+      bar.collapsed = false;
+      apply();
+    };
     bar.setScrolling = (on, tick) => {
       if (tick) bar.tick = tick;
       clearInterval(bar.timer);
@@ -156,6 +161,17 @@ const PANEL_CSS = `
   .seg { display: grid; grid-template-columns: repeat(3, 1fr); padding: 2px; border: 1px solid #2a2e33; border-radius: 6px; background: #15171a; }
   .seg button { height: 26px; border: 0; border-radius: 4px; background: none; color: #8d9096; font-size: 12px; }
   .seg button[aria-pressed="true"] { background: #1d2024; color: #e8e6e1; }
+  .extra { display: flex; flex-direction: column; gap: 16px; }
+  .extra:empty { display: none; }
+  .extra section { display: flex; flex-direction: column; gap: 8px; }
+  .extra h2 { margin: 0; color: #8d9096; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+  .extra .row { display: grid; grid-template-columns: 1fr 76px; align-items: center; gap: 8px; }
+  .extra label { font-size: 12px; }
+  .extra input[type="number"], .extra select { width: 100%; height: 30px; padding: 0 8px; border: 1px solid #2a2e33;
+    border-radius: 6px; background: #15171a; color: #e8e6e1; font: 13px system-ui, sans-serif; }
+  .extra input[type="number"] { font-family: ui-monospace, monospace; text-align: right; }
+  .extra .check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .extra .check input { margin: 0; accent-color: #f2a93b; }
   .hint { margin: 0; color: #8d9096; font-size: 12px; }
   .tab { position: fixed; top: 50%; right: 0; z-index: 2147483647; display: flex; flex-direction: column; align-items: center;
     gap: 6px; padding: 10px 6px; transform: translateY(-50%); border: 1px solid #2a2e33; border-right: 0;

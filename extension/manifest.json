@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Garimppu: mineração de anúncios",
   "short_name": "Garimppu",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Minera a Biblioteca de Anúncios, o YouTube e o TikTok e envia o que encontrar para o Garimppu.",
   "homepage_url": "https://app.garimppu.com/extensao",
   "icons": {
@@ -37,13 +37,13 @@
       "run_at": "document_start"
     },
     {
-      "matches": ["https://www.youtube.com/results*"],
+      "matches": ["https://www.youtube.com/*"],
       "js": ["yt-hook.js"],
       "run_at": "document_start",
       "world": "MAIN"
     },
     {
-      "matches": ["https://www.youtube.com/results*"],
+      "matches": ["https://www.youtube.com/*"],
       "js": ["bar.js", "youtube.js"],
       "run_at": "document_start"
     },
