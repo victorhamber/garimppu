@@ -267,7 +267,7 @@ def _attachment(name: str) -> dict[str, str]:
 
 @router.get("/{creative_id}/download")
 def download_creative(creative_id: int, db: Session = Depends(get_db)):
-    """The creative's video (or image) as a file: local copy when there is one, else streamed from Meta's CDN."""
+    """The creative's video (or full image) streamed from Meta's CDN; a stored video, or the thumbnail as last resort."""
     creative = db.get(Creative, creative_id)
     if creative is None:
         raise HTTPException(404, "Criativo não encontrado")
@@ -278,23 +278,28 @@ def download_creative(creative_id: int, db: Session = Depends(get_db)):
     video = creative.media_type == "video" and bool(
         creative.local_video_path or (creative.media_url and creative.media_url != creative.thumbnail_url))
     name = f"{owner}-{creative.id}.{'mp4' if video else 'jpg'}"
+    media_dir = Path(get_settings().media_dir)
 
-    local = creative.local_video_path if video else creative.local_path
-    if local and (path := Path(get_settings().media_dir) / local).is_file():
-        return FileResponse(path, media_type="video/mp4" if video else "image/jpeg", headers=_attachment(name))
+    if video and creative.local_video_path and (path := media_dir / creative.local_video_path).is_file():
+        return FileResponse(path, media_type="video/mp4", headers=_attachment(name))
     remote = creative.media_url if video else creative.thumbnail_url
-    if not remote:
-        raise HTTPException(404, "Este criativo não tem mídia para baixar.")
+    thumb = None if video or not creative.local_path else media_dir / creative.local_path
 
     client = httpx.Client(timeout=60, follow_redirects=True)
-    try:
-        response = client.send(client.build_request("GET", remote, headers=media.BROWSER_HEADERS), stream=True)
-    except httpx.HTTPError:
+    response = None
+    if remote:
+        try:
+            response = client.send(client.build_request("GET", remote, headers=media.BROWSER_HEADERS), stream=True)
+        except httpx.HTTPError:
+            response = None
+    if response is None or response.status_code != 200:
+        if response is not None:
+            response.close()
         client.close()
-        raise HTTPException(502, "O Meta não respondeu. Tente de novo em instantes.")
-    if response.status_code != 200:
-        response.close()
-        client.close()
+        if thumb and thumb.is_file():
+            return FileResponse(thumb, media_type="image/webp", headers=_attachment(name.replace(".jpg", ".webp")))
+        if not remote:
+            raise HTTPException(404, "Este criativo não tem mídia para baixar.")
         raise HTTPException(410, "O link da mídia no Meta expirou. Ele volta a funcionar depois da próxima coleta.")
 
     def body():

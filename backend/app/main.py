@@ -10,7 +10,7 @@ from app.auth import current_user, purge_expired_sessions
 from app.config import get_settings
 from app.create_admin import sync_env_admin
 from app.db import SessionLocal
-from app.jobs import fail_orphaned_runs
+from app.jobs import enqueue_media_cleanup, fail_orphaned_runs
 from app.routes import (
     admin,
     auth,
@@ -37,6 +37,7 @@ async def lifespan(_: FastAPI):
         fail_orphaned_runs(db)
         purge_expired_sessions(db)
         sync_env_admin(db)
+    enqueue_media_cleanup()
     scheduler = None
     if settings.enable_scheduler:
         from app.scheduler import start_background_scheduler

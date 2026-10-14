@@ -1,15 +1,19 @@
-"""Downloads creatives locally because Meta CDN URLs are signed and expire."""
+"""Keeps a small thumbnail of each creative because Meta CDN URLs are signed and expire; full media stays on Meta."""
 
 import hashlib
+import io
 import logging
 from pathlib import Path
 from urllib.parse import urlsplit
 
 import httpx
+from PIL import Image
 
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
+THUMB_SIZE = 480
+THUMB_QUALITY = 65
 
 BROWSER_HEADERS = {
     "User-Agent": (
@@ -30,9 +34,22 @@ def _media_root() -> Path:
     return root
 
 
+def make_thumbnail(content: bytes) -> bytes | None:
+    """Small WebP copy (~20 KB): what the app keeps, since the full image stays on Meta's CDN."""
+    try:
+        with Image.open(io.BytesIO(content)) as img:
+            img = img.convert("RGB")
+            img.thumbnail((THUMB_SIZE, THUMB_SIZE))
+            out = io.BytesIO()
+            img.save(out, "WEBP", quality=THUMB_QUALITY, method=4)
+            return out.getvalue()
+    except (OSError, ValueError, Image.DecompressionBombError):
+        return None
+
+
 def download_image(client: httpx.Client, url: str) -> tuple[str, bytes] | None:
-    """Returns (relative path under media dir, content) or None on failure."""
-    rel = f"images/{url_key(url)}.jpg"
+    """Stores only a thumbnail; returns (relative path under media dir, thumbnail bytes) or None on failure."""
+    rel = f"thumbs/{url_key(url)}.webp"
     target = _media_root() / rel
     if target.exists():
         return rel, target.read_bytes()
@@ -42,9 +59,12 @@ def download_image(client: httpx.Client, url: str) -> tuple[str, bytes] | None:
     except httpx.HTTPError as exc:
         logger.warning("Falha ao baixar imagem %s: %s", url[:120], exc)
         return None
+    thumb = make_thumbnail(resp.content)
+    if thumb is None:
+        return None
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_bytes(resp.content)
-    return rel, resp.content
+    target.write_bytes(thumb)
+    return rel, thumb
 
 
 def download_video(client: httpx.Client, url: str) -> str | None:
