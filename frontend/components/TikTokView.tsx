@@ -20,20 +20,20 @@ const PANEL_KEYS = ["industry", "search_id", "objective"] as const;
 type FilterKey = (typeof FILTER_KEYS)[number];
 
 const SORTS = [
-  { id: "score", label: "Maior nota" },
-  { id: "ctr", label: "Melhor CTR do nicho" },
+  { id: "score", label: "Maior pontuação" },
+  { id: "ctr", label: "Mais cliques no assunto" },
   { id: "likes", label: "Mais curtidas" },
   { id: "comments", label: "Mais comentários" },
   { id: "shares", label: "Mais compartilhados" },
   { id: "recent", label: "Encontrados recentemente" },
 ];
 const OBJECTIVES = [
-  { id: "campaign_objective_conversion", label: "Conversões" },
-  { id: "campaign_objective_product_sales", label: "Vendas de produto" },
-  { id: "campaign_objective_traffic", label: "Tráfego" },
-  { id: "campaign_objective_lead_generation", label: "Geração de leads" },
-  { id: "campaign_objective_app_install", label: "Instalação de app" },
-  { id: "campaign_objective_reach", label: "Alcance" },
+  { id: "campaign_objective_conversion", label: "Vendas" },
+  { id: "campaign_objective_product_sales", label: "Venda de produto" },
+  { id: "campaign_objective_traffic", label: "Visitas ao site" },
+  { id: "campaign_objective_lead_generation", label: "Contatos" },
+  { id: "campaign_objective_app_install", label: "Instalar o app" },
+  { id: "campaign_objective_reach", label: "Ser visto" },
   { id: "campaign_objective_video_view", label: "Visualizações" },
 ];
 const BUDGETS = ["Verba baixa", "Verba média", "Verba alta"];
@@ -88,7 +88,7 @@ export function TikTokView() {
   }
   if (filters.search_id) {
     const search = searches.find((s) => String(s.id) === filters.search_id);
-    chips.push({ key: "search_id", label: `Mineração: ${search?.term ?? filters.search_id}` });
+    chips.push({ key: "search_id", label: `Busca: ${search?.term ?? filters.search_id}` });
   }
   if (filters.objective) {
     chips.push({ key: "objective", label: OBJECTIVES.find((o) => o.id === filters.objective)?.label ?? filters.objective });
@@ -179,8 +179,8 @@ export function TikTokView() {
         </div>
 
         <div id="tiktok-panel" hidden={!panelOpen} className="grid grid-cols-2 gap-3 border-t border-line pt-3 md:grid-cols-3">
-          <FilterSelect id="t-nicho" label="Nicho" value={filters.industry} onChange={(v) => update("industry", v)} options={industryOptions} />
-          <FilterSelect id="t-busca" label="Mineração" allLabel="Todas" value={filters.search_id} onChange={(v) => update("search_id", v)}
+          <FilterSelect id="t-nicho" label="Assunto" value={filters.industry} onChange={(v) => update("industry", v)} options={industryOptions} />
+          <FilterSelect id="t-busca" label="Busca" allLabel="Todas" value={filters.search_id} onChange={(v) => update("search_id", v)}
             options={tiktokSearches.map((s) => ({ id: String(s.id), label: `${s.term} (${s.country})` }))} />
           <FilterSelect id="t-objetivo" label="Objetivo" value={filters.objective} onChange={(v) => update("objective", v)} options={OBJECTIVES} />
         </div>
@@ -247,7 +247,7 @@ export function TikTokView() {
 function scoreParts(ad: TikTokAd) {
   const talk = ad.comments != null || ad.shares != null ? (ad.comments ?? 0) + 2 * (ad.shares ?? 0) : null;
   return notaPoints([
-    { label: "CTR", weight: 45, share: ad.ctr_rank != null ? 1 - fill(ad.ctr_rank) : null },
+    { label: "cliques", weight: 45, share: ad.ctr_rank != null ? 1 - fill(ad.ctr_rank) : null },
     { label: "curtidas", weight: 20, share: fill(Math.log10(1 + ad.likes) / 5) },
     { label: "conversa", weight: 20, share: talk != null ? fill(Math.log10(1 + talk) / 4) : null },
     { label: "verba", weight: 15, share: ad.budget != null ? fill(ad.budget / 2) : null },
@@ -280,7 +280,7 @@ export function TikTokCard({ ad, rank, heat, collections, onCollectionsChange }:
         )}
         {ad.ctr_rank != null && (
           <span className={`absolute left-2 top-2 rounded px-1.5 py-0.5 text-micro font-semibold ${topCtr ? "bg-accent text-accent-ink" : "border border-line bg-background/85 text-foreground"}`}>
-            CTR no top {formatCtr(ad.ctr_rank)} do nicho
+            Cliques no top {formatCtr(ad.ctr_rank)} do assunto
           </span>
         )}
         {duration && (
@@ -295,7 +295,7 @@ export function TikTokCard({ ad, rank, heat, collections, onCollectionsChange }:
             <a href={ad.url} target="_blank" rel="noreferrer" className="hover:text-accent">{title}</a>
           </h2>
           <ScoreBadge value={ad.score} heat={heat}
-            title={`Nota TikTok = ${parts.map((p) => `${p.label} ${p.value}`).join(" + ")}`} />
+            title={`Pontuação do TikTok = ${parts.map((p) => `${p.label} ${p.value}`).join(" + ")}`} />
         </div>
         <p className="truncate text-xs text-muted">
           {[ad.brand ?? host, ad.industry, ad.objective, ad.budget != null ? BUDGETS[ad.budget] : null, ad.first_seen_at ? `visto pela 1ª vez ${timeAgo(ad.first_seen_at)}` : null]
@@ -303,8 +303,8 @@ export function TikTokCard({ ad, rank, heat, collections, onCollectionsChange }:
         </p>
 
         <MetricStrip className="grid-cols-4">
-          <Metric label="CTR no nicho" value={ad.ctr_rank != null ? `top ${formatCtr(ad.ctr_rank)}` : "—"} strong={topCtr}
-            title="Posição do CTR entre os anúncios do mesmo nicho: top 3% = melhor que 97% deles" />
+          <Metric label="cliques no assunto" value={ad.ctr_rank != null ? `top ${formatCtr(ad.ctr_rank)}` : "—"} strong={topCtr}
+            title="Entre os anúncios do mesmo assunto, este está entre os que mais recebem clique" />
           <Metric label="curtidas" value={compact.format(ad.likes)} strong={topMetric(heat, "likes", ad.likes)} />
           <Metric label="coment." value={ad.comments != null ? compact.format(ad.comments) : "—"}
             strong={topMetric(heat, "comments", ad.comments)} />

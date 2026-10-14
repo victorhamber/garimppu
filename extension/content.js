@@ -202,7 +202,7 @@
     svg { width: 14px; height: 14px; }`;
 
   const DOWNLOAD_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg>';
-  const NOTA_TIP = "Nota de escala, de 0 a 100, como no Garimppu: anúncios com este criativo, dias no ar, anúncios do anunciante nesta busca e plataformas. Escalado a partir de 65, quente de 50, morno de 35.";
+  const NOTA_TIP = "Pontuação de 0 a 100. Forte a partir de 65, boa a partir de 50, média a partir de 35.";
   const STAR_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.8 6.2.9-4.5 4.4 1 6.3L12 17.5 6.5 20.4l1-6.3L3 9.7l6.2-.9z"/></svg>';
 
   function hasAnotherId(el, label) {
@@ -278,7 +278,7 @@
         const nota = F.nota(node, pageCount(node));
         const tier = F.tier(nota);
         badge.textContent = `${nota} ${tier.label}`;
-        badge.className = `nota ${tier.label}`;
+        badge.className = `nota ${tier.tone}`;
         badge.style.background = tier.color;
         badge.style.color = tier.ink;
       } else {
@@ -288,7 +288,7 @@
       if (!why.dataset.locked) {
         why.hidden = !(filtering && reasons.length);
         why.className = "why";
-        why.textContent = reasons.length ? `Fora do filtro: ${reasons.join(", ")}` : "";
+        why.textContent = reasons.length ? `Ficou de fora: ${reasons.join(", ")}` : "";
       }
     }
     scheduleSort();
@@ -297,11 +297,11 @@
   // --- Sorting: CSS order on a flattened grid, so Meta's own DOM is never moved -----------------------------
 
   const SORTS = {
-    library: { label: "Ordem da Biblioteca" },
-    hot: { label: "Maior nota", value: (node) => F.nota(node, pageCount(node)) },
-    same: { label: "Mais duplicados", value: (node) => Number(node.collation_count) || 1 },
-    days: { label: "Mais tempo no ar", value: (node) => F.daysActive(node) },
-    page: { label: "Anunciante com mais anúncios", value: (node) => pageCount(node) },
+    library: { label: "Como o Facebook mostra" },
+    hot: { label: "Maior pontuação", value: (node) => F.nota(node, pageCount(node)) },
+    same: { label: "Mais repetidos", value: (node) => Number(node.collation_count) || 1 },
+    days: { label: "Mais tempo ativo", value: (node) => F.daysActive(node) },
+    page: { label: "Página com mais anúncios", value: (node) => pageCount(node) },
     recent: { label: "Mais recentes", value: (node) => -F.daysActive(node) },
   };
   let view = { ...F.viewDefaults };
@@ -536,31 +536,31 @@
           </div>
           <div class="tools">
             <section>
-              <h2>Rolagem automática</h2>
-              <button class="primary" type="button" data-act="scroll">Rolar sozinho</button>
+              <h2>Rolar a página</h2>
+              <button class="primary" type="button" data-act="scroll">Rolar a página</button>
               <div class="seg" role="group" aria-label="Velocidade da rolagem">
                 <button type="button" data-speed="slow">Lenta</button><button type="button" data-speed="normal">Normal</button><button type="button" data-speed="fast">Rápida</button>
               </div>
-              <div class="row"><label for="stopAt">Parar em quantos anúncios</label>
+              <div class="row"><label for="stopAt">Quantos anúncios, no máximo</label>
                 <input id="stopAt" type="number" min="0" max="10000" inputmode="numeric" placeholder="—"></div>
               <p class="hint scroll-note"></p>
             </section>
             <section>
-              <h2><label for="sort">Ordenar a página</label></h2>
+              <h2><label for="sort">Ordenar</label></h2>
               <select id="sort">${sortOptions}</select>
             </section>
             <section class="filters">
               <h2>Filtros</h2>
-              <div class="row"><label for="minNota">Nota mínima (0 a 100)</label>
+              <div class="row"><label for="minNota">Pontuação mínima</label>
                 <input id="minNota" type="number" min="0" max="100" inputmode="numeric" placeholder="0"></div>
-              <div class="row"><label for="minDays">Dias no ar, no mínimo</label>
+              <div class="row"><label for="minDays">Dias ativo, no mínimo</label>
                 <input id="minDays" type="number" min="0" max="3650" inputmode="numeric" placeholder="0"></div>
-              <div class="row"><label for="minSameCreative">Anúncios com o mesmo criativo</label>
+              <div class="row"><label for="minSameCreative">Anúncios iguais, no mínimo</label>
                 <input id="minSameCreative" type="number" min="0" max="999" inputmode="numeric" placeholder="0"></div>
-              <div class="row"><label for="minPageAds">Anúncios do anunciante na busca</label>
+              <div class="row"><label for="minPageAds">Anúncios desta página, no mínimo</label>
                 <input id="minPageAds" type="number" min="0" max="999" inputmode="numeric" placeholder="0"></div>
-              <label class="check"><input id="withLink" type="checkbox"> Só anúncios com link de venda</label>
-              <label class="check"><input id="dim" type="checkbox"> Apagar na página os que não passam</label>
+              <label class="check"><input id="withLink" type="checkbox"> Só com link de venda</label>
+              <label class="check"><input id="dim" type="checkbox"> Esconder os que ficam de fora</label>
             </section>
           </div>
         </div>
@@ -627,12 +627,12 @@
     panel.querySelector(".tab-count").textContent = nodes.size ? String(nodes.size) : "";
     panel.querySelector(".tools").hidden = !account;
     const scrollButton = panel.querySelector('[data-act="scroll"]');
-    scrollButton.textContent = scroller ? "Parar a rolagem" : "Rolar sozinho";
+    scrollButton.textContent = scroller ? "Parar" : "Rolar a página";
     scrollButton.classList.toggle("on", Boolean(scroller));
     for (const button of panel.querySelectorAll("[data-speed]")) {
       button.setAttribute("aria-pressed", String(button.dataset.speed === view.speed));
     }
-    panel.querySelector(".scroll-note").textContent = scroller ? "Role com o mouse a qualquer momento; a rolagem segue." : scrollNote;
+    panel.querySelector(".scroll-note").textContent = scroller ? "A página continua rolando." : scrollNote;
   }
 
   function render() {
@@ -651,21 +651,21 @@
 
     if (!account) {
       seen.textContent = "";
-      status.textContent = "Clique no ícone do Garimppu e informe seu e-mail para liberar os filtros e os downloads.";
+      status.textContent = "Informe seu e-mail no ícone do Garimppu para filtrar e baixar.";
       return;
     }
     if (!searchKey) {
       seen.textContent = "";
-      status.textContent = "Faça uma busca por palavra-chave ou página para começar.";
+      status.textContent = "Busque uma palavra ou uma página.";
       return;
     }
     const passing = [...nodes.values()].filter((node) => !failures(node).length).length;
     seen.innerHTML = F.active(filters)
-      ? `<b>${passing}</b> de <b>${nodes.size}</b> anúncios passam no filtro`
-      : `<b>${nodes.size}</b> anúncios vistos · sem filtro`;
+      ? `<b>${passing}</b> de <b>${nodes.size}</b> entram`
+      : `<b>${nodes.size}</b> anúncios vistos`;
 
     if (!account.subscriber) {
-      status.textContent = "Plano grátis: filtros e downloads.";
+      status.textContent = "Grátis: filtrar e baixar.";
       links.innerHTML = `<a href="${escapeHtml(account.upgrade_url || APP)}" target="_blank" rel="noopener">Assine para enviar ao Garimppu</a>`;
       return;
     }
@@ -675,7 +675,7 @@
     else if (note) status.textContent = note;
     else if (sending || waiting) status.textContent = `Enviando... ${waiting} na fila. Deixe esta aba aberta.`;
     else if (total !== null) status.textContent = `Esta busca tem ${total} anúncios no Garimppu. Role para trazer mais.`;
-    else status.textContent = "Role a página: os anúncios que passam no filtro vão para o app.";
+    else status.textContent = "Role a página. Os anúncios que entram vão para o app.";
     if (searchId) links.innerHTML = `<a href="${APP}/criativos?search_id=${searchId}" target="_blank" rel="noopener">Ver no Garimppu</a>`;
   }
 
@@ -730,5 +730,16 @@
 
   chrome.storage.onChanged.addListener((changes) => {
     if (changes.account || changes.filters || changes.view) loadSettings();
+  });
+
+  function startMining() {
+    if (view.collapsed) saveView({ collapsed: false });
+    setScrolling(true);
+    return { ok: true, armed: false };
+  }
+
+  chrome.runtime.onMessage.addListener((message, _sender, reply) => {
+    if (message?.type === "where") reply({ page: "facebook", results: true });
+    else if (message?.type === "mine") reply(startMining());
   });
 })();

@@ -48,9 +48,9 @@ export function ExtensionView() {
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Mineração avançada</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Extensão</h1>
         <p className="mt-1 text-sm text-muted">
-          A extensão coleta na Biblioteca, no YouTube e no TikTok, pela sua conexão, e envia para a sua conta.
+          Ela coleta na Biblioteca, no YouTube e no TikTok e envia para a sua conta.
         </p>
       </div>
       <ol className="flex flex-col gap-3">
@@ -80,7 +80,7 @@ export function ExtensionView() {
         </Step>
         <Step n={3} title={search ? `Minere "${search.term}"` : "Minere"}>
           <p className="text-sm text-muted">
-            Na Biblioteca, a barra filtra, ordena e rola. No YouTube e no TikTok, ela coleta os resultados e rola a página.
+            Abra a página e clique em Ativar mineração na extensão.
           </p>
           <a href={pageUrl} target="_blank" rel="noopener noreferrer" className="btn w-fit gap-1">
             {pageLabel}<ExternalIcon />

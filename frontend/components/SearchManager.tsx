@@ -21,14 +21,14 @@ const LOAD_ACTION = "carregar suas buscas";
 
 function miningLinks(search: Search) {
   const links: { onde: string; href: string; label: string; where: string }[] = [];
-  if (search.library_url) links.push({ onde: "meta", href: search.library_url, label: "Mineração avançada", where: "Meta" });
+  if (search.library_url) links.push({ onde: "meta", href: search.library_url, label: "Abrir para minerar", where: "Meta" });
   if (search.youtube_url) links.push({
     onde: "youtube", href: search.youtube_url,
-    label: search.library_url ? "YouTube" : "Mineração avançada", where: "YouTube",
+    label: search.library_url ? "YouTube" : "Abrir para minerar", where: "YouTube",
   });
   if (search.tiktok_url) links.push({
     onde: "tiktok", href: search.tiktok_url,
-    label: links.length ? "TikTok" : "Mineração avançada", where: "TikTok",
+    label: links.length ? "TikTok" : "Abrir para minerar", where: "TikTok",
   });
   return links;
 }
@@ -306,19 +306,19 @@ export function SearchManager() {
     form.source === "meta" && form.media_type !== "all" && (form.media_type === "image" ? "só imagens" : "só vídeos"),
     (form.source === "meta" || youtube) && form.niche && `só ${label(form.niche) ?? form.niche}`,
     !trends && `até ${form.max_ads} ${youtube ? "vídeos" : sites ? "sites" : "anúncios"}`,
-    trends ? "recoleta a cada hora" : `recoleta: ${refreshLabel.toLowerCase()}`,
+    trends ? "atualiza a cada hora" : `atualiza: ${refreshLabel.toLowerCase()}`,
   ].filter(Boolean).join(" · ");
   const sourceHint = trends
     ? "O Google Trends lista o que o país inteiro pesquisa nas últimas horas, então a coleta roda sozinha a cada hora."
     : tiktok
-      ? "O TikTok não busca por palavra nos top anúncios: o filtro é o nicho do anunciante. Vêm os melhores CTRs e os mais curtidos de 180 dias."
+      ? "O TikTok não busca por palavra: o filtro é o assunto. Vêm os que mais recebem clique e os mais curtidos de 180 dias."
       : youtube
-        ? "Vêm os vídeos mais vistos dos últimos 30 dias. Sem tema, vale o nicho inteiro. O YouTube limita as buscas por dia, então prefira poucos vídeos."
+        ? "Vêm os vídeos mais vistos dos últimos 30 dias. Sem tema, vale o assunto inteiro. O YouTube limita as buscas por dia, então prefira poucos vídeos."
         : sites
           ? "Vêm no máximo os 100 primeiros sites de cada lista."
           : form.mode === "keyword"
-            ? "Entre aspas, busca a frase exata; sem aspas, as palavras em qualquer ordem. O nicho de cada criativo é detectado sozinho."
-            : "O nicho de cada criativo é detectado sozinho; o filtro de nicho só muda o que aparece ao abrir a busca.";
+            ? "Entre aspas, busca a frase exata. Sem aspas, as palavras em qualquer ordem. O assunto de cada anúncio é detectado sozinho."
+            : "O assunto de cada anúncio é detectado sozinho. O filtro de assunto só muda o que aparece ao abrir a busca.";
   const setKind = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     setForm((f) => {
@@ -341,26 +341,26 @@ export function SearchManager() {
             <label className="label" htmlFor="mode">Buscar por</label>
             <select id="mode" className="field" value={form.source === "meta" ? form.mode : form.source} onChange={setKind}
               aria-describedby="mine-hint">
-              <option value="keyword">Meta Ads · palavra-chave</option>
-              <option value="page">Meta Ads · página do anunciante</option>
-              <option value="tiktok">TikTok Ads · top anúncios</option>
+              <option value="keyword">Facebook · palavra</option>
+              <option value="page">Facebook · página</option>
+              <option value="tiktok">TikTok · anúncios em alta</option>
               <option value="youtube">YouTube · vídeos em alta</option>
-              <option value="trends">Google · palavras-chave em alta</option>
+              <option value="trends">Google · palavras em alta</option>
             </select>
           </div>
           {trends ? (
             <div className="col-span-2 md:col-span-1">
-              <label className="label" htmlFor="niche">Nicho</label>
+              <label className="label" htmlFor="niche">Assunto</label>
               <select id="niche" className="field" value={form.niche} onChange={set("niche")} aria-describedby="mine-hint">
-                <option value="">Todos os nichos</option>
+                <option value="">Todos os assuntos</option>
                 {niches.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
               </select>
             </div>
           ) : sites ? null : tiktok ? (
             <div className="col-span-2 md:col-span-1">
-              <label className="label" htmlFor="industry">Nicho do TikTok</label>
+              <label className="label" htmlFor="industry">Assunto no TikTok</label>
               <select id="industry" className="field" value={form.industry} onChange={set("industry")} aria-describedby="mine-hint">
-                <option value="">Todos os nichos</option>
+                <option value="">Todos os assuntos</option>
                 {industries.map((i) => <option key={i.id} value={i.id}>{i.label}</option>)}
               </select>
             </div>
@@ -372,7 +372,7 @@ export function SearchManager() {
             </div>
           ) : (
             <div className="col-span-2 md:col-span-1">
-              <label className="label" htmlFor="page">Link ou ID da página</label>
+              <label className="label" htmlFor="page">Link da página</label>
               <input id="page" className="field" value={form.page} onChange={set("page")} required
                 placeholder="Link da Biblioteca de Anúncios ou ID da página" />
             </div>
@@ -409,7 +409,7 @@ export function SearchManager() {
           </div>
           {youtube && (
             <div>
-              <label className="label" htmlFor="niche">Nicho</label>
+              <label className="label" htmlFor="niche">Assunto</label>
               <select id="niche" className="field" value={form.niche} onChange={set("niche")} aria-describedby="mine-hint">
                 <option value="">Todos</option>
                 {niches.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
@@ -419,7 +419,7 @@ export function SearchManager() {
           {form.source === "meta" && (
             <>
               <div>
-                <label className="label" htmlFor="media">Mídia</label>
+                <label className="label" htmlFor="media">Tipo</label>
                 <select id="media" className="field" value={form.media_type} onChange={set("media_type")}>
                   <option value="all">Todas</option>
                   <option value="image">Imagem</option>
@@ -427,7 +427,7 @@ export function SearchManager() {
                 </select>
               </div>
               <div>
-                <label className="label" htmlFor="niche">Filtrar nicho</label>
+                <label className="label" htmlFor="niche">Assunto</label>
                 <select id="niche" className="field" value={form.niche} onChange={set("niche")} aria-describedby="mine-hint">
                   <option value="">Todos</option>
                   {niches.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
@@ -436,7 +436,7 @@ export function SearchManager() {
             </>
           )}
           <div hidden={trends}>
-            <label className="label" htmlFor="max">{youtube ? "Máx. vídeos" : sites ? "Máx. sites" : "Máx. anúncios"}</label>
+            <label className="label" htmlFor="max">{youtube ? "Vídeos, no máximo" : sites ? "Sites, no máximo" : "Anúncios, no máximo"}</label>
             <input id="max" inputMode="numeric" pattern="[0-9]*" className="field" value={form.max_ads}
               onChange={(e) => setForm((f) => ({ ...f, max_ads: digitsOnly(e.target.value) }))}
               aria-invalid={!!maxProblem} aria-describedby="max-hint mine-hint" />
@@ -453,7 +453,7 @@ export function SearchManager() {
             </div>
           ) : (
             <div>
-              <label className="label" htmlFor="refresh">Recoleta</label>
+              <label className="label" htmlFor="refresh">Atualizar</label>
               <select id="refresh" className="field" value={form.refresh_hours} onChange={set("refresh_hours")}>
                 {REFRESH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
@@ -606,12 +606,12 @@ export function SearchManager() {
                         )}
                         {miningLinks(s).map((link) => (hasExtension ? (
                           <a key={link.onde} href={link.href} target="_blank" rel="noopener noreferrer" className="btn h-8 gap-1 text-xs pointer-coarse:h-11"
-                            aria-label={`Mineração avançada da busca ${searchName} no ${link.where}`}>
+                            aria-label={`Abrir para minerar a busca ${searchName} no ${link.where}`}>
                             {link.label}<ExternalIcon />
                           </a>
                         ) : (
                           <Link key={link.onde} href={`/extensao?busca=${s.id}&onde=${link.onde}`} className="btn h-8 text-xs pointer-coarse:h-11"
-                            aria-label={`Mineração avançada da busca ${searchName} no ${link.where}`}>
+                            aria-label={`Abrir para minerar a busca ${searchName} no ${link.where}`}>
                             {link.label}
                           </Link>
                         )))}

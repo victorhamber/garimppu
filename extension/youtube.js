@@ -154,24 +154,24 @@
     bar.tick = scrollTick;
     bar.shadow.querySelector(".extra").innerHTML = `
       <section>
-        <h2><label for="yt-sort">Ordenar a página</label></h2>
+        <h2><label for="yt-sort">Ordenar</label></h2>
         <select id="yt-sort">
-          <option value="youtube">Ordem do YouTube</option>
-          <option value="nota">Maior nota</option>
+          <option value="youtube">Como o YouTube mostra</option>
+          <option value="nota">Maior pontuação</option>
           <option value="views">Mais visualizações</option>
           <option value="recent">Mais recentes</option>
         </select>
       </section>
       <section>
         <h2>Filtros</h2>
-        <div class="row"><label for="minNota">Nota mínima</label>
+        <div class="row"><label for="minNota">Pontuação mínima</label>
           <input id="minNota" type="number" min="0" max="100" inputmode="numeric" placeholder="0"></div>
         <div class="row"><label for="minViews">Visualizações, no mínimo</label>
           <input id="minViews" type="number" min="0" max="1000000000" inputmode="numeric" placeholder="0"></div>
-        <div class="row"><label for="maxDays">Idade máxima, em dias</label>
-          <input id="maxDays" type="number" min="0" max="3650" inputmode="numeric" placeholder="0" title="Em dias. 0 não limita."></div>
-        <label class="check"><input id="hideShorts" type="checkbox"> Esconder Shorts</label>
-        <label class="check"><input id="dim" type="checkbox"> Apagar na página os que não passam</label>
+        <div class="row"><label for="maxDays">Publicado nos últimos dias</label>
+          <input id="maxDays" type="number" min="0" max="3650" inputmode="numeric" placeholder="0"></div>
+        <label class="check"><input id="hideShorts" type="checkbox"> Esconder vídeos curtos</label>
+        <label class="check"><input id="dim" type="checkbox"> Esconder os que ficam de fora</label>
       </section>`;
     bar.shadow.querySelector(".extra").addEventListener("input", saveFilters);
     bar.shadow.querySelector(".extra").addEventListener("change", saveFilters);
@@ -415,7 +415,7 @@
       const badge = document.createElement("span");
       badge.className = "garimppu-nota";
       badge.textContent = `${tier.score} ${tier.label}`;
-      badge.title = "Nota do Garimppu";
+      badge.title = "Pontuação de 0 a 100";
       badge.style.cssText = `position:absolute;z-index:3;top:8px;left:8px;padding:2px 6px;border-radius:4px;
         background:${tier.color};color:${tier.ink};font:600 11px/1.4 ui-monospace,monospace;
         ${tier.color === "transparent" ? "border:1px solid #2a2e33;" : ""}`;
@@ -460,19 +460,19 @@
     let error = false;
     let pass = 0;
     for (const id of ids) if (!fails(id).length) pass += 1;
-    if (!account) status = "Clique no ícone do Garimppu e entre com sua senha para enviar os vídeos.";
+    if (!account) status = "Informe seu e-mail no ícone do Garimppu para enviar os vídeos.";
     else if (!account.subscriber) {
-      status = "Plano grátis: entre com a senha para enviar os vídeos ao app.";
+      status = "Grátis: entre com a senha para enviar os vídeos.";
       links.push(`<a href="${B.escapeHtml(account.upgrade_url || B.APP)}" target="_blank" rel="noopener">Assinar o Garimppu</a>`);
     } else if (paused || note) {
       status = paused || note;
       error = true;
     } else if (sending || queue.length) status = `Enviando... ${queue.length} na fila. Deixe esta aba aberta.`;
     else if (total !== null) status = `Esta busca tem ${total} vídeos no Garimppu.`;
-    else status = "Os vídeos que passam no filtro vão para o app.";
+    else status = "Os vídeos que entram vão para o app.";
     bar.paint({
       seen: filtering()
-        ? `<b>${pass}</b> de <b>${ids.size}</b> passam no filtro`
+        ? `<b>${pass}</b> de <b>${ids.size}</b> entram`
         : `<b>${ids.size}</b> ${ids.size === 1 ? "vídeo visto" : "vídeos vistos"}`,
       sent: account?.subscriber ? `<b>${sent}</b> enviados ao app · <b>${fresh}</b> novos` : "",
       status,

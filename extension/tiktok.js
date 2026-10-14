@@ -248,7 +248,7 @@
       const badge = document.createElement("span");
       badge.className = "garimppu-nota";
       badge.textContent = `${tier.score} ${tier.label}`;
-      badge.title = "Nota do Garimppu";
+      badge.title = "Pontuação de 0 a 100";
       badge.style.cssText = `display:inline-block;margin-left:6px;padding:1px 6px;border-radius:4px;
         background:${tier.color};color:${tier.ink};font:600 11px/1.4 ui-monospace,monospace;
         ${tier.color === "transparent" ? "border:1px solid #2a2e33;" : ""}`;
@@ -300,9 +300,9 @@
     if (searchId) links.push(`<a href="${B.APP}/tiktok?search_id=${searchId}" target="_blank" rel="noopener">Ver no Garimppu</a>`);
     let status = "";
     let error = false;
-    if (!account) status = "Clique no ícone do Garimppu e entre com sua senha para enviar os anúncios.";
+    if (!account) status = "Informe seu e-mail no ícone do Garimppu para enviar os anúncios.";
     else if (!account.subscriber) {
-      status = "Plano grátis: entre com a senha para enviar os anúncios ao app.";
+      status = "Grátis: entre com a senha para enviar os anúncios.";
       links.push(`<a href="${B.escapeHtml(account.upgrade_url || B.APP)}" target="_blank" rel="noopener">Assinar o Garimppu</a>`);
     } else if (paused || note) {
       status = paused || note;
@@ -355,5 +355,14 @@
   });
   chrome.storage.onChanged.addListener((changes) => {
     if (changes.account) loadAccount();
+  });
+
+  chrome.runtime.onMessage.addListener((message, _sender, reply) => {
+    if (message?.type === "where") reply({ page: "tiktok", results: true });
+    else if (message?.type === "mine") {
+      bar.show();
+      bar.setScrolling(true, scrollTick);
+      reply({ ok: true, armed: false });
+    }
   });
 })();

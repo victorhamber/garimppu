@@ -11,17 +11,17 @@ function heatClass(score: number, heat?: ScoreHeat | null): string {
 
 /** Same cut points as backend pipeline/nota.py and extension/filters.js. */
 const TIERS = [
-  { min: 65, label: "escalado", className: "bg-hot text-accent-ink" },
-  { min: 50, label: "quente", className: "bg-accent text-accent-ink" },
-  { min: 35, label: "morno", className: "bg-surface-2 text-foreground" },
-  { min: 0, label: "frio", className: "border border-line text-muted" },
+  { min: 65, label: "forte", className: "bg-hot text-accent-ink" },
+  { min: 50, label: "boa", className: "bg-accent text-accent-ink" },
+  { min: 35, label: "média", className: "bg-surface-2 text-foreground" },
+  { min: 0, label: "baixa", className: "border border-line text-muted" },
 ] as const;
 
 export const tierOf = (nota: number) => TIERS.find((t) => nota >= t.min) ?? TIERS[TIERS.length - 1];
 
-/** The badge's full reading, for tooltips and accessible names: "nota 72 de 100, escalado". */
+/** The badge's full reading, for tooltips and accessible names: "pontuação 72 de 100, forte". */
 export function scorePhrase(nota: number): string {
-  return `nota ${Math.round(nota)} de 100, ${tierOf(nota).label}`;
+  return `pontuação ${Math.round(nota)} de 100, ${tierOf(nota).label}`;
 }
 
 /** Relative position as text ("top 5%"), for badges that show their own value instead of a nota (keywords). */
@@ -53,7 +53,7 @@ type ScoreBadgeProps = {
 const BADGE = "shrink-0 rounded px-1.5 py-0.5 font-mono text-xs font-semibold whitespace-nowrap tabular-nums";
 
 /** The one score badge: "72 escalado". Ember from 65, amber from 50, neutral from 35, outlined below. */
-export function ScoreBadge({ value, heat, title = "Nota de escala", children, className = "" }: ScoreBadgeProps) {
+export function ScoreBadge({ value, heat, title = "Pontuação", children, className = "" }: ScoreBadgeProps) {
   if (children != null) {
     const rank = rankText(value, heat) ?? "sem comparação";
     return (
@@ -81,16 +81,16 @@ export function MetricRow({ score, heat, hasHistory }: { score: Score | null; he
   return (
     <MetricStrip className="grid-cols-3">
       <Metric label="anúncios" value={score.duplicates} strong={topMetric(heat, "duplicates", score.duplicates)} />
-      <Metric label="dias no ar" value={score.days_active} strong={topMetric(heat, "days_active", score.days_active)} />
+      <Metric label="dias ativo" value={score.days_active} strong={topMetric(heat, "days_active", score.days_active)} />
       {hasHistory ? (
         <Metric
-          label="cresc. 7d"
+          label="em 7 dias"
           value={formatGrowth(score.growth_7d)}
           strong={topMetric(heat, "growth_7d", score.growth_7d)}
           tone={score.growth_7d < 0 ? "text-danger" : undefined}
         />
       ) : (
-        <Metric label="1ª coleta" value="—" tone="text-muted" />
+        <Metric label="primeira vez" value="—" tone="text-muted" />
       )}
     </MetricStrip>
   );
@@ -147,16 +147,16 @@ export function ScoreParts({ parts }: { parts: { label: string; value: string }[
 }
 
 const FORMULAS = {
-  creative: "Anúncios rodando este criativo 35, dias no ar 25, anúncios do anunciante 15, plataformas 10 e crescimento em 7 dias 15 (conta a partir da 2ª coleta).",
-  offer: "Anúncios 35, anunciantes 20, criativos 15, dias no ar 15, também no TikTok ou no YouTube 10 e anunciantes que entraram nos últimos 14 dias 5.",
-  video: "Views por dia 40, views acima do tamanho do canal 25, engajamento 15 e aceleração 20.",
-  tiktok: "Taxa de cliques (CTR) comparada ao nicho 45, curtidas 20, comentários e compartilhamentos 20 e verba 15.",
-  site: "Anúncios 35, anunciantes 20, criativos 15, dias no ar 15, também no TikTok ou no YouTube 10 e anunciantes que entraram nos últimos 14 dias 5, somando todos os produtos do site.",
+  creative: "Anúncios iguais 35, dias ativo 25, anúncios desta página 15, redes 10 e crescimento em 7 dias 15.",
+  offer: "Anúncios 35, anunciantes 20, versões 15, dias ativo 15, também no TikTok ou no YouTube 10 e anunciantes novos em 14 dias 5.",
+  video: "Visualizações por dia 40, acima dos inscritos 25, curtidas e comentários 15 e crescimento 20.",
+  tiktok: "Cliques comparados ao assunto 45, curtidas 20, comentários e compartilhamentos 20 e verba 15.",
+  site: "Anúncios 35, anunciantes 20, versões 15, dias ativo 15, também no TikTok ou no YouTube 10 e anunciantes novos em 14 dias 5.",
 };
 
 const GLOSSARY: Partial<Record<keyof typeof FORMULAS, string>> = {
-  video: "Vs. inscritos: quantas vezes as views passam o número de inscritos do canal. Engaj.: curtidas e comentários por view (comentário vale o dobro). Acelerando ou desacelerando: views por dia desde a última coleta contra a média desde a publicação; aparece a partir da 2ª coleta.",
-  tiktok: "CTR no top 3% do nicho: a taxa de cliques do anúncio é melhor que a de 97% dos anúncios do mesmo nicho.",
+  video: "Acima dos inscritos: quantas vezes as visualizações passam o tamanho do canal.",
+  tiktok: "Cliques no topo do assunto: este anúncio recebe mais clique que a maioria do mesmo assunto.",
 };
 
 const HEAT_KEY = (
@@ -176,13 +176,13 @@ export function ScoreLegend({ kind = "creative" }: { kind?: keyof typeof FORMULA
       <summary className="flex w-fit cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 transition-colors hover:text-foreground pointer-coarse:min-h-11 [&::-webkit-details-marker]:hidden">
         <span className="hidden items-center gap-x-3 sm:flex">{HEAT_KEY}</span>
         <span className="underline decoration-line underline-offset-2 group-open:decoration-accent">
-          <span className="sm:hidden">Legenda da nota</span>
-          <span className="hidden sm:inline">Como a nota é calculada</span>
+          <span className="sm:hidden">Legenda</span>
+          <span className="hidden sm:inline">Como a pontuação é feita</span>
         </span>
       </summary>
       <div className="mt-1.5 flex max-w-prose flex-wrap items-center gap-x-3 gap-y-1">
         <span className="flex items-center gap-x-3 sm:hidden">{HEAT_KEY}</span>
-        <p>Nota de 0 a 100, em pontos: {FORMULAS[kind]} Abaixo de 35 é frio.</p>
+        <p>Pontuação de 0 a 100: {FORMULAS[kind]} Abaixo de 35 é baixa.</p>
         {GLOSSARY[kind] && <p>{GLOSSARY[kind]}</p>}
       </div>
     </details>

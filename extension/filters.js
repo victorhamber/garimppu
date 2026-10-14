@@ -21,13 +21,13 @@ const GARIMPPU_FILTERS = {
   failures(node, filters, pageAds) {
     const reasons = [];
     const nota = GARIMPPU_FILTERS.nota(node, pageAds);
-    if (filters.minNota && nota < filters.minNota) reasons.push(`nota ${nota}`);
+    if (filters.minNota && nota < filters.minNota) reasons.push(`pontuação ${nota}`);
     const days = GARIMPPU_FILTERS.daysActive(node);
-    if (filters.minDays && days < filters.minDays) reasons.push(`${days} dias no ar`);
+    if (filters.minDays && days < filters.minDays) reasons.push(`${days} dias ativo`);
     const same = Number(node.collation_count) || 1;
-    if (filters.minSameCreative && same < filters.minSameCreative) reasons.push(`${same} com este criativo`);
-    if (filters.minPageAds && pageAds < filters.minPageAds) reasons.push(`${pageAds} do anunciante`);
-    if (filters.withLink && !GARIMPPU_FILTERS.linkOf(node)) reasons.push("sem link");
+    if (filters.minSameCreative && same < filters.minSameCreative) reasons.push(`${same} iguais`);
+    if (filters.minPageAds && pageAds < filters.minPageAds) reasons.push(`${pageAds} desta página`);
+    if (filters.withLink && !GARIMPPU_FILTERS.linkOf(node)) reasons.push("sem link de venda");
     return reasons;
   },
 
@@ -51,10 +51,10 @@ const GARIMPPU_FILTERS = {
 
   /** Same cut points as the app (backend pipeline/nota.py). */
   tier(nota) {
-    if (nota >= 65) return { label: "escalado", color: "#ff6b3d", ink: "#1a1206" };
-    if (nota >= 50) return { label: "quente", color: "#f2a93b", ink: "#1a1206" };
-    if (nota >= 35) return { label: "morno", color: "#1d2024", ink: "#e8e6e1" };
-    return { label: "frio", color: "transparent", ink: "#8d9096" };
+    if (nota >= 65) return { label: "forte", tone: "escalado", color: "#ff6b3d", ink: "#1a1206" };
+    if (nota >= 50) return { label: "boa", tone: "quente", color: "#f2a93b", ink: "#1a1206" };
+    if (nota >= 35) return { label: "média", tone: "morno", color: "#1d2024", ink: "#e8e6e1" };
+    return { label: "baixa", tone: "frio", color: "transparent", ink: "#8d9096" };
   },
 
   viewDefaults: { sort: "library", speed: "normal", stopAt: 0, collapsed: false },

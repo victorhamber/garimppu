@@ -74,7 +74,7 @@ export function AdvertiserView() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <CheckToggle label="Somente ativos" checked={activeOnly} onChange={setActiveOnly} />
+          <CheckToggle label="Só os ativos" checked={activeOnly} onChange={setActiveOnly} />
           <a href={libraryUrl} target="_blank" rel="noreferrer" className="btn">Ver todos na Biblioteca</a>
           <ConfirmMine
             key={existing ? "rerun" : "new"}

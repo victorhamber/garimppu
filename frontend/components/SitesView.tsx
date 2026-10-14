@@ -20,11 +20,11 @@ const PANEL_KEYS = ["niche", "search_id"] as const;
 type FilterKey = (typeof FILTER_KEYS)[number];
 
 const SORTS = [
-  { id: "score", label: "Maior nota" },
+  { id: "score", label: "Maior pontuação" },
   { id: "advertisers", label: "Mais anunciantes" },
   { id: "ads", label: "Mais anúncios" },
   { id: "products", label: "Mais produtos" },
-  { id: "days_active", label: "Mais tempo no ar" },
+  { id: "days_active", label: "Mais tempo ativo" },
   { id: "recent", label: "Novos primeiro" },
 ];
 
@@ -51,7 +51,7 @@ export function SitesView() {
   if (filters.niche) chips.push({ key: "niche", label: label(filters.niche) ?? filters.niche });
   if (filters.search_id) {
     const search = searches.find((s) => String(s.id) === filters.search_id);
-    chips.push({ key: "search_id", label: `Mineração: ${search?.term ?? filters.search_id}` });
+    chips.push({ key: "search_id", label: `Busca: ${search?.term ?? filters.search_id}` });
   }
 
   useEffect(() => {
@@ -130,15 +130,15 @@ export function SitesView() {
           <FilterToggle open={panelOpen} count={panelCount} controls="sites-panel" onToggle={() => setPanelOpen((v) => !v)} />
           <MoreFilters open={panelOpen}>
             {!filters.search_id && <ScopeToggle value={filters.scope} effective={data?.scope} onChange={(v) => update("scope", v)} />}
-            <CheckToggle label="Somente ativos" checked={filters.active_only !== "false"}
+            <CheckToggle label="Só os ativos" checked={filters.active_only !== "false"}
               onChange={(on) => update("active_only", on ? "" : "false")} />
           </MoreFilters>
         </div>
 
         <div id="sites-panel" hidden={!panelOpen} className="grid grid-cols-2 gap-3 border-t border-line pt-3">
-          <FilterSelect id="s-nicho" label="Nicho" value={filters.niche} onChange={(v) => update("niche", v)}
+          <FilterSelect id="s-nicho" label="Assunto" value={filters.niche} onChange={(v) => update("niche", v)}
             options={niches.map((n) => ({ id: n.id, label: n.label }))} />
-          <FilterSelect id="s-busca" label="Mineração" allLabel="Todas" value={filters.search_id} onChange={(v) => update("search_id", v)}
+          <FilterSelect id="s-busca" label="Busca" allLabel="Todas" value={filters.search_id} onChange={(v) => update("search_id", v)}
             options={adSearches.map((s) => ({ id: String(s.id), label: s.term }))} />
         </div>
 
@@ -244,7 +244,7 @@ export function SiteRow({ site, rank, nicheLabel, heat, collections, onCollectio
           {site.platform && (
             <span className="rounded-full border border-line px-2 py-0.5 text-micro text-foreground">{site.platform}</span>
           )}
-          <ScoreBadge value={site.score} heat={heat} title="Nota do site" className="ml-auto" />
+          <ScoreBadge value={site.score} heat={heat} title="Pontuação do site" className="ml-auto" />
         </div>
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
           {site.top_advertisers.map((a) => (
@@ -276,7 +276,7 @@ export function SiteRow({ site, rank, nicheLabel, heat, collections, onCollectio
         <Metric label="anunciantes" value={site.advertisers} strong={topMetric(heat, "advertisers", site.advertisers)} />
         <Metric label="anúncios" value={site.ads} strong={topMetric(heat, "ads", site.ads)} />
         <Metric label="produtos" value={site.products} strong={topMetric(heat, "products", site.products)} />
-        <Metric label="dias no ar" value={site.days_active} strong={topMetric(heat, "days_active", site.days_active)} />
+        <Metric label="dias ativo" value={site.days_active} strong={topMetric(heat, "days_active", site.days_active)} />
       </MetricStrip>
     </article>
   );

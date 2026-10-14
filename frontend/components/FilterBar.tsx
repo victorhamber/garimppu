@@ -118,8 +118,8 @@ export function ScopeToggle({ value, effective, onChange }: { value?: string; ef
         Minhas buscas
       </button>
       <button type="button" aria-pressed={all} className={option(all)} onClick={() => onChange("all")}
-        title="Inclui o que outros clientes já mineraram">
-        Toda a base
+        title="Inclui o que outros clientes já acharam">
+        De todo mundo
       </button>
     </div>
   );
@@ -131,9 +131,9 @@ export function FirstRunNote({ show }: { show: boolean }) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm text-muted">
       <p className="min-w-0 flex-1 basis-64">
-        Você ainda não tem buscas: isto é <span className="text-foreground">toda a base</span>, minerada por outros clientes.
+        Você ainda não tem buscas. Isto é o que outros clientes acharam.
       </p>
-      <Link href="/buscas" className="btn btn-primary h-8 pointer-coarse:h-11">Minerar meu nicho</Link>
+      <Link href="/buscas" className="btn btn-primary h-8 pointer-coarse:h-11">Começar uma busca</Link>
     </div>
   );
 }

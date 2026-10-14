@@ -135,7 +135,7 @@ export function CreativeRow({ creative, rank, heat, collections, nicheLabel, onC
         {creative.score && (
           <span className="text-xs text-muted md:hidden">
             <span className="font-mono tabular-nums text-foreground">{creative.score.duplicates}</span> anúncios ·{" "}
-            <span className="font-mono tabular-nums text-foreground">{creative.score.days_active}</span> dias no ar
+            <span className="font-mono tabular-nums text-foreground">{creative.score.days_active}</span> dias ativo
           </span>
         )}
         <div className="hidden min-w-0 lg:block">

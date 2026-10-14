@@ -22,11 +22,11 @@ const PANEL_KEYS: (keyof CreativeFilters)[] = ["search_id", "niche", "media_type
 
 const MEDIA_OPTIONS = [{ id: "image", label: "Imagem" }, { id: "video", label: "Vídeo" }, { id: "text", label: "Só texto" }];
 const SORTS = [
-  { id: "score", label: "Maior nota" },
-  { id: "duplicates", label: "Mais duplicados" },
-  { id: "days_active", label: "Mais tempo no ar" },
-  { id: "growth", label: "Maior crescimento 7d" },
-  { id: "recent", label: "Descobertos recentemente" },
+  { id: "score", label: "Maior pontuação" },
+  { id: "duplicates", label: "Mais repetidos" },
+  { id: "days_active", label: "Mais tempo ativo" },
+  { id: "growth", label: "Cresceu mais em 7 dias" },
+  { id: "recent", label: "Achados recentemente" },
 ];
 
 export function Explorer() {
@@ -64,13 +64,13 @@ export function Explorer() {
   }
   if (filters.search_id) {
     const search = searches.find((s) => String(s.id) === filters.search_id);
-    chips.push({ key: "search_id", label: `Mineração: ${search?.term ?? filters.search_id}` });
+    chips.push({ key: "search_id", label: `Busca: ${search?.term ?? filters.search_id}` });
   }
   if (filters.niche) chips.push({ key: "niche", label: nicheLabel(filters.niche) ?? filters.niche });
   if (filters.media_type) {
     chips.push({ key: "media_type", label: MEDIA_OPTIONS.find((m) => m.id === filters.media_type)?.label ?? filters.media_type });
   }
-  if (filters.min_days) chips.push({ key: "min_days", label: `≥ ${filters.min_days} dias no ar` });
+  if (filters.min_days) chips.push({ key: "min_days", label: `ativo há ${filters.min_days} dias` });
   if (filters.min_duplicates) chips.push({ key: "min_duplicates", label: `≥ ${filters.min_duplicates} anúncios` });
   const [panelOpen, setPanelOpen] = useState(false);
   useSlashFocus("q");
@@ -166,7 +166,7 @@ export function Explorer() {
           <FilterToggle open={panelOpen} count={panelCount} controls="explorer-panel" onToggle={() => setPanelOpen((v) => !v)} />
           <MoreFilters open={panelOpen}>
             {scoped && <ScopeToggle value={filters.scope} effective={scope} onChange={(v) => update("scope", v)} />}
-            <CheckToggle label="Somente ativos" checked={filters.active_only !== "false"}
+            <CheckToggle label="Só os ativos" checked={filters.active_only !== "false"}
               onChange={(on) => update("active_only", on ? "" : "false")} />
             {!filters.offer && (
               <CheckToggle label="Incluir marcas grandes" checked={filters.include_brands === "true"}
@@ -176,17 +176,17 @@ export function Explorer() {
         </div>
 
         <div id="explorer-panel" hidden={!panelOpen} className="grid grid-cols-2 gap-3 border-t border-line pt-3 md:grid-cols-5">
-          <FilterSelect id="f-busca" label="Mineração" allLabel="Todas" value={filters.search_id} onChange={(v) => update("search_id", v)}
+          <FilterSelect id="f-busca" label="Busca" allLabel="Todas" value={filters.search_id} onChange={(v) => update("search_id", v)}
             options={searches.map((s) => ({ id: String(s.id), label: `${s.term} (${s.country})` }))} />
-          <FilterSelect id="f-nicho" label="Nicho" value={filters.niche} onChange={(v) => update("niche", v)} options={niches} />
-          <FilterSelect id="f-midia" label="Mídia" value={filters.media_type} onChange={(v) => update("media_type", v)} options={MEDIA_OPTIONS} />
+          <FilterSelect id="f-nicho" label="Assunto" value={filters.niche} onChange={(v) => update("niche", v)} options={niches} />
+          <FilterSelect id="f-midia" label="Tipo" value={filters.media_type} onChange={(v) => update("media_type", v)} options={MEDIA_OPTIONS} />
           <div>
-            <label className="label" htmlFor="min_days">Mín. dias no ar</label>
+            <label className="label" htmlFor="min_days">Dias ativo, no mínimo</label>
             <input id="min_days" inputMode="numeric" pattern="[0-9]*" enterKeyHint="done" className="field" value={draft.min_days ?? ""}
               onChange={(e) => type("min_days", digitsOnly(e.target.value))} placeholder="ex.: 30" />
           </div>
           <div>
-            <label className="label" htmlFor="min_dup">Mín. anúncios</label>
+            <label className="label" htmlFor="min_dup">Anúncios iguais, no mínimo</label>
             <input id="min_dup" inputMode="numeric" pattern="[0-9]*" enterKeyHint="done" className="field" value={draft.min_duplicates ?? ""}
               onChange={(e) => type("min_duplicates", digitsOnly(e.target.value))} placeholder="ex.: 5" />
           </div>

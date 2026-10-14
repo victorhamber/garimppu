@@ -11,8 +11,8 @@ function showAccount(account) {
   }
   document.getElementById("who").textContent = account.email;
   document.getElementById("plan").textContent = account.subscriber
-    ? "Assinante: os anúncios que passam no filtro e os favoritos vão para o app."
-    : "Plano grátis: filtros e downloads.";
+    ? "Assinante: o que você filtrar vai para o app."
+    : "Grátis: filtrar e baixar.";
   const upgrade = document.getElementById("upgrade");
   upgrade.hidden = account.subscriber;
   upgrade.href = account.upgrade_url || "https://app.garimppu.com";
@@ -59,39 +59,53 @@ const go = document.getElementById("go");
 const note = document.getElementById("note");
 let mineTab = null;
 
+function armButton() {
+  go.dataset.mine = "1";
+  go.removeAttribute("href");
+  go.removeAttribute("target");
+  go.textContent = "Ativar mineração";
+}
+
 async function place() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   mineTab = tab || null;
+  delete go.dataset.mine;
+  go.href = "https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=BR&media_type=all";
+  go.target = "_blank";
+  go.textContent = "Abrir a Biblioteca de Anúncios";
+  note.textContent = "Abra o YouTube, o TikTok ou a Biblioteca de Anúncios e clique em Ativar mineração.";
   if (!tab?.id) return;
   let here = null;
   try {
     here = await chrome.tabs.sendMessage(tab.id, { type: "where" });
   } catch {}
-  if (here?.page !== "youtube") return;
-  go.dataset.youtube = "1";
-  go.removeAttribute("target");
-  if (here.results) {
-    note.textContent = `Busca “${here.term}”. Os filtros e a rolagem ficam na barra da página.`;
-    go.textContent = "Minerar esta busca";
-  } else {
-    note.textContent = "Pesquise um termo no YouTube. A barra abre na página de resultados.";
-    go.textContent = "Ativar na próxima busca";
+  if (!here?.page) {
+    const url = tab.url || "";
+    if (/youtube\.com|facebook\.com\/ads\/library|ads\.tiktok\.com/.test(url)) {
+      note.textContent = "Recarregue a página e clique de novo.";
+    }
+    return;
   }
+  armButton();
+  if (here.page === "youtube" && here.results) note.textContent = `Busca “${here.term}”.`;
+  else if (here.page === "youtube") note.textContent = "Pesquise um termo nesta aba.";
+  else if (here.page === "facebook") note.textContent = "Biblioteca de Anúncios aberta.";
+  else note.textContent = "TikTok aberto nesta aba.";
 }
 
 go.addEventListener("click", async (event) => {
-  if (go.dataset.youtube !== "1" || !mineTab?.id) return;
+  if (go.dataset.mine !== "1" || !mineTab?.id) return;
   event.preventDefault();
   let result = null;
   try {
     result = await chrome.tabs.sendMessage(mineTab.id, { type: "mine" });
   } catch {
-    note.textContent = "Recarregue a página do YouTube e clique de novo.";
+    note.textContent = "Recarregue a página e clique de novo.";
     return;
   }
   if (result?.armed) {
-    note.textContent = "Ativado. Pesquise um termo no YouTube.";
-    go.textContent = "Ativado";
+    note.textContent = "Ativada. Pesquise um termo nesta aba.";
+    go.textContent = "Ativada";
     return;
   }
   window.close();

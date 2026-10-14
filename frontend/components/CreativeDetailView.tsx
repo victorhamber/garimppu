@@ -164,14 +164,14 @@ export function CreativeDetailView() {
           {s && (
             <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-3 md:grid-cols-5 lg:max-xl:grid-cols-3">
               <Stat label="Anúncios ativos" value={s.duplicates} hint="soma das cópias deste criativo, incluindo as agrupadas pela Meta" />
-              <Stat label="Dias no ar" value={s.days_active} hint={`desde ${formatDate(creative.start_date)}`} />
+              <Stat label="Dias ativo" value={s.days_active} hint={`desde ${formatDate(creative.start_date)}`} />
               {creative.has_history ? (
-                <Stat label="Crescimento 7d" value={formatGrowth(s.growth_7d)} hint="variação de anúncios ativos" />
+                <Stat label="Em 7 dias" value={formatGrowth(s.growth_7d)} hint="variação de anúncios ativos" />
               ) : (
-                <Stat label="Crescimento 7d" value="—" hint="1ª coleta: aparece depois de uma coleta em outro dia" />
+                <Stat label="Em 7 dias" value="—" hint="aparece depois de outra coleta, em outro dia" />
               )}
               <Stat label="Plataformas" value={s.platforms_count} hint={creative.platforms.map((p) => PLATFORM_LABELS[p] ?? p).join(", ")} />
-              <Stat label="Anúncios do anunciante" value={s.page_active_ads} hint="anúncios ativos da página" className="col-span-2 md:col-span-1 lg:max-xl:col-span-2" />
+              <Stat label="Anúncios da página" value={s.page_active_ads} hint="anúncios ativos desta página" className="col-span-2 md:col-span-1 lg:max-xl:col-span-2" />
             </dl>
           )}
 

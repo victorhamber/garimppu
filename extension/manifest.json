@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Garimppu: mineração de anúncios",
   "short_name": "Garimppu",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Minera a Biblioteca de Anúncios, o YouTube e o TikTok e envia o que encontrar para o Garimppu.",
   "homepage_url": "https://app.garimppu.com/extensao",
   "icons": {

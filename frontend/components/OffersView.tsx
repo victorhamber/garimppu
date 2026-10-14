@@ -20,13 +20,13 @@ const PANEL_KEYS = ["kind", "platform", "search_id", "min_advertisers"] as const
 type FilterKey = (typeof FILTER_KEYS)[number];
 
 const SORTS = [
-  { id: "score", label: "Maior nota" },
-  { id: "platforms", label: "Em mais plataformas" },
+  { id: "score", label: "Maior pontuação" },
+  { id: "platforms", label: "Em mais redes" },
   { id: "advertisers", label: "Mais anunciantes" },
   { id: "ads", label: "Mais anúncios" },
-  { id: "creatives", label: "Mais criativos" },
-  { id: "days_active", label: "Mais tempo no ar" },
-  { id: "recent", label: "Descobertas recentemente" },
+  { id: "creatives", label: "Mais versões" },
+  { id: "days_active", label: "Mais tempo ativo" },
+  { id: "recent", label: "Achadas recentemente" },
 ];
 
 export function OffersView() {
@@ -52,7 +52,7 @@ export function OffersView() {
   if (filters.platform) chips.push({ key: "platform", label: filters.platform });
   if (filters.search_id) {
     const search = searches.find((s) => String(s.id) === filters.search_id);
-    chips.push({ key: "search_id", label: `Mineração: ${search?.term ?? filters.search_id}` });
+    chips.push({ key: "search_id", label: `Busca: ${search?.term ?? filters.search_id}` });
   }
   if (filters.min_advertisers) chips.push({ key: "min_advertisers", label: `≥ ${filters.min_advertisers} anunciantes` });
 
@@ -133,7 +133,7 @@ export function OffersView() {
           <FilterToggle open={panelOpen} count={panelCount} controls="offers-panel" onToggle={() => setPanelOpen((v) => !v)} />
           <MoreFilters open={panelOpen}>
             {!filters.search_id && <ScopeToggle value={filters.scope} effective={data?.scope} onChange={(v) => update("scope", v)} />}
-            <CheckToggle label="Somente ativos" checked={filters.active_only !== "false"}
+            <CheckToggle label="Só os ativos" checked={filters.active_only !== "false"}
               onChange={(on) => update("active_only", on ? "" : "false")} />
             <CheckToggle label="Incluir marcas grandes" checked={filters.include_brands === "true"}
               onChange={(on) => update("include_brands", on ? "true" : "")} />
@@ -146,10 +146,10 @@ export function OffersView() {
           <FilterSelect id="o-tipo" label="Tipo" value={filters.kind} onChange={(v) => update("kind", v)} options={OFFER_KINDS} />
           <FilterSelect id="o-plataforma" label="Plataforma" value={filters.platform} onChange={(v) => update("platform", v)}
             options={platforms.map((p) => ({ id: p, label: p }))} />
-          <FilterSelect id="o-busca" label="Mineração" allLabel="Todas" value={filters.search_id} onChange={(v) => update("search_id", v)}
+          <FilterSelect id="o-busca" label="Busca" allLabel="Todas" value={filters.search_id} onChange={(v) => update("search_id", v)}
             options={searches.map((s) => ({ id: String(s.id), label: `${s.term} (${s.country})` }))} />
           <div>
-            <label className="label" htmlFor="min_adv">Mín. anunciantes</label>
+            <label className="label" htmlFor="min_adv">Anunciantes, no mínimo</label>
             <input id="min_adv" inputMode="numeric" pattern="[0-9]*" enterKeyHint="done" className="field" value={draft.min_advertisers ?? ""}
               onChange={(e) => type("min_advertisers", digitsOnly(e.target.value))} placeholder="ex.: 2" />
           </div>
@@ -252,7 +252,7 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
               </Link>
             </h2>
             <ScoreBadge value={offer.score} heat={heat}
-              title={`Nota da oferta${offer.new_advertisers ? ` · ${offer.new_advertisers === 1 ? "1 anunciante entrou" : `${offer.new_advertisers} anunciantes entraram`} nos últimos 14 dias` : ""}`} />
+              title={`Pontuação da oferta${offer.new_advertisers ? ` · ${offer.new_advertisers === 1 ? "1 anunciante entrou" : `${offer.new_advertisers} anunciantes entraram`} nos últimos 14 dias` : ""}`} />
           </div>
           <p className="flex min-w-0 items-center gap-1.5 text-xs text-muted">
             <span className="shrink-0">{OFFER_KIND_LABEL[offer.kind]}</span>
@@ -273,7 +273,7 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
           <Metric label="anunciantes" value={offer.advertisers} strong={topMetric(heat, "advertisers", offer.advertisers)} />
           <Metric label="anúncios" value={offer.ads} strong={topMetric(heat, "ads", offer.ads)} />
           <Metric label="criativos" value={offer.creatives} strong={topMetric(heat, "creatives", offer.creatives)} />
-          <Metric label="dias no ar" value={offer.days_active} strong={topMetric(heat, "days_active", offer.days_active)} />
+          <Metric label="dias ativo" value={offer.days_active} strong={topMetric(heat, "days_active", offer.days_active)} />
         </MetricStrip>
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
           {offer.platforms > 1 && (

@@ -10,10 +10,10 @@ const GARIMPPU_BAR = {
 
   tier(nota) {
     const score = Math.round(Number(nota) || 0);
-    if (score >= 65) return { score, label: "escalado", color: "#ff6b3d", ink: "#1a1206" };
-    if (score >= 50) return { score, label: "quente", color: "#f2a93b", ink: "#1a1206" };
-    if (score >= 35) return { score, label: "morno", color: "#1d2024", ink: "#e8e6e1" };
-    return { score, label: "frio", color: "transparent", ink: "#8d9096" };
+    if (score >= 65) return { score, label: "forte", color: "#ff6b3d", ink: "#1a1206" };
+    if (score >= 50) return { score, label: "boa", color: "#f2a93b", ink: "#1a1206" };
+    if (score >= 35) return { score, label: "média", color: "#1d2024", ink: "#e8e6e1" };
+    return { score, label: "baixa", color: "transparent", ink: "#8d9096" };
   },
 
   async message(payload) {
@@ -39,8 +39,8 @@ const GARIMPPU_BAR = {
           </div>
           <div class="extra"></div>
           <section>
-            <h2>Rolagem automática</h2>
-            <button class="primary" type="button" data-act="scroll">Rolar sozinho</button>
+            <h2>Rolar a página</h2>
+            <button class="primary" type="button" data-act="scroll">Rolar a página</button>
             <div class="seg" role="group" aria-label="Velocidade da rolagem">
               <button type="button" data-speed="slow">Lenta</button>
               <button type="button" data-speed="normal">Normal</button>
@@ -114,13 +114,13 @@ const GARIMPPU_BAR = {
       shadow.querySelector(".links").innerHTML = state.links || "";
       shadow.querySelector(".tab-count").textContent = state.count ? String(state.count) : "";
       const scrollButton = shadow.querySelector('[data-act="scroll"]');
-      scrollButton.textContent = bar.scrolling ? "Parar a rolagem" : "Rolar sozinho";
+      scrollButton.textContent = bar.scrolling ? "Parar" : "Rolar a página";
       scrollButton.classList.toggle("on", bar.scrolling);
       for (const button of shadow.querySelectorAll("[data-speed]")) {
         button.setAttribute("aria-pressed", String(button.dataset.speed === bar.speed));
       }
       shadow.querySelector(".scroll-note").textContent = bar.scrolling
-        ? "Role com o mouse a qualquer momento; a rolagem segue."
+        ? "A página continua rolando."
         : (state.scrollNote || "");
     };
     bar.paint();

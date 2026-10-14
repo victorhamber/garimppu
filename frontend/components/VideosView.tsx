@@ -20,16 +20,16 @@ const PANEL_KEYS = ["niche", "search_id", "format", "period", "min_views"] as co
 type FilterKey = (typeof FILTER_KEYS)[number];
 
 const SORTS = [
-  { id: "score", label: "Maior nota" },
-  { id: "velocity", label: "Mais views por dia" },
+  { id: "score", label: "Maior pontuação" },
+  { id: "velocity", label: "Mais visualizações por dia" },
   { id: "views", label: "Mais visualizações" },
-  { id: "outlier", label: "Mais acima do canal" },
-  { id: "engagement", label: "Mais engajamento" },
-  { id: "acceleration", label: "Acelerando agora" },
+  { id: "outlier", label: "Mais acima dos inscritos" },
+  { id: "engagement", label: "Mais curtidas e comentários" },
+  { id: "acceleration", label: "Crescendo agora" },
   { id: "recent", label: "Publicados recentemente" },
 ];
 const FORMATS = [
-  { id: "short", label: "Shorts" },
+  { id: "short", label: "Vídeos curtos" },
   { id: "long", label: "Vídeos longos" },
 ];
 const PERIODS = [
@@ -77,11 +77,11 @@ export function VideosView() {
   if (filters.niche) chips.push({ key: "niche", label: label(filters.niche) ?? filters.niche });
   if (filters.search_id) {
     const search = searches.find((s) => String(s.id) === filters.search_id);
-    chips.push({ key: "search_id", label: `Mineração: ${search?.term ?? filters.search_id}` });
+    chips.push({ key: "search_id", label: `Busca: ${search?.term ?? filters.search_id}` });
   }
   if (filters.format) chips.push({ key: "format", label: FORMATS.find((f) => f.id === filters.format)?.label ?? filters.format });
   if (filters.period) chips.push({ key: "period", label: PERIODS.find((p) => p.id === filters.period)?.label ?? `${filters.period} dias` });
-  if (filters.min_views) chips.push({ key: "min_views", label: `≥ ${Number(filters.min_views).toLocaleString("pt-BR")} views` });
+  if (filters.min_views) chips.push({ key: "min_views", label: `${Number(filters.min_views).toLocaleString("pt-BR")} visualizações` });
   if (filters.offer) chips.push({ key: "offer", label: `Oferta: ${filters.offer}` });
 
   useEffect(() => {
@@ -135,7 +135,7 @@ export function VideosView() {
     <div className="flex flex-col gap-4 md:gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Vídeos do YouTube</h1>
-        <p className="mt-1 text-sm text-muted">Vídeos ganhando views mais rápido que o normal.</p>
+        <p className="mt-1 text-sm text-muted">Vídeos ganhando visualizações mais rápido que o normal.</p>
       </div>
       <FirstRunNote show={!filters.scope && data?.scope === "all"} />
 
@@ -168,19 +168,19 @@ export function VideosView() {
           <FilterToggle open={panelOpen} count={panelCount} controls="videos-panel" onToggle={() => setPanelOpen((v) => !v)} />
           <MoreFilters open={panelOpen}>
             {!filters.search_id && <ScopeToggle value={filters.scope} effective={data?.scope} onChange={(v) => update("scope", v)} />}
-            <CheckToggle label="Só com link de oferta" checked={filters.has_offer === "true"}
+            <CheckToggle label="Só com link de venda" checked={filters.has_offer === "true"}
               onChange={(on) => update("has_offer", on ? "true" : "")} />
           </MoreFilters>
         </div>
 
         <div id="videos-panel" hidden={!panelOpen} className="grid grid-cols-2 gap-3 border-t border-line pt-3 md:grid-cols-5">
-          <FilterSelect id="v-nicho" label="Nicho" value={filters.niche} onChange={(v) => update("niche", v)} options={niches} />
-          <FilterSelect id="v-busca" label="Mineração" allLabel="Todas" value={filters.search_id} onChange={(v) => update("search_id", v)}
+          <FilterSelect id="v-nicho" label="Assunto" value={filters.niche} onChange={(v) => update("niche", v)} options={niches} />
+          <FilterSelect id="v-busca" label="Busca" allLabel="Todas" value={filters.search_id} onChange={(v) => update("search_id", v)}
             options={youtubeSearches.map((s) => ({ id: String(s.id), label: `${s.term} (${s.country})` }))} />
           <FilterSelect id="v-formato" label="Formato" value={filters.format} onChange={(v) => update("format", v)} options={FORMATS} />
           <FilterSelect id="v-periodo" label="Publicado" value={filters.period} onChange={(v) => update("period", v)} options={PERIODS} />
           <div>
-            <label className="label" htmlFor="min_views">Mín. visualizações</label>
+            <label className="label" htmlFor="min_views">Visualizações, no mínimo</label>
             <input id="min_views" inputMode="numeric" pattern="[0-9]*" enterKeyHint="done" className="field" value={draft.min_views ?? ""}
               onChange={(e) => type("min_views", digitsOnly(e.target.value))} placeholder="ex.: 10000" />
           </div>
@@ -248,10 +248,10 @@ export function VideosView() {
 function scoreParts(video: Video) {
   const accel = video.acceleration;
   return notaPoints([
-    { label: "views/dia", weight: 40, share: fill(Math.log10(1 + video.velocity) / 5) },
-    { label: "acima do canal", weight: 25, share: video.outlier != null ? fill(Math.log10(1 + video.outlier) / 2) : null },
-    { label: "engajamento", weight: 15, share: video.engagement != null ? fill(video.engagement / 0.05) : null },
-    { label: "aceleração", weight: 20, share: accel != null ? fill((Math.log2(Math.max(accel, 0.01)) + 1) / 2) : null },
+    { label: "por dia", weight: 40, share: fill(Math.log10(1 + video.velocity) / 5) },
+    { label: "acima dos inscritos", weight: 25, share: video.outlier != null ? fill(Math.log10(1 + video.outlier) / 2) : null },
+    { label: "curtidas", weight: 15, share: video.engagement != null ? fill(video.engagement / 0.05) : null },
+    { label: "crescimento", weight: 20, share: accel != null ? fill((Math.log2(Math.max(accel, 0.01)) + 1) / 2) : null },
   ]);
 }
 
@@ -293,7 +293,7 @@ export function VideoCard({ video, rank, heat, niche, collections, onCollections
             <a href={video.url} target="_blank" rel="noreferrer" className="hover:text-accent">{title}</a>
           </h2>
           <ScoreBadge value={video.score} heat={heat}
-            title={`Nota do vídeo = ${parts.map((p) => `${p.label} ${p.value}`).join(" + ")}`} />
+            title={`Pontuação do vídeo = ${parts.map((p) => `${p.label} ${p.value}`).join(" + ")}`} />
         </div>
         <p className="truncate text-xs text-muted">
           {video.channel_id ? (
@@ -307,11 +307,11 @@ export function VideoCard({ video, rank, heat, niche, collections, onCollections
         </p>
 
         <MetricStrip className="grid-cols-4">
-          <Metric label="views" value={compact.format(video.views)} strong={topMetric(heat, "views", video.views)} />
+          <Metric label="visualizações" value={compact.format(video.views)} strong={topMetric(heat, "views", video.views)} />
           <Metric label="por dia" value={compact.format(video.velocity)} strong={topMetric(heat, "velocity", video.velocity)} />
-          <Metric label="vs. inscritos" value={video.outlier != null ? formatMultiple(video.outlier) : "—"}
-            strong={topMetric(heat, "outlier", video.outlier)} title="Quantas vezes as views passam o número de inscritos do canal" />
-          <Metric label="engaj." value={video.engagement != null ? `${(video.engagement * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%` : "—"}
+          <Metric label="acima dos inscritos" value={video.outlier != null ? formatMultiple(video.outlier) : "—"}
+            strong={topMetric(heat, "outlier", video.outlier)} title="Quantas vezes as visualizações passam o tamanho do canal" />
+          <Metric label="curtidas" value={video.engagement != null ? `${(video.engagement * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%` : "—"}
             strong={topMetric(heat, "engagement", video.engagement)} title="Curtidas e comentários por view (comentário vale o dobro)" />
         </MetricStrip>
         <ScoreParts parts={parts} />

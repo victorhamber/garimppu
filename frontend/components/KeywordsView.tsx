@@ -64,7 +64,7 @@ export function KeywordsView() {
   if (filters.days) chips.push({ key: "days", label: PERIODS.find((p) => p.id === filters.days)?.label ?? `${filters.days} dias` });
   if (filters.search_id) {
     const search = searches.find((s) => String(s.id) === filters.search_id);
-    chips.push({ key: "search_id", label: `Mineração: ${search?.term ?? filters.search_id}` });
+    chips.push({ key: "search_id", label: `Busca: ${search?.term ?? filters.search_id}` });
   }
 
   useEffect(() => {
@@ -148,12 +148,12 @@ export function KeywordsView() {
         </div>
 
         <div id="keywords-panel" hidden={!panelOpen} className="grid grid-cols-2 gap-3 border-t border-line pt-3 md:grid-cols-4">
-          <FilterSelect id="k-nicho" label="Nicho" value={filters.niche} onChange={(v) => update("niche", v)}
+          <FilterSelect id="k-nicho" label="Assunto" value={filters.niche} onChange={(v) => update("niche", v)}
             options={niches.map((n) => ({ id: n.id, label: n.label }))} />
           <FilterSelect id="k-pais" label="País" value={filters.geo} onChange={(v) => update("geo", v)}
             options={(data?.countries ?? []).map((c) => ({ id: c, label: c }))} />
           <FilterSelect id="k-periodo" label="Em alta" value={filters.days} onChange={(v) => update("days", v)} options={PERIODS} />
-          <FilterSelect id="k-busca" label="Mineração" allLabel="Todas" value={filters.search_id} onChange={(v) => update("search_id", v)}
+          <FilterSelect id="k-busca" label="Busca" allLabel="Todas" value={filters.search_id} onChange={(v) => update("search_id", v)}
             options={trendSearches.map((s) => ({ id: String(s.id), label: s.term }))} />
         </div>
 
@@ -168,8 +168,8 @@ export function KeywordsView() {
         <SortSelect id="ksort" value={filters.sort ?? "traffic"} options={SORTS}
           onChange={(v) => update("sort", v === "traffic" ? "" : v)} />
         <span className="text-xs">
-          Volume: <span className="rounded bg-hot px-1 font-mono text-micro font-semibold text-accent-ink">brasa</span> top 5% ·{" "}
-          <span className="rounded bg-accent px-1 font-mono text-micro font-semibold text-accent-ink">âmbar</span> top 20%
+          Volume: <span className="rounded bg-hot px-1 font-mono text-micro font-semibold text-accent-ink">mais buscadas</span> top 5% ·{" "}
+          <span className="rounded bg-accent px-1 font-mono text-micro font-semibold text-accent-ink">bem buscadas</span> top 20%
           <span className="hidden sm:inline"> deste resultado</span>
         </span>
         <ExportCsv path="/api/keywords/export.csv" filters={filters} disabled={loading || !!error || total === 0} className="ml-auto" />

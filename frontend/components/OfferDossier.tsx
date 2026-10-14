@@ -176,7 +176,7 @@ export function OfferDossier({ offer, collections, onCollectionsChange }: Props)
             <Metric label="anunciantes" value={offer.advertisers} />
             <Metric label="anúncios" value={offer.ads} />
             <Metric label="criativos" value={offer.creatives} />
-            <Metric label="dias no ar" value={offer.days_active} />
+            <Metric label="dias ativo" value={offer.days_active} />
           </MetricStrip>
           <Presence offer={offer} />
         </div>

@@ -90,7 +90,7 @@ export function Nav() {
               G
             </span>
             <span className="whitespace-nowrap">Garimppu</span>
-            <span className="hidden text-sm font-normal whitespace-nowrap text-muted xl:inline">ofertas e criativos escalados</span>
+            <span className="hidden text-sm font-normal whitespace-nowrap text-muted xl:inline">ofertas e anúncios em alta</span>
           </Link>
           {user && (
             <>
