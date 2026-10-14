@@ -1,6 +1,6 @@
 // Shared by content.js and popup.js: the filter settings and how an ad is judged against them.
 const GARIMPPU_FILTERS = {
-  defaults: { minDays: 0, minSameCreative: 0, minPageAds: 0, withLink: false, dim: true },
+  defaults: { minNota: 0, minDays: 0, minSameCreative: 0, minPageAds: 0, withLink: false, dim: true },
 
   async load() {
     const { filters } = await chrome.storage.local.get("filters");
@@ -20,6 +20,8 @@ const GARIMPPU_FILTERS = {
   /** Reasons the ad fails; empty when it passes. pageAds = ads of the same advertiser seen in this search. */
   failures(node, filters, pageAds) {
     const reasons = [];
+    const nota = GARIMPPU_FILTERS.nota(node, pageAds);
+    if (filters.minNota && nota < filters.minNota) reasons.push(`nota ${nota}`);
     const days = GARIMPPU_FILTERS.daysActive(node);
     if (filters.minDays && days < filters.minDays) reasons.push(`${days} dias no ar`);
     const same = Number(node.collation_count) || 1;
@@ -30,15 +32,29 @@ const GARIMPPU_FILTERS = {
   },
 
   active(filters) {
-    return Boolean(filters.minDays || filters.minSameCreative || filters.minPageAds || filters.withLink);
+    return Boolean(filters.minNota || filters.minDays || filters.minSameCreative || filters.minPageAds || filters.withLink);
   },
 
-  /** 0-100: time on air (caps at 60 days), ads sharing the creative (caps at 32) and advertiser's ads here (caps at 16). */
-  heat(node, pageAds) {
-    const days = Math.min(GARIMPPU_FILTERS.daysActive(node), 60) / 60;
-    const same = Math.min(Math.log2(Number(node.collation_count) || 1) / 5, 1);
-    const page = Math.min(Math.log2(pageAds || 1) / 4, 1);
-    return Math.round(100 * (0.4 * days + 0.4 * same + 0.2 * page));
+  /**
+   * The app's creative nota (backend pipeline/scoring.py) without growth, which needs a 2nd collection:
+   * ads with this creative 35 (fills at 30), days on air 25 (60), advertiser's ads 15 (100), placements 10 (4).
+   * The advertiser's ads are the ones seen in this search, so the extension may read a little lower than the app.
+   */
+  nota(node, pageAds) {
+    const log = (value, cap) => Math.min(Math.log2(1 + Math.max(value, 0)) / Math.log2(1 + cap), 1);
+    const same = Number(node.collation_count) || 1;
+    const placements = (node.publisher_platform || node.publisher_platforms || []).length;
+    const points = 35 * log(same - 1, 29) + 25 * Math.min(GARIMPPU_FILTERS.daysActive(node) / 60, 1)
+      + 15 * log(pageAds, 100) + 10 * Math.min(placements / 4, 1);
+    return Math.round((points * 100) / 85);
+  },
+
+  /** Same cut points as the app (backend pipeline/nota.py). */
+  tier(nota) {
+    if (nota >= 65) return { label: "escalado", color: "#ff6b3d", ink: "#1a1206" };
+    if (nota >= 50) return { label: "quente", color: "#f2a93b", ink: "#1a1206" };
+    if (nota >= 35) return { label: "morno", color: "#1d2024", ink: "#e8e6e1" };
+    return { label: "frio", color: "transparent", ink: "#8d9096" };
   },
 
   viewDefaults: { sort: "library", speed: "normal", stopAt: 0, collapsed: false },

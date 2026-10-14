@@ -62,6 +62,10 @@ def enqueue_media_cleanup() -> None:
     _dispatch("app.media_cleanup.shrink_stored_media")
 
 
+def enqueue_score_upgrade() -> None:
+    _dispatch("app.tasks.upgrade_scores")
+
+
 def enqueue_due_sources(db: Session) -> int:
     """Queues overdue sources within the hourly budget, most overdue and most followed first."""
     settings = get_settings()

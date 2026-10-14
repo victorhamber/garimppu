@@ -22,7 +22,7 @@ from app.pipeline.niche import NICHES
 from app.pipeline.scoring import count_duplicates, days_running
 from app.pipeline.sources import SCOPE_HELP, resolve_scope, user_search_source, user_source_ids
 from app.routes.collections import collections_by_ref, saved_refs
-from app.routes.offers import offer_heat, offer_score
+from app.routes.offers import entering_advertisers, offer_heat, offer_score
 from app.schemas import OfferAdvertiser, OfferPreview, SiteOut, SitePage
 from app.serializers import media_path
 
@@ -81,8 +81,9 @@ def _build_site(domain: str, ads: list[Ad], today: date) -> SiteOut:
         url=url[0][0] if url else f"https://{domain}",
         niche=niches.most_common(1)[0][0] if niches else None,
         platform=platforms.most_common(1)[0][0] if platforms else None,
-        score=offer_score(len(pages), duplicates, len(creatives), days),
+        score=offer_score(len(pages), duplicates, len(creatives), days, entering_advertisers(ads, today)),
         advertisers=len(pages),
+        new_advertisers=entering_advertisers(ads, today),
         ads=duplicates,
         creatives=len(creatives),
         products=len({a.offer_key for a in ads}),
@@ -169,6 +170,10 @@ def list_sites(
     for site in sites:
         site.tiktok_ads = tiktok.get(site.domain, 0)
         site.videos = videos.get(site.domain, 0)
+        others = (site.tiktok_ads > 0) + (site.videos > 0)
+        if others:
+            site.score = offer_score(site.advertisers, site.ads, site.creatives, site.days_active,
+                                     site.new_advertisers, 1 + others)
     sites.sort(key=SORT_KEYS[sort], reverse=True)
     page = sites[offset:offset + limit]
     saved_in = collections_by_ref(db, "site", [s.domain for s in page], user)

@@ -121,6 +121,8 @@ export type Offer = {
   url: string | null;
   score: number;
   advertisers: number;
+  /** Advertisers whose first ad for this offer started in the last 14 days. */
+  new_advertisers: number;
   ads: number;
   creatives: number;
   days_active: number;

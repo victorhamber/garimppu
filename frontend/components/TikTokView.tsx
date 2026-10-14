@@ -11,7 +11,7 @@ import { ErrorState } from "./ErrorState";
 import { ListSkeleton } from "./Skeleton";
 import { ExportCsv } from "./ExportCsv";
 import { CheckToggle, FilterChips, FirstRunNote, FilterSelect, FilterToggle, MoreFilters, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
-import { Metric, MetricStrip, ScoreBadge, ScoreLegend, ScoreParts, topMetric } from "./Metrics";
+import { fill, Metric, MetricStrip, notaPoints, ScoreBadge, ScoreLegend, ScoreParts, topMetric } from "./Metrics";
 
 const PAGE_SIZE = 30;
 const FILTER_KEYS = ["q", "industry", "search_id", "objective", "has_offer", "offer", "scope", "sort"] as const;
@@ -20,7 +20,7 @@ const PANEL_KEYS = ["industry", "search_id", "objective"] as const;
 type FilterKey = (typeof FILTER_KEYS)[number];
 
 const SORTS = [
-  { id: "score", label: "Score TikTok" },
+  { id: "score", label: "Maior nota" },
   { id: "ctr", label: "Melhor CTR do nicho" },
   { id: "likes", label: "Mais curtidas" },
   { id: "comments", label: "Mais comentários" },
@@ -245,16 +245,14 @@ export function TikTokView() {
 
 /** Same parts as backend pipeline/tiktok_ingest.py, so the card can show where the score comes from. */
 function scoreParts(ad: TikTokAd) {
-  const talk = ad.comments != null || ad.shares != null ? 0.5 * Math.log10(1 + (ad.comments ?? 0) + 2 * (ad.shares ?? 0)) : null;
-  return [
-    { label: "CTR", value: ad.ctr_rank != null ? 3 * (1 - Math.min(Math.max(ad.ctr_rank, 0), 1)) : null },
-    { label: "curtidas", value: 0.5 * Math.log10(1 + ad.likes) },
-    { label: "conversa", value: talk },
-    { label: "verba", value: 0.25 * (ad.budget ?? 0) },
-  ];
+  const talk = ad.comments != null || ad.shares != null ? (ad.comments ?? 0) + 2 * (ad.shares ?? 0) : null;
+  return notaPoints([
+    { label: "CTR", weight: 45, share: ad.ctr_rank != null ? 1 - fill(ad.ctr_rank) : null },
+    { label: "curtidas", weight: 20, share: fill(Math.log10(1 + ad.likes) / 5) },
+    { label: "conversa", weight: 20, share: talk != null ? fill(Math.log10(1 + talk) / 4) : null },
+    { label: "verba", weight: 15, share: ad.budget != null ? fill(ad.budget / 2) : null },
+  ]);
 }
-
-const fmtPart = (v: number | null) => (v == null ? "—" : v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
 
 type TikTokCardProps = {
   ad: TikTokAd;
@@ -297,7 +295,7 @@ export function TikTokCard({ ad, rank, heat, collections, onCollectionsChange }:
             <a href={ad.url} target="_blank" rel="noreferrer" className="hover:text-accent">{title}</a>
           </h2>
           <ScoreBadge value={ad.score} heat={heat}
-            title={`Score TikTok = ${parts.map((p) => `${p.label} ${fmtPart(p.value)}`).join(" + ")}`} />
+            title={`Nota TikTok = ${parts.map((p) => `${p.label} ${p.value}`).join(" + ")}`} />
         </div>
         <p className="truncate text-xs text-muted">
           {[ad.brand ?? host, ad.industry, ad.objective, ad.budget != null ? BUDGETS[ad.budget] : null, ad.first_seen_at ? `visto pela 1ª vez ${timeAgo(ad.first_seen_at)}` : null]
@@ -313,7 +311,7 @@ export function TikTokCard({ ad, rank, heat, collections, onCollectionsChange }:
           <Metric label="compart." value={ad.shares != null ? compact.format(ad.shares) : "—"}
             strong={topMetric(heat, "shares", ad.shares)} />
         </MetricStrip>
-        <ScoreParts parts={parts.map((p) => ({ label: p.label, value: fmtPart(p.value) }))} />
+        <ScoreParts parts={parts} />
 
         <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
           {ad.landing_page && !ad.offer_key && (

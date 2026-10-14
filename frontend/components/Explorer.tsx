@@ -22,7 +22,7 @@ const PANEL_KEYS: (keyof CreativeFilters)[] = ["search_id", "niche", "media_type
 
 const MEDIA_OPTIONS = [{ id: "image", label: "Imagem" }, { id: "video", label: "Vídeo" }, { id: "text", label: "Só texto" }];
 const SORTS = [
-  { id: "score", label: "Score de escala" },
+  { id: "score", label: "Maior nota" },
   { id: "duplicates", label: "Mais duplicados" },
   { id: "days_active", label: "Mais tempo no ar" },
   { id: "growth", label: "Maior crescimento 7d" },

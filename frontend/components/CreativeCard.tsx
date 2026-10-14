@@ -4,7 +4,7 @@ import Link from "next/link";
 import { offerTag, type Collection, type Creative, type ScoreHeat } from "@/lib/api";
 import { CollectionMenu } from "./CollectionMenu";
 import { CreativeMedia } from "./CreativeMedia";
-import { MetricRow, Platforms, rankPhrase, ScoreBadge } from "./Metrics";
+import { MetricRow, Platforms, scorePhrase, ScoreBadge } from "./Metrics";
 
 type Props = {
   creative: Creative;
@@ -16,7 +16,7 @@ type Props = {
 };
 
 /** The item's one link to its detail page; the thumbnail repeats it for the mouse only, so Tab stops here once. */
-function Title({ creative, rank, heat }: Pick<Props, "creative" | "rank" | "heat">) {
+function Title({ creative, rank }: Pick<Props, "creative" | "rank">) {
   const advertiser = creative.page?.name ?? creative.page?.page_id;
   const kind = creative.media_type === "video" ? "Vídeo" : creative.media_type === "image" ? "Imagem" : "Anúncio só texto";
   return (
@@ -24,7 +24,7 @@ function Title({ creative, rank, heat }: Pick<Props, "creative" | "rank" | "heat
       <Link href={`/criativos/${creative.id}`} className={`hover:text-accent ${advertiser ? "" : "text-muted"}`}>
         <span className="sr-only">{kind} #{rank} de </span>
         {advertiser ?? "Anunciante desconhecido"}
-        <span className="sr-only">, {rankPhrase(creative.score?.score ?? 0, heat)}</span>
+        <span className="sr-only">, {scorePhrase(creative.score?.score ?? 0)}</span>
       </Link>
     </h3>
   );
@@ -93,7 +93,7 @@ export function CreativeCard({ creative, rank, heat, collections, nicheLabel, on
 
       <div className="flex flex-1 flex-col gap-3 p-3">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <Title creative={creative} rank={rank} heat={heat} />
+          <Title creative={creative} rank={rank} />
           <MetaLine niche={nicheLabel(creative.niche)} platforms={creative.platforms} bigBrand={creative.page?.big_brand} />
         </div>
 
@@ -129,7 +129,7 @@ export function CreativeRow({ creative, rank, heat, collections, nicheLabel, onC
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex min-w-0 items-center gap-2">
           <span className="font-mono text-xs text-muted tabular-nums sm:hidden" aria-hidden="true">#{rank}</span>
-          <Title creative={creative} rank={rank} heat={heat} />
+          <Title creative={creative} rank={rank} />
         </div>
         <MetaLine niche={nicheLabel(creative.niche)} platforms={creative.platforms} bigBrand={creative.page?.big_brand} />
         {creative.score && (

@@ -192,15 +192,17 @@
     button:focus-visible, a:focus-visible { outline: 2px solid #f2a93b; outline-offset: 2px; }
     .logo { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 4px; background: #f2a93b; color: #1a1206;
       font: 700 11px ui-monospace, monospace; }
-    .heat { margin-left: 2px; color: #f2a93b; font: 600 12px ui-monospace, monospace; cursor: help; }
-    .heat:empty { display: none; }
+    .nota { margin-left: 2px; padding: 3px 6px; border: 1px solid transparent; border-radius: 4px;
+      font: 600 12px ui-monospace, monospace; white-space: nowrap; cursor: help; }
+    .nota.frio { border-color: #2a2e33; }
+    .nota:empty { display: none; }
     .why { flex-basis: 100%; color: #8d9096; }
     .why.error { color: #f06363; }
     .why a { color: #f2a93b; }
     svg { width: 14px; height: 14px; }`;
 
   const DOWNLOAD_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg>';
-  const HEAT_TIP = "De 0 a 100: tempo no ar, anúncios com o mesmo criativo e anúncios do anunciante nesta busca";
+  const NOTA_TIP = "Nota de escala, de 0 a 100, como no Garimppu: anúncios com este criativo, dias no ar, anúncios do anunciante nesta busca e plataformas. Escalado a partir de 65, quente de 50, morno de 35.";
   const STAR_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.8 6.2.9-4.5 4.4 1 6.3L12 17.5 6.5 20.4l1-6.3L3 9.7l6.2-.9z"/></svg>';
 
   function findCard(label) {
@@ -231,7 +233,7 @@
       root.innerHTML = `<style>${CARD_CSS}</style><div class="bar"><span class="logo" aria-hidden="true">G</span>
         <button type="button" data-act="download">${DOWNLOAD_ICON}Baixar</button>
         <button type="button" data-act="favorite">${STAR_ICON}Favoritar</button>
-        <span class="heat" title="${HEAT_TIP}"></span><span class="why" hidden></span></div>`;
+        <span class="nota" title="${NOTA_TIP}"></span><span class="why" hidden></span></div>`;
       root.querySelector('[data-act="download"]').addEventListener("click", () => downloadAd(id));
       root.querySelector('[data-act="favorite"]').addEventListener("click", () => favoriteAd(id));
       label.insertAdjacentElement("afterend", host);
@@ -259,7 +261,17 @@
       star.classList.toggle("saved", saved);
       star.disabled = saved || !node;
       star.lastChild.textContent = saved ? "Nos favoritos" : "Favoritar";
-      root.querySelector(".heat").textContent = node ? `Quente ${F.heat(node, pageCount(node))}` : "";
+      const badge = root.querySelector(".nota");
+      if (node) {
+        const nota = F.nota(node, pageCount(node));
+        const tier = F.tier(nota);
+        badge.textContent = `${nota} ${tier.label}`;
+        badge.className = `nota ${tier.label}`;
+        badge.style.background = tier.color;
+        badge.style.color = tier.ink;
+      } else {
+        badge.textContent = "";
+      }
       const why = root.querySelector(".why");
       if (!why.dataset.locked) {
         why.hidden = !(filtering && reasons.length);
@@ -274,7 +286,7 @@
 
   const SORTS = {
     library: { label: "Ordem da Biblioteca" },
-    hot: { label: "Mais quentes", value: (node) => F.heat(node, pageCount(node)) },
+    hot: { label: "Maior nota", value: (node) => F.nota(node, pageCount(node)) },
     same: { label: "Mais duplicados", value: (node) => Number(node.collation_count) || 1 },
     days: { label: "Mais tempo no ar", value: (node) => F.daysActive(node) },
     page: { label: "Anunciante com mais anúncios", value: (node) => pageCount(node) },
@@ -418,7 +430,7 @@
   // --- Sidebar ---------------------------------------------------------------------------------------------
 
   const PANEL_WIDTH = 300;
-  const NUMBERS = ["minDays", "minSameCreative", "minPageAds"];
+  const NUMBERS = ["minNota", "minDays", "minSameCreative", "minPageAds"];
   const CHECKS = ["withLink", "dim"];
   let panel = null;
   let panelHost = null;
@@ -513,6 +525,8 @@
             </section>
             <section class="filters">
               <h2>Filtros</h2>
+              <div class="row"><label for="minNota">Nota mínima (0 a 100)</label>
+                <input id="minNota" type="number" min="0" max="100" inputmode="numeric" placeholder="0"></div>
               <div class="row"><label for="minDays">Dias no ar, no mínimo</label>
                 <input id="minDays" type="number" min="0" max="3650" inputmode="numeric" placeholder="0"></div>
               <div class="row"><label for="minSameCreative">Anúncios com o mesmo criativo</label>

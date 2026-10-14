@@ -9,27 +9,27 @@ function heatClass(score: number, heat?: ScoreHeat | null): string {
   return "bg-surface-2 text-foreground";
 }
 
-export const HEAT_HINT = "brasa = top 5% deste resultado, âmbar = top 20%";
+/** Same cut points as backend pipeline/nota.py and extension/filters.js. */
+const TIERS = [
+  { min: 65, label: "escalado", className: "bg-hot text-accent-ink" },
+  { min: 50, label: "quente", className: "bg-accent text-accent-ink" },
+  { min: 35, label: "morno", className: "bg-surface-2 text-foreground" },
+  { min: 0, label: "frio", className: "border border-line text-muted" },
+] as const;
 
-/** What a badge's position is measured against: the list on screen, or every active item in the base. */
-export type RankReference = "result" | "base";
-const REFERENCE_TEXT: Record<RankReference, string> = { result: "deste resultado", base: "da base" };
+export const tierOf = (nota: number) => TIERS.find((t) => nota >= t.min) ?? TIERS[TIERS.length - 1];
 
-/**
- * Relative position as text: "top 5%" for the tightest step the value reaches, "fora do top 50%" below them all,
- * null when the set is too small to rank (the server sends no steps).
- */
-export function rankText(value: number, heat?: ScoreHeat | null): string | null {
+/** The badge's full reading, for tooltips and accessible names: "nota 72 de 100, escalado". */
+export function scorePhrase(nota: number): string {
+  return `nota ${Math.round(nota)} de 100, ${tierOf(nota).label}`;
+}
+
+/** Relative position as text ("top 5%"), for badges that show their own value instead of a nota (keywords). */
+function rankText(value: number, heat?: ScoreHeat | null): string | null {
   const steps = heat?.ranks ?? [];
   if (steps.length === 0) return null;
   const hit = steps.find(([, cutoff]) => value >= cutoff);
   return hit ? `top ${Math.round(hit[0] * 100)}%` : `fora do top ${Math.round(steps.at(-1)![0] * 100)}%`;
-}
-
-/** The badge's full reading, for tooltips and accessible names: "top 5% deste resultado". */
-export function rankPhrase(value: number, heat?: ScoreHeat | null, reference: RankReference = "result"): string {
-  const text = rankText(value, heat);
-  return text ? `${text} ${REFERENCE_TEXT[reference]}` : "sem comparação: poucos itens";
 }
 
 /** Whether a metric is in the top 10% of the current result, by the server's cutoff (`ctr_rank`: lower wins). */
@@ -40,36 +40,33 @@ export function topMetric(heat: ScoreHeat | null | undefined, name: string, valu
 }
 
 type ScoreBadgeProps = {
+  /** The 0-100 nota; with `children`, any value ranked against `heat` instead. */
   value: number;
   heat?: ScoreHeat | null;
-  /** What is being ranked, for the tooltip, e.g. "Score de oferta". */
+  /** What the nota adds up, for the tooltip, e.g. "Nota da oferta: ...". */
   title?: string;
-  /** "result" in lists (the legend says so on screen), "base" on a detail page, where the badge spells it out. */
-  reference?: RankReference;
-  /** Shown instead of the position (keywords show the search volume); the position still reaches screen readers. */
+  /** Shown instead of the nota (keywords show the search volume), colored by position in the result. */
   children?: ReactNode;
   className?: string;
 };
 
-/**
- * The one score badge: the item's relative position ("top 5%"), never the raw score.
- * Neutral, amber in the top 20% of the reference, ember in the top 5%.
- */
-export function ScoreBadge({ value, heat, title = "Score de escala", reference = "result", children, className = "" }: ScoreBadgeProps) {
-  const phrase = rankPhrase(value, heat, reference);
-  const text = rankText(value, heat);
-  const ranked = text != null && !text.startsWith("fora");
-  const shown = !ranked ? "—" : reference === "base" ? phrase : text;
+const BADGE = "shrink-0 rounded px-1.5 py-0.5 font-mono text-xs font-semibold whitespace-nowrap tabular-nums";
+
+/** The one score badge: "72 escalado". Ember from 65, amber from 50, neutral from 35, outlined below. */
+export function ScoreBadge({ value, heat, title = "Nota de escala", children, className = "" }: ScoreBadgeProps) {
+  if (children != null) {
+    const rank = rankText(value, heat) ?? "sem comparação";
+    return (
+      <span title={`${title} · ${rank} deste resultado`} className={`${BADGE} ${heatClass(value, heat)} ${className}`}>
+        {children}<span className="sr-only"> ({rank})</span>
+      </span>
+    );
+  }
+  const tier = tierOf(value);
+  const phrase = scorePhrase(value);
   return (
-    <span
-      title={`${phrase[0].toUpperCase()}${phrase.slice(1)} · ${title}`}
-      className={`shrink-0 rounded px-1.5 py-0.5 font-mono text-xs font-semibold whitespace-nowrap tabular-nums ${heatClass(value, heat)} ${className}`}
-    >
-      {children != null ? (
-        <>{children}<span className="sr-only"> ({phrase})</span></>
-      ) : (
-        <><span aria-hidden="true">{shown}</span><span className="sr-only">{phrase}</span></>
-      )}
+    <span title={`${phrase[0].toUpperCase()}${phrase.slice(1)} · ${title}`} className={`${BADGE} ${tier.className} ${className}`}>
+      <span aria-hidden="true">{Math.round(value)} {tier.label}</span><span className="sr-only">{phrase}</span>
     </span>
   );
 }
@@ -120,12 +117,25 @@ export function Metric({ label, value, strong, tone, title }: MetricProps) {
   );
 }
 
-/** The parts that add up to a card's score, opened on demand; the badge's tooltip carries the same sum. */
+export type NotaPart = { label: string; weight: number; share: number | null };
+
+export const fill = (value: number) => Math.max(0, Math.min(value, 1));
+
+/** Points each part adds to the nota, as backend pipeline/nota.py weighs them: unmeasured parts ("—") are left out. */
+export function notaPoints(parts: NotaPart[]): { label: string; value: string }[] {
+  const known = parts.reduce((sum, p) => sum + (p.share == null ? 0 : p.weight), 0) || 1;
+  return parts.map((p) => ({
+    label: p.label,
+    value: p.share == null ? "—" : String(Math.round((100 * p.weight * p.share) / known)),
+  }));
+}
+
+/** The parts that add up to a card's nota, opened on demand; the badge's tooltip carries the same sum. */
 export function ScoreParts({ parts }: { parts: { label: string; value: string }[] }) {
   return (
     <details className="group text-micro text-muted">
       <summary className="flex w-fit cursor-pointer list-none items-center gap-1 transition-colors hover:text-foreground pointer-coarse:min-h-11 [&::-webkit-details-marker]:hidden">
-        Pontos do score
+        Pontos da nota
         <svg viewBox="0 0 24 24" className="size-3 transition-transform group-open:rotate-180" fill="none" stroke="currentColor"
           strokeWidth={2} aria-hidden="true">
           <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
@@ -137,11 +147,11 @@ export function ScoreParts({ parts }: { parts: { label: string; value: string }[
 }
 
 const FORMULAS = {
-  creative: "Soma anúncios ativos, dias no ar, plataformas, crescimento e tamanho do anunciante.",
-  offer: "Soma anunciantes (peso maior), anúncios, criativos e dias no ar, com bônus se a oferta também está no TikTok ou no YouTube.",
-  video: "Soma views por dia, quanto o vídeo superou o canal, engajamento e aceleração.",
-  tiktok: "Soma a taxa de cliques (CTR) comparada ao nicho (peso maior), curtidas, comentários, compartilhamentos e verba.",
-  site: "Soma anunciantes (peso maior), anúncios, criativos e dias no ar de todos os produtos do site.",
+  creative: "Anúncios rodando este criativo 35, dias no ar 25, anúncios do anunciante 15, plataformas 10 e crescimento em 7 dias 15 (conta a partir da 2ª coleta).",
+  offer: "Anúncios 35, anunciantes 20, criativos 15, dias no ar 15, também no TikTok ou no YouTube 10 e anunciantes que entraram nos últimos 14 dias 5.",
+  video: "Views por dia 40, views acima do tamanho do canal 25, engajamento 15 e aceleração 20.",
+  tiktok: "Taxa de cliques (CTR) comparada ao nicho 45, curtidas 20, comentários e compartilhamentos 20 e verba 15.",
+  site: "Anúncios 35, anunciantes 20, criativos 15, dias no ar 15, também no TikTok ou no YouTube 10 e anunciantes que entraram nos últimos 14 dias 5, somando todos os produtos do site.",
 };
 
 const GLOSSARY: Partial<Record<keyof typeof FORMULAS, string>> = {
@@ -151,12 +161,11 @@ const GLOSSARY: Partial<Record<keyof typeof FORMULAS, string>> = {
 
 const HEAT_KEY = (
   <>
-    <span className="flex items-center gap-1.5">
-      <span className="rounded bg-hot px-1 font-mono text-micro font-semibold text-accent-ink">brasa</span>top 5%
-    </span>
-    <span className="flex items-center gap-1.5">
-      <span className="rounded bg-accent px-1 font-mono text-micro font-semibold text-accent-ink">âmbar</span>top 20% deste resultado
-    </span>
+    {TIERS.slice(0, 3).map((t) => (
+      <span key={t.label} className="flex items-center gap-1.5">
+        <span className={`rounded px-1 font-mono text-micro font-semibold ${t.className}`}>{t.label}</span>{t.min}+
+      </span>
+    ))}
   </>
 );
 
@@ -167,13 +176,13 @@ export function ScoreLegend({ kind = "creative" }: { kind?: keyof typeof FORMULA
       <summary className="flex w-fit cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 transition-colors hover:text-foreground pointer-coarse:min-h-11 [&::-webkit-details-marker]:hidden">
         <span className="hidden items-center gap-x-3 sm:flex">{HEAT_KEY}</span>
         <span className="underline decoration-line underline-offset-2 group-open:decoration-accent">
-          <span className="sm:hidden">Legenda do score</span>
-          <span className="hidden sm:inline">Como o score é calculado</span>
+          <span className="sm:hidden">Legenda da nota</span>
+          <span className="hidden sm:inline">Como a nota é calculada</span>
         </span>
       </summary>
       <div className="mt-1.5 flex max-w-prose flex-wrap items-center gap-x-3 gap-y-1">
         <span className="flex items-center gap-x-3 sm:hidden">{HEAT_KEY}</span>
-        <p>{FORMULAS[kind]} O selo mostra a posição do item neste resultado, do top 1% ao top 50%; &quot;—&quot; fica na metade de baixo.</p>
+        <p>Nota de 0 a 100, em pontos: {FORMULAS[kind]} Abaixo de 35 é frio.</p>
         {GLOSSARY[kind] && <p>{GLOSSARY[kind]}</p>}
       </div>
     </details>

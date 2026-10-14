@@ -1,10 +1,12 @@
-"""Ranks creatives by indirect scaling signals.
+"""Ranks creatives by indirect scaling signals, as a 0-100 nota (see pipeline/nota.py).
 
-score = w1*log(1+duplicates) + w2*min(days_active,90)/90 + w3*platforms/6
-        + w4*growth_7d + w5*log(1+page_active_ads)/log(1+500)
+  35  ads running this creative     fills at 30
+  25  days on air                   fills at 60
+  15  advertiser's active ads       fills at 100
+  10  placements                    fills at 4
+  15  growth in active ads, 7 days  fills at +100%; left out before the 2nd collection
 """
 
-import math
 from collections.abc import Iterable
 from datetime import date, datetime, timedelta, timezone
 
@@ -13,10 +15,8 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.config import get_settings
 from app.models import Ad, Creative, CreativeScore, Page, Snapshot
+from app.pipeline.nota import linear, log_share, weighted
 
-MAX_LONGEVITY_DAYS = 90
-MAX_PLATFORMS = 6
-PAGE_ADS_REFERENCE = 500
 GROWTH_CLAMP = (-1.0, 5.0)
 
 
@@ -47,10 +47,10 @@ def days_running(ads: Iterable[Ad], today: date) -> int:
     return best
 
 
-def growth_since(snapshots: list[Snapshot], current: int, today: date) -> float:
+def growth_since(snapshots: list[Snapshot], current: int, today: date) -> float | None:
     previous = [s for s in snapshots if s.taken_on < today]
     if not previous:
-        return 0.0
+        return None
     target = today - timedelta(days=7)
     older = [s for s in previous if s.taken_on <= target]
     base = older[-1] if older else previous[0]
@@ -58,16 +58,14 @@ def growth_since(snapshots: list[Snapshot], current: int, today: date) -> float:
     return max(GROWTH_CLAMP[0], min(GROWTH_CLAMP[1], growth))
 
 
-def compute_score(duplicates: int, days: int, platforms: int, growth: float, page_ads: int) -> float:
-    s = get_settings()
-    return round(
-        s.score_w_duplicates * math.log1p(duplicates)
-        + s.score_w_longevity * min(days, MAX_LONGEVITY_DAYS) / MAX_LONGEVITY_DAYS
-        + s.score_w_platforms * min(platforms, MAX_PLATFORMS) / MAX_PLATFORMS
-        + s.score_w_growth * growth
-        + s.score_w_page * math.log1p(page_ads) / math.log1p(PAGE_ADS_REFERENCE),
-        4,
-    )
+def compute_score(duplicates: int, days: int, platforms: int, growth: float | None, page_ads: int) -> float:
+    return weighted([
+        (35, log_share(duplicates - 1, 29)),
+        (25, linear(days, 60)),
+        (15, log_share(page_ads, 100)),
+        (10, linear(platforms, 4)),
+        (15, None if growth is None else linear(growth, 1)),
+    ])
 
 
 def refresh_page_counts(db: Session, page_ids: Iterable[str]) -> None:
@@ -113,7 +111,7 @@ def recompute_scores(db: Session, creative_ids: Iterable[int] | None = None, sna
         score.duplicates = duplicates
         score.days_active = days
         score.platforms_count = platforms
-        score.growth_7d = round(growth, 4)
+        score.growth_7d = round(growth or 0.0, 4)
         score.page_active_ads = page_ads
         score.is_active = bool(active)
         score.score = compute_score(duplicates, days, platforms, growth, page_ads)

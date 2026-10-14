@@ -1,9 +1,10 @@
 """Stores TikTok top ads for a source: TikTok's metrics, a local cover, the offer behind the landing page, a score.
 
-score = 3*(1 - CTR percentile)              top 1% of the industry -> ~3, median -> 1.5
-      + 0.5*log10(1 + likes)                 100k likes -> 2.5
-      + 0.5*log10(1 + comments + 2*shares)   people talking about it and passing it on
-      + 0.25*budget tier                     TikTok's low/medium/high spend band
+Nota 0-100 (pipeline/nota.py):
+  45  CTR vs the industry          top 1% -> nearly full, median -> half
+  20  likes                        log scale, fills at 100k
+  20  comments + 2x shares         log scale, fills at 10k: people talking about it and passing it on
+  15  budget band                  TikTok's low/medium/high spend
 """
 
 import math
@@ -16,6 +17,7 @@ from sqlalchemy.orm import Session
 from app.collectors.tiktok_ads import RawTikTokAd
 from app.models import Source, SourceTikTokAd, TikTokAd, utcnow
 from app.pipeline.media import download_image
+from app.pipeline.nota import linear, weighted
 from app.pipeline.offers import classify_destination
 
 INDUSTRY_BLOCK = 1_000_000_000
@@ -26,13 +28,21 @@ def industry_parent(industry_id: int | None) -> int | None:
 
 
 def score_tiktok_ad(ad: TikTokAd) -> None:
-    score = 0.5 * math.log10(1 + (ad.likes or 0))
-    if ad.ctr_rank is not None:
-        score += 3 * (1 - min(max(ad.ctr_rank, 0.0), 1.0))
-    if ad.comments is not None or ad.shares is not None:
-        score += 0.5 * math.log10(1 + (ad.comments or 0) + 2 * (ad.shares or 0))
-    score += 0.25 * (ad.budget or 0)
-    ad.score = round(score, 4)
+    talk = None if ad.comments is None and ad.shares is None else (ad.comments or 0) + 2 * (ad.shares or 0)
+    ad.score = weighted([
+        (45, None if ad.ctr_rank is None else 1 - linear(ad.ctr_rank, 1)),
+        (20, linear(math.log10(1 + (ad.likes or 0)), 5)),
+        (20, None if talk is None else linear(math.log10(1 + talk), 4)),
+        (15, None if ad.budget is None else linear(ad.budget, 2)),
+    ])
+
+
+def rescore_tiktok(db: Session) -> int:
+    ads = list(db.scalars(select(TikTokAd)))
+    for ad in ads:
+        score_tiktok_ad(ad)
+    db.commit()
+    return len(ads)
 
 
 def known_ids(db: Session, ids: list[str]) -> set[str]:

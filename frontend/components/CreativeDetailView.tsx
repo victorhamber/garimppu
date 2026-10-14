@@ -6,7 +6,7 @@ import { BackLink } from "./BackLink";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  api, formatDate, formatDateTime, OFFER_OPEN_LABEL, offerTag, PLATFORM_LABELS, type CreativeDetail, type ScoreHeat, type CreativePage,
+  api, formatDate, formatDateTime, OFFER_OPEN_LABEL, offerTag, PLATFORM_LABELS, type CreativeDetail,
 } from "@/lib/api";
 import { useCollections, useNiches } from "@/lib/hooks";
 import { CollectionMenu } from "./CollectionMenu";
@@ -65,8 +65,6 @@ export function CreativeDetailView() {
   const { collections, reload } = useCollections();
   const { label } = useNiches();
 
-  const [heat, setHeat] = useState<ScoreHeat | null>(null);
-
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -82,10 +80,6 @@ export function CreativeDetailView() {
       cancelled = true;
     };
   }, [id, attempt]);
-
-  useEffect(() => {
-    api<CreativePage>("/api/creatives?limit=1&scope=all").then((page) => setHeat(page.heat)).catch(() => setHeat(null));
-  }, []);
 
   const advertiser = creative?.page?.name ?? creative?.page?.page_id;
   useEffect(() => {
@@ -137,7 +131,7 @@ export function CreativeDetailView() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <ScoreBadge value={s?.score ?? 0} heat={heat} reference="base" />
+              <ScoreBadge value={s?.score ?? 0} />
               <div className="rounded-md border border-line">
                 <CollectionMenu target={{ creativeId: creative.id }} selected={creative.collection_ids} collections={collections}
                   onChange={(ids) => { setCreative({ ...creative, collection_ids: ids }); reload(); }}

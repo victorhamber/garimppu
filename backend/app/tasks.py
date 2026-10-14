@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 
+from app import app_settings
 from app.collectors.base import RawAd, SearchQuery
 from app.collectors.google_trends import TrendsError, collect_trends
 from app.collectors.library_scraper import scrape_library
@@ -23,7 +24,7 @@ from app.pipeline.scoring import recompute_scores
 from app.pipeline.site_ingest import ingest_sites
 from app.pipeline.sources import last_good_run
 from app.pipeline.trends_ingest import ingest_trends
-from app.pipeline.tiktok_ingest import ingest_tiktok_ads, known_ids
+from app.pipeline.tiktok_ingest import ingest_tiktok_ads, known_ids, rescore_tiktok
 from app.pipeline.video_ingest import ingest_videos, rescore_videos
 
 logger = logging.getLogger(__name__)
@@ -190,3 +191,19 @@ def rescore_all() -> int:
         return count + rescore_videos(db)
     finally:
         db.close()
+
+
+SCORE_VERSION = "nota-0-100"
+
+
+def upgrade_scores() -> None:
+    """Once per formula change: stored scores (creatives, videos, TikTok) are recomputed on the new scale."""
+    with SessionLocal() as db:
+        if app_settings.load(db).get("score_version") == SCORE_VERSION:
+            return
+    count = rescore_all()
+    with SessionLocal() as db:
+        count += rescore_tiktok(db)
+        app_settings.save(db, {"score_version": SCORE_VERSION})
+        db.commit()
+    logger.info("Notas recalculadas na escala de 0 a 100: %s itens", count)

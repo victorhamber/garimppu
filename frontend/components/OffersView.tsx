@@ -20,7 +20,7 @@ const PANEL_KEYS = ["kind", "platform", "search_id", "min_advertisers"] as const
 type FilterKey = (typeof FILTER_KEYS)[number];
 
 const SORTS = [
-  { id: "score", label: "Score de oferta" },
+  { id: "score", label: "Maior nota" },
   { id: "platforms", label: "Em mais plataformas" },
   { id: "advertisers", label: "Mais anunciantes" },
   { id: "ads", label: "Mais anúncios" },
@@ -252,7 +252,7 @@ export function OfferRow({ offer, rank, heat, collections, onCollectionsChange }
               </Link>
             </h2>
             <ScoreBadge value={offer.score} heat={heat}
-              title="Score da oferta: soma anunciantes, anúncios, criativos e dias no ar, com bônus se também está no TikTok ou no YouTube" />
+              title={`Nota da oferta${offer.new_advertisers ? ` · ${offer.new_advertisers === 1 ? "1 anunciante entrou" : `${offer.new_advertisers} anunciantes entraram`} nos últimos 14 dias` : ""}`} />
           </div>
           <p className="flex min-w-0 items-center gap-1.5 text-xs text-muted">
             <span className="shrink-0">{OFFER_KIND_LABEL[offer.kind]}</span>

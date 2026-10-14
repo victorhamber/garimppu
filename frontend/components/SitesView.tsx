@@ -20,7 +20,7 @@ const PANEL_KEYS = ["niche", "search_id"] as const;
 type FilterKey = (typeof FILTER_KEYS)[number];
 
 const SORTS = [
-  { id: "score", label: "Mais fortes" },
+  { id: "score", label: "Maior nota" },
   { id: "advertisers", label: "Mais anunciantes" },
   { id: "ads", label: "Mais anúncios" },
   { id: "products", label: "Mais produtos" },
@@ -244,7 +244,7 @@ export function SiteRow({ site, rank, nicheLabel, heat, collections, onCollectio
           {site.platform && (
             <span className="rounded-full border border-line px-2 py-0.5 text-micro text-foreground">{site.platform}</span>
           )}
-          <ScoreBadge value={site.score} heat={heat} title="Score do site" className="ml-auto" />
+          <ScoreBadge value={site.score} heat={heat} title="Nota do site" className="ml-auto" />
         </div>
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
           {site.top_advertisers.map((a) => (

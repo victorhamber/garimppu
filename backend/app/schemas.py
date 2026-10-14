@@ -237,6 +237,7 @@ class OfferOut(BaseModel):
     url: str | None
     score: float
     advertisers: int
+    new_advertisers: int = 0  # entered in the last 14 days
     ads: int
     creatives: int
     days_active: int
@@ -334,6 +335,7 @@ class SiteOut(BaseModel):
     platform: str | None  # store platform, e.g. Shopify
     score: float
     advertisers: int
+    new_advertisers: int = 0  # entered in the last 14 days
     ads: int
     creatives: int
     products: int

@@ -11,7 +11,7 @@ import { ErrorState } from "./ErrorState";
 import { ListSkeleton } from "./Skeleton";
 import { ExportCsv } from "./ExportCsv";
 import { CheckToggle, FilterChips, FirstRunNote, FilterSelect, FilterToggle, MoreFilters, ScopeToggle, SlashHint, SortSelect, useSlashFocus, type FilterChip } from "./FilterBar";
-import { Metric, MetricStrip, ScoreBadge, ScoreLegend, ScoreParts, topMetric } from "./Metrics";
+import { fill, Metric, MetricStrip, notaPoints, ScoreBadge, ScoreLegend, ScoreParts, topMetric } from "./Metrics";
 
 const PAGE_SIZE = 30;
 const FILTER_KEYS = ["q", "niche", "search_id", "format", "period", "min_views", "has_offer", "offer", "scope", "sort"] as const;
@@ -20,7 +20,7 @@ const PANEL_KEYS = ["niche", "search_id", "format", "period", "min_views"] as co
 type FilterKey = (typeof FILTER_KEYS)[number];
 
 const SORTS = [
-  { id: "score", label: "Score de vídeo" },
+  { id: "score", label: "Maior nota" },
   { id: "velocity", label: "Mais views por dia" },
   { id: "views", label: "Mais visualizações" },
   { id: "outlier", label: "Mais acima do canal" },
@@ -247,15 +247,13 @@ export function VideosView() {
 /** Same parts as backend pipeline/video_score.py, so the card can show where the score comes from. */
 function scoreParts(video: Video) {
   const accel = video.acceleration;
-  return [
-    { label: "views/dia", value: Math.log10(1 + video.velocity) },
-    { label: "acima do canal", value: video.outlier != null ? Math.log10(1 + video.outlier) : null },
-    { label: "engajamento", value: video.engagement != null ? 0.5 * Math.min(video.engagement / 0.05, 1.5) : null },
-    { label: "aceleração", value: accel != null ? Math.max(Math.min(Math.log2(Math.max(accel, 0.01)) / 2, 1), -0.5) : null },
-  ];
+  return notaPoints([
+    { label: "views/dia", weight: 40, share: fill(Math.log10(1 + video.velocity) / 5) },
+    { label: "acima do canal", weight: 25, share: video.outlier != null ? fill(Math.log10(1 + video.outlier) / 2) : null },
+    { label: "engajamento", weight: 15, share: video.engagement != null ? fill(video.engagement / 0.05) : null },
+    { label: "aceleração", weight: 20, share: accel != null ? fill((Math.log2(Math.max(accel, 0.01)) + 1) / 2) : null },
+  ]);
 }
-
-const fmtPart = (v: number | null) => (v == null ? "—" : v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
 
 type VideoCardProps = {
   video: Video;
@@ -295,7 +293,7 @@ export function VideoCard({ video, rank, heat, niche, collections, onCollections
             <a href={video.url} target="_blank" rel="noreferrer" className="hover:text-accent">{title}</a>
           </h2>
           <ScoreBadge value={video.score} heat={heat}
-            title={`Score de vídeo = ${parts.map((p) => `${p.label} ${fmtPart(p.value)}`).join(" + ")}`} />
+            title={`Nota do vídeo = ${parts.map((p) => `${p.label} ${p.value}`).join(" + ")}`} />
         </div>
         <p className="truncate text-xs text-muted">
           {video.channel_id ? (
@@ -316,7 +314,7 @@ export function VideoCard({ video, rank, heat, niche, collections, onCollections
           <Metric label="engaj." value={video.engagement != null ? `${(video.engagement * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%` : "—"}
             strong={topMetric(heat, "engagement", video.engagement)} title="Curtidas e comentários por view (comentário vale o dobro)" />
         </MetricStrip>
-        <ScoreParts parts={parts.map((p) => ({ label: p.label, value: fmtPart(p.value) }))} />
+        <ScoreParts parts={parts} />
 
         <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
           {accel != null ? (

@@ -1,15 +1,17 @@
 """Qualifies organic videos: how fast they gather views, beyond their channel's size, and whether they are speeding up.
 
-score = log10(1 + views/day)          1k/day -> 3, 100k/day -> 5
-      + log10(1 + views/subscribers)   10x the channel -> 1, 100x -> 2
-      + 0.5 * min(engagement / 5%, 1.5)
-      + acceleration bonus             recent views/day vs lifetime: doubling -> +0.5, capped at +1 / -0.5
+Nota 0-100 (pipeline/nota.py):
+  40  views per day          log scale, fills at 100k/day
+  25  views vs subscribers   log scale, fills at 100x the channel
+  15  engagement             fills at 5%
+  20  acceleration           recent views/day vs lifetime: steady -> half, doubling -> full, halving -> none
 """
 
 import math
 from datetime import datetime, timedelta, timezone
 
 from app.models import Video
+from app.pipeline.nota import linear, weighted
 
 MIN_AGE_DAYS = 1.0
 # The channel-size floor keeps a 30-subscriber channel with 3k views from outranking real breakouts.
@@ -36,14 +38,13 @@ def score_video(video: Video, now: datetime | None = None) -> None:
     video.engagement = round(interactions / views, 4) if views and (video.likes is not None or video.comments is not None) else None
     video.acceleration = _acceleration(video, now)
 
-    score = math.log10(1 + video.velocity)
-    if video.outlier is not None:
-        score += math.log10(1 + video.outlier)
-    if video.engagement is not None:
-        score += 0.5 * min(video.engagement / ENGAGEMENT_REFERENCE, 1.5)
-    if video.acceleration is not None:
-        score += max(min(math.log2(max(video.acceleration, 0.01)) / 2, 1.0), -0.5)
-    video.score = round(score, 4)
+    accel = video.acceleration
+    video.score = weighted([
+        (40, linear(math.log10(1 + video.velocity), 5)),
+        (25, None if video.outlier is None else linear(math.log10(1 + video.outlier), 2)),
+        (15, None if video.engagement is None else linear(video.engagement, ENGAGEMENT_REFERENCE)),
+        (20, None if accel is None else linear(math.log2(max(accel, 0.01)) + 1, 2)),
+    ])
 
 
 def _acceleration(video: Video, now: datetime) -> float | None:

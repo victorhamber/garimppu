@@ -1,11 +1,9 @@
 """Offers: ads grouped by what they sell (checkout product, store product, app, site).
 
-score = 2.5*log(advertisers) + log(1+ads) + 0.5*log(1+creatives) + min(days,90)/90 + 0.75*other platforms
-Several advertisers on the same offer weighs most: it means affiliates/resellers are scaling it.
-Other platforms: the offer also shows up in TikTok top ads and/or YouTube videos.
+Nota 0-100 (pipeline/nota.py): ads 35, advertisers 20, creatives 15, days on air 15, other platforms 10
+(the offer also shows up in TikTok top ads and/or YouTube videos), advertisers entering in the last 14 days 5.
 """
 
-import math
 from collections import Counter
 from datetime import date, datetime, timedelta, timezone
 from typing import Literal
@@ -21,7 +19,8 @@ from app.models import Ad, CollectionOffer, Creative, Page, SourceAd, TikTokAd, 
 from app.csv_export import EXPORT_LIMIT, csv_response
 from app.pipeline.heat import HOT_SHARE, MIN_DAYS_ACTIVE, WARM_SHARE, metric_cutoffs, rank_cutoff, rank_cutoffs
 from app.pipeline.offers import offer_label
-from app.pipeline.scoring import MAX_LONGEVITY_DAYS, count_duplicates, days_running
+from app.pipeline.nota import linear, log_share, weighted
+from app.pipeline.scoring import count_duplicates, days_running
 from app.pipeline.sources import SCOPE_HELP, resolve_scope, user_search_source, user_source_ids
 from app.routes.collections import user_collection_ids
 from app.schemas import OfferAdvertiser, OfferEntry, OfferOut, OfferPage, OfferPreview, ScoreHeat
@@ -33,18 +32,28 @@ OfferKind = Literal["infoproduto", "loja", "app", "conversa", "site"]
 OfferSort = Literal["score", "platforms", "advertisers", "ads", "creatives", "days_active", "recent"]
 MAX_PREVIEWS = 4
 MAX_ADVERTISERS = 3
-PLATFORM_BONUS = 0.75
+ENTERING_DAYS = 14
 
 
-def offer_score(advertisers: int, ads: int, creatives: int, days: int) -> float:
-    """Meta part of the score; the other-platforms bonus is added once TikTok/YouTube counts are known."""
-    return round(
-        2.5 * math.log(max(advertisers, 1))
-        + math.log1p(ads)
-        + 0.5 * math.log1p(creatives)
-        + min(days, MAX_LONGEVITY_DAYS) / MAX_LONGEVITY_DAYS,
-        4,
-    )
+def offer_score(advertisers: int, ads: int, creatives: int, days: int, entering: int = 0, platforms: int = 1) -> float:
+    """0-100 nota. Ads and creatives weigh more than advertisers: one page running 80 ads is scaling too."""
+    return weighted([
+        (20, log_share(advertisers - 1, 9)),
+        (35, log_share(ads - 1, 49)),
+        (15, log_share(creatives - 1, 19)),
+        (15, linear(days, 60)),
+        (5, linear(entering, 3)),
+        (10, linear(platforms - 1, 2)),
+    ])
+
+
+def entering_advertisers(ads: list[Ad], today: date) -> int:
+    """Pages whose first ad for this offer started in the last ENTERING_DAYS: new money joining in."""
+    first: dict[str, date] = {}
+    for ad in ads:
+        if ad.page_id and ad.start_date:
+            first[ad.page_id] = min(first.get(ad.page_id, ad.start_date), ad.start_date)
+    return sum(1 for start in first.values() if (today - start).days <= ENTERING_DAYS)
 
 
 def _cross_platform_counts(db: Session, keys: list[str]) -> tuple[dict[str, int], dict[str, int]]:
@@ -72,6 +81,7 @@ def _build_offer(key: str, ads: list[Ad], today: date) -> OfferOut:
     previews = sorted(creatives.values(), key=_creative_rank, reverse=True)[:MAX_PREVIEWS]
     ad_by_creative = {c.id: a for a in ads for c in a.creatives}
     duplicates = count_duplicates(ads)
+    entering = entering_advertisers(ads, today)
     url = Counter(a.link_url for a in ads if a.link_url).most_common(1)
     return OfferOut(
         key=key,
@@ -79,8 +89,9 @@ def _build_offer(key: str, ads: list[Ad], today: date) -> OfferOut:
         kind=first.offer_kind or "site",
         platform=first.offer_platform,
         url=url[0][0] if url else None,
-        score=offer_score(len(pages), duplicates, len(creatives), days),
+        score=offer_score(len(pages), duplicates, len(creatives), days, entering),
         advertisers=len(pages),
+        new_advertisers=entering,
         ads=duplicates,
         creatives=len(creatives),
         days_active=days,
@@ -207,7 +218,8 @@ def list_offers(
         offer.tiktok_ads = tiktok.get(offer.key, 0)
         offer.platforms = 1 + (offer.videos > 0) + (offer.tiktok_ads > 0)
         if offer.platforms > 1:
-            offer.score = round(offer.score + PLATFORM_BONUS * (offer.platforms - 1), 4)
+            offer.score = offer_score(offer.advertisers, offer.ads, offer.creatives, offer.days_active,
+                                      offer.new_advertisers, offer.platforms)
     if multi_platform:
         offers = [o for o in offers if o.platforms > 1]
     if min_advertisers is not None:

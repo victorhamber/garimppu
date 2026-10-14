@@ -40,12 +40,6 @@ class Settings(BaseSettings):
     dedupe_hamming_threshold: int = 6
     stale_ad_days: int = 7
 
-    score_w_duplicates: float = 1.0
-    score_w_longevity: float = 1.0
-    score_w_platforms: float = 0.3
-    score_w_growth: float = 0.5
-    score_w_page: float = 0.2
-
     enable_scheduler: bool = True
     scheduler_interval_minutes: int = 15
 
