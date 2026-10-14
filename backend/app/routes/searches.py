@@ -1,4 +1,5 @@
 import re
+from urllib.parse import quote, quote_plus
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
@@ -8,8 +9,8 @@ from app.auth import current_user
 from app.collectors.base import SearchQuery
 from app.collectors.library_scraper import build_search_url
 from app.collectors.google_trends import source_term as trends_source_term
-from app.collectors.tiktok_ads import INDUSTRIES as TIKTOK_INDUSTRIES, PREFIX as TIKTOK_PREFIX
-from app.collectors.youtube import NICHE_PREFIX
+from app.collectors.tiktok_ads import INDUSTRIES as TIKTOK_INDUSTRIES, PREFIX as TIKTOK_PREFIX, industry_of, keyword_of
+from app.collectors.youtube import NICHE_PREFIX, search_query
 from app.config import get_settings
 from app.db import get_db
 from app.jobs import enqueue_source
@@ -32,6 +33,40 @@ from app.schemas import RunOut, SearchCreate, SearchOut, SearchUpdate
 
 router = APIRouter(prefix="/api", tags=["searches"])
 META_COLLECTORS = ("scraper", "api", "hybrid")
+# garimppu=1 tells the extension this tab was opened from the app, so it starts scrolling on its own.
+# The Creative Center takes region and industry from the URL, but the keyword only from its search box.
+TIKTOK_TOP_ADS = "https://ads.tiktok.com/business/creativecenter/inspiration/topads/pc/pt?period=180&region={}&garimppu=1"
+
+
+def _region(country: str) -> str:
+    return (country or "BR")[:2].upper()
+
+
+def _youtube_url(query: str | None, country: str) -> str | None:
+    if not query:
+        return None
+    return f"https://www.youtube.com/results?search_query={quote_plus(query)}&gl={_region(country)}&garimppu=1"
+
+
+def _tiktok_url(country: str, industry: int | None, keyword: str | None) -> str:
+    url = TIKTOK_TOP_ADS.format(_region(country)) + (f"&industry={industry}" if industry else "")
+    return url + (f"#garimppu-busca={quote(keyword)}" if keyword else "")
+
+
+def mining_urls(source) -> tuple[str | None, str | None]:
+    """(YouTube, TikTok) pages for the extension, from the search's term; None where the term means nothing there."""
+    term = source.term
+    if source.collector == "tiktok":
+        keyword = keyword_of(term)
+        return _youtube_url(keyword, source.country), _tiktok_url(source.country, industry_of(term), keyword)
+    if source.collector == "youtube":
+        query = search_query(term)
+        plain = None if term.startswith(NICHE_PREFIX) else term
+    elif source.collector in META_COLLECTORS and not source.page_id:
+        query = plain = term
+    else:
+        return None, None
+    return _youtube_url(query, source.country), _tiktok_url(source.country, None, plain)
 
 
 def _search_out(db: Session, search: Search, reused: bool = False) -> SearchOut:
@@ -56,6 +91,7 @@ def _search_out(db: Session, search: Search, reused: bool = False) -> SearchOut:
             .join(SourceAd, SourceAd.ad_archive_id == AdCreative.ad_archive_id)
             .where(SourceAd.source_id == source.id)
         )
+    youtube_url, tiktok_url = mining_urls(source)
     return SearchOut(
         id=search.id,
         term=search.term,
@@ -78,6 +114,8 @@ def _search_out(db: Session, search: Search, reused: bool = False) -> SearchOut:
             term=source.term, country=source.country, language=source.language, media_type=source.media_type,
             page_id=source.page_id,
         )) if source.collector in META_COLLECTORS else None,
+        youtube_url=youtube_url,
+        tiktok_url=tiktok_url,
     )
 
 

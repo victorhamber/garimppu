@@ -41,6 +41,37 @@ class ExtensionAdsOut(BaseModel):
     total: int  # ads this search has after the batch
 
 
+class ExtensionYouTubeIn(BaseModel):
+    term: str = Field(min_length=1, max_length=200)  # what the user searched on YouTube
+    country: str = Field("BR", min_length=2, max_length=2)
+    ids: list[str] = Field(max_length=50)  # video ids from the results page; statistics come from the API
+    run_id: int | None = None
+
+
+class ExtensionTikTokIn(BaseModel):
+    country: str = Field("BR", min_length=2, max_length=2)
+    industry: str | None = Field(None, max_length=64)  # the page's own filter value
+    keyword: str | None = Field(None, max_length=100)
+    materials: list[dict] = Field(max_length=100)  # Top Ads entries as the Creative Center page received them
+    run_id: int | None = None
+
+
+class ExtensionTikTokDetail(BaseModel):
+    id: str = Field(max_length=32)
+    comment: int | None = None
+    share: int | None = None
+    landing_page: str | None = Field(None, max_length=2000)
+
+
+class ExtensionTikTokDetailsIn(BaseModel):
+    details: list[ExtensionTikTokDetail] = Field(max_length=50)
+
+
+class ExtensionCollectOut(ExtensionAdsOut):
+    notas: dict[str, float] = {}  # id on the page -> the app's nota
+    need_detail: list[str] = []  # TikTok ads still missing comments, shares and landing page
+
+
 class ExtensionLeadIn(BaseModel):
     email: str = Field(min_length=5, max_length=255, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -111,6 +142,9 @@ class SearchOut(BaseModel):
     reused: bool = False
     # Meta searches only: the Ad Library page advanced mining opens.
     library_url: str | None = None
+    # The same term on YouTube's search and on TikTok's Creative Center, where the extension also mines.
+    youtube_url: str | None = None
+    tiktok_url: str | None = None
 
 
 class PageOut(ORM):

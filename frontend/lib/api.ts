@@ -40,6 +40,10 @@ export type Search = {
   reused: boolean;
   /** Meta searches only: the Ad Library page that advanced mining opens. */
   library_url: string | null;
+  /** YouTube results page the extension collects from, when the term means something there. */
+  youtube_url: string | null;
+  /** TikTok Creative Center page the extension collects from. */
+  tiktok_url: string | null;
 };
 
 export type PageInfo = {

@@ -1,5 +1,11 @@
-"""Browser extension. Free with an e-mail (filters and downloads); subscribers also send ads and favorites to the app."""
+"""Browser extension. Free with an e-mail (filters and downloads); subscribers also send ads and favorites to the app.
 
+Besides the Ad Library it works on YouTube searches and on TikTok's Creative Center, sending what the user's own
+browser loads: YouTube video ids (statistics then cost ~2 API units per 50 instead of 100 per search page) and
+Top Ads listings with their details.
+"""
+
+import re
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -18,19 +24,43 @@ from app.auth import (
 )
 from app.collectors.base import SearchQuery
 from app.collectors.library_scraper import parse_ad_node, query_from_url
+from app.collectors.tiktok_ads import INDUSTRIES, KEYWORD_PREFIX, PREFIX, industry_from_param, parse_material
+from app.collectors.youtube import YouTubeError, fetch_videos
 from app.config import get_settings
 from app.db import get_db
-from app.models import AdCreative, Collection, CollectionItem, ExtensionLead, Run, Search, Source, SourceAd, User, utcnow
+from app.models import (
+    AdCreative,
+    Collection,
+    CollectionItem,
+    ExtensionLead,
+    Run,
+    Search,
+    Source,
+    SourceAd,
+    SourceTikTokAd,
+    SourceVideo,
+    TikTokAd,
+    User,
+    Video,
+    utcnow,
+)
 from app.pipeline.ingest import ingest_ads
 from app.pipeline.sources import find_or_create_source, sync_source
+from app.pipeline.tiktok_ingest import apply_details, ingest_tiktok_ads, known_ids, score_tiktok_ad
+from app.pipeline.video_ingest import ingest_videos
 from app.routes.collections import DEFAULT_COLLECTION, ensure_default_collection
+from app.routes.searches import COUNTRY_LANGUAGE
 from app.schemas import (
     ExtensionAccountOut,
     ExtensionAdsIn,
     ExtensionAdsOut,
+    ExtensionCollectOut,
     ExtensionFavoriteIn,
     ExtensionFavoriteOut,
     ExtensionLeadIn,
+    ExtensionTikTokDetailsIn,
+    ExtensionTikTokIn,
+    ExtensionYouTubeIn,
     LoginIn,
 )
 
@@ -120,6 +150,14 @@ def _session_run(db: Session, source_id: int, run_id: int | None) -> Run:
     return run
 
 
+def _record(run: Run, source: Source, received: int, new: int, unit: str, creatives: int) -> None:
+    run.ads_found += received
+    run.creatives_found += creatives
+    lines = f"{run.log.removeprefix(RUN_TITLE)}\n{datetime.now():%H:%M:%S} +{received} {unit} ({new} novos)"
+    run.log = RUN_TITLE + lines[-MAX_LOG_CHARS:]
+    run.finished_at = source.last_run_at = utcnow()
+
+
 def _query(url: str) -> SearchQuery:
     query = query_from_url(url)
     if query is None:
@@ -148,10 +186,7 @@ def receive_ads(payload: ExtensionAdsIn, db: Session = Depends(get_db), user: Us
 
     if ads:
         _, creative_ids = ingest_ads(db, source, list(ads.values()), log=lambda _: None)
-        run.ads_found += len(ads)
-        run.creatives_found += len(creative_ids)
-        lines = f"{run.log.removeprefix(RUN_TITLE)}\n{datetime.now():%H:%M:%S} +{len(ads)} anúncios ({new} novos)"
-        run.log = RUN_TITLE + lines[-MAX_LOG_CHARS:]
+        _record(run, source, len(ads), new, "anúncios", len(creative_ids))
     run.finished_at = source.last_run_at = utcnow()
     db.commit()
 
@@ -183,3 +218,84 @@ def favorite(payload: ExtensionFavoriteIn, db: Session = Depends(get_db), user: 
         db.add(CollectionItem(collection_id=collection_id, creative_id=creative_id))
     db.commit()
     return ExtensionFavoriteOut(creative_id=creative_id, collection_id=collection_id)
+
+
+_VIDEO_ID = re.compile(r"[\w-]{11}")
+
+
+@router.post("/youtube", response_model=ExtensionCollectOut)
+def receive_videos(payload: ExtensionYouTubeIn, db: Session = Depends(get_db), user: User = Depends(extension_user)):
+    api_key = get_settings().youtube_api_key
+    if not api_key:
+        raise HTTPException(503, "O YouTube ainda não está configurado no Garimppu.")
+    term = " ".join(payload.term.split())
+    country = payload.country.upper()
+    language = COUNTRY_LANGUAGE.get(country)
+    source, _ = find_or_create_source(db, term=term, page_id=None, country=country, language=language,
+                                      media_type="video", collector="youtube")
+    search = _user_search(db, user, source, term)
+    run = _session_run(db, source.id, payload.run_id)
+    db.commit()
+
+    ids = list(dict.fromkeys(i for i in payload.ids if _VIDEO_ID.fullmatch(i)))
+    try:
+        videos = fetch_videos(ids, language=language, api_key=api_key) if ids else []
+    except YouTubeError as exc:
+        raise HTTPException(502, str(exc))
+    received, new = ingest_videos(db, source, videos, log=lambda _: None, prune=False) if videos else (0, 0)
+    _record(run, source, received, new, "vídeos", new)
+    db.commit()
+
+    total = db.scalar(select(func.count()).select_from(SourceVideo).where(SourceVideo.source_id == source.id)) or 0
+    notas = {v.external_id: v.score for v in db.scalars(select(Video).where(Video.id.in_([f"youtube:{i}" for i in ids])))}
+    return ExtensionCollectOut(run_id=run.id, search_id=search.id, term=search.term, received=received, new=new,
+                               total=total, notas=notas)
+
+
+@router.post("/tiktok", response_model=ExtensionCollectOut)
+def receive_tiktok(payload: ExtensionTikTokIn, db: Session = Depends(get_db), user: User = Depends(extension_user)):
+    country = payload.country.upper()
+    keyword = " ".join((payload.keyword or "").split()) or None
+    industry = None if keyword else industry_from_param(payload.industry)
+    if keyword:
+        source_term, term = f"{KEYWORD_PREFIX}{keyword}", f'TikTok Ads: "{keyword}"'
+    else:
+        source_term = f"{PREFIX}{industry or 'all'}"
+        term = f"TikTok Ads: {INDUSTRIES[industry] if industry else 'todos os nichos'}"
+    source, _ = find_or_create_source(db, term=source_term, page_id=None, country=country,
+                                      language=COUNTRY_LANGUAGE.get(country), media_type="video", collector="tiktok")
+    search = _user_search(db, user, source, term)
+    run = _session_run(db, source.id, payload.run_id)
+    db.commit()
+
+    ads = {}
+    for item in payload.materials:
+        try:
+            ad = parse_material(item)
+        except (KeyError, TypeError, ValueError):
+            continue
+        ads[ad.id] = ad
+    received, new = ingest_tiktok_ads(db, source, list(ads.values()), log=lambda _: None, prune=False) if ads else (0, 0)
+    _record(run, source, received, new, "anúncios do TikTok", new)
+    db.commit()
+
+    total = db.scalar(select(func.count()).select_from(SourceTikTokAd).where(SourceTikTokAd.source_id == source.id)) or 0
+    detailed = known_ids(db, list(ads))
+    notas = {ad.id: ad.score for ad in db.scalars(select(TikTokAd).where(TikTokAd.id.in_(list(ads))))}
+    return ExtensionCollectOut(run_id=run.id, search_id=search.id, term=search.term, received=received, new=new,
+                               total=total, notas=notas, need_detail=[i for i in ads if i not in detailed])
+
+
+@router.post("/tiktok/details", response_model=dict[str, float])
+def receive_tiktok_details(payload: ExtensionTikTokDetailsIn, db: Session = Depends(get_db),
+                           user: User = Depends(extension_user)):
+    """Comments, shares and landing page the Creative Center page fetched for ads the app had without them."""
+    by_id = {d.id: d for d in payload.details}
+    notas = {}
+    for ad in db.scalars(select(TikTokAd).where(TikTokAd.id.in_(list(by_id)))):
+        detail = by_id[ad.id]
+        apply_details(ad, detail.comment, detail.share, detail.landing_page)
+        score_tiktok_ad(ad)
+        notas[ad.id] = ad.score
+    db.commit()
+    return notas

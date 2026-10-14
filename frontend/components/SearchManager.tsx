@@ -19,6 +19,20 @@ const REFRESH_OPTIONS = [
 
 const LOAD_ACTION = "carregar suas buscas";
 
+function miningLinks(search: Search) {
+  const links: { onde: string; href: string; label: string; where: string }[] = [];
+  if (search.library_url) links.push({ onde: "meta", href: search.library_url, label: "Mineração avançada", where: "Meta" });
+  if (search.youtube_url) links.push({
+    onde: "youtube", href: search.youtube_url,
+    label: search.library_url ? "YouTube" : "Mineração avançada", where: "YouTube",
+  });
+  if (search.tiktok_url) links.push({
+    onde: "tiktok", href: search.tiktok_url,
+    label: links.length ? "TikTok" : "Mineração avançada", where: "TikTok",
+  });
+  return links;
+}
+
 const LANGUAGES: Record<string, string> = { pt: "Português", es: "Espanhol", en: "Inglês" };
 
 const STATUS: Record<Run["status"], { label: string; className: string }> = {
@@ -590,17 +604,17 @@ export function SearchManager() {
                             Coletar
                           </button>
                         )}
-                        {s.library_url && (hasExtension ? (
-                          <a href={s.library_url} target="_blank" rel="noopener noreferrer" className="btn h-8 gap-1 text-xs pointer-coarse:h-11"
-                            aria-label={`Mineração avançada da busca ${searchName} (abre a Biblioteca de Anúncios)`}>
-                            Mineração avançada<ExternalIcon />
+                        {miningLinks(s).map((link) => (hasExtension ? (
+                          <a key={link.onde} href={link.href} target="_blank" rel="noopener noreferrer" className="btn h-8 gap-1 text-xs pointer-coarse:h-11"
+                            aria-label={`Mineração avançada da busca ${searchName} no ${link.where}`}>
+                            {link.label}<ExternalIcon />
                           </a>
                         ) : (
-                          <Link href={`/extensao?busca=${s.id}`} className="btn h-8 text-xs pointer-coarse:h-11"
-                            aria-label={`Mineração avançada da busca ${searchName}`}>
-                            Mineração avançada
+                          <Link key={link.onde} href={`/extensao?busca=${s.id}&onde=${link.onde}`} className="btn h-8 text-xs pointer-coarse:h-11"
+                            aria-label={`Mineração avançada da busca ${searchName} no ${link.where}`}>
+                            {link.label}
                           </Link>
-                        ))}
+                        )))}
                         <button type="button" className="btn btn-ghost ml-auto h-8 text-xs text-muted hover:text-danger pointer-coarse:h-11 lg:ml-0" onClick={(e) => remove(s, e)}
                           aria-label={`Excluir a busca ${searchName}`} data-undo-focus>
                           Excluir

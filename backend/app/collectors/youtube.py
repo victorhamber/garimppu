@@ -202,6 +202,17 @@ def matches_language(video: RawVideo, language: str) -> bool:
     return not letters or sum(ord(c) > 0x24F for c in letters) / len(letters) < 0.3
 
 
+def fetch_videos(ids: list[str], *, language: str | None, api_key: str) -> list[RawVideo]:
+    """Statistics and channel size for ids found elsewhere (the extension): about 2 quota units per 50 videos."""
+    client = YouTubeClient(api_key)
+    with client.http:
+        videos = [v for v in client.videos(ids) if not language or matches_language(v, language)]
+        subs = client.subscribers([v.channel_id for v in videos if v.channel_id])
+    for video in videos:
+        video.channel_subscribers = subs.get(video.channel_id) if video.channel_id else None
+    return videos
+
+
 def collect_videos(term: str, *, country: str, language: str | None, max_results: int, window_days: int,
                    api_key: str, log: Callable[[str], None]) -> tuple[list[RawVideo], int]:
     """Returns the videos and the quota units spent."""

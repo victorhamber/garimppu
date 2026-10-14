@@ -86,10 +86,44 @@ class RawTikTokAd:
     landing_page: str | None = None
 
 
+KEYWORD_PREFIX = f"{PREFIX}kw:"
+
+
 def industry_of(term: str) -> int | None:
-    """Source terms are "tiktok:<industry id>" or "tiktok:all"."""
+    """Source terms are "tiktok:<industry id>", "tiktok:all" or "tiktok:kw:<keyword>"."""
     value = term[len(PREFIX):] if term.startswith(PREFIX) else ""
     return int(value) if value.isdigit() else None
+
+
+def keyword_of(term: str) -> str | None:
+    return term[len(KEYWORD_PREFIX):] or None if term.startswith(KEYWORD_PREFIX) else None
+
+
+def industry_from_param(value: str | None) -> int | None:
+    """The page sends sub-industry ids or padded variants; the top-level industry is the one whose digits lead."""
+    digits = (value or "").split(",")[0].strip()
+    if not digits.isdigit():
+        return None
+    if int(digits) in INDUSTRIES:
+        return int(digits)
+    return next((key for key in INDUSTRIES if digits.startswith(str(key)[:2])), None)
+
+
+def parse_material(item: dict) -> RawTikTokAd:
+    """One entry of the Top Ads listing, as the page and the server both receive it."""
+    video = item.get("video_info") or {}
+    return RawTikTokAd(
+        id=str(item["id"]),
+        title=item.get("ad_title") or None,
+        brand=item.get("brand_name") or None,
+        industry_id=_industry(item.get("industry_key")),
+        objective=item.get("objective_key") or None,
+        ctr_rank=item.get("ctr"),
+        likes=_int(item.get("like")) or 0,
+        budget=_int(item.get("cost")),
+        duration_s=video.get("duration"),
+        cover_url=video.get("cover"),
+    )
 
 
 def detail_url(ad_id: str, country: str) -> str:
@@ -151,7 +185,7 @@ class CreativeCenterClient:
         return body.get("data") or {}
 
     def top_ads(self, *, country: str, language: str | None, industry: int | None, order_by: str,
-                limit: int) -> list[RawTikTokAd]:
+                limit: int, keyword: str | None = None) -> list[RawTikTokAd]:
         found: list[RawTikTokAd] = []
         page = 1
         while len(found) < limit:
@@ -160,21 +194,10 @@ class CreativeCenterClient:
                 params["ad_language"] = language
             if industry:
                 params["industry"] = industry
+            if keyword:
+                params["keyword"] = keyword
             data = self._get("list", **params)
-            for item in data.get("materials") or []:
-                video = item.get("video_info") or {}
-                found.append(RawTikTokAd(
-                    id=str(item["id"]),
-                    title=item.get("ad_title") or None,
-                    brand=item.get("brand_name") or None,
-                    industry_id=_industry(item.get("industry_key")),
-                    objective=item.get("objective_key") or None,
-                    ctr_rank=item.get("ctr"),
-                    likes=_int(item.get("like")) or 0,
-                    budget=_int(item.get("cost")),
-                    duration_s=video.get("duration"),
-                    cover_url=video.get("cover"),
-                ))
+            found += [parse_material(item) for item in data.get("materials") or []]
             if not (data.get("pagination") or {}).get("has_more"):
                 break
             page += 1
@@ -192,15 +215,16 @@ def collect_tiktok_ads(term: str, *, country: str, language: str | None, max_res
                        headers: dict[str, str]) -> list[RawTikTokAd]:
     """Top ads by CTR and by likes; details (comments, shares, landing page) only for ads not seen before."""
     industry = industry_of(term)
+    keyword = keyword_of(term)
     client = CreativeCenterClient(headers)
     per_order = max(PAGE_SIZE, max_results // len(ORDERS))
     ads: dict[str, RawTikTokAd] = {}
     with client.http:
         for order in ORDERS:
             for ad in client.top_ads(country=country, language=language, industry=industry, order_by=order,
-                                     limit=per_order):
+                                     limit=per_order, keyword=keyword):
                 ads.setdefault(ad.id, ad)
-        label = INDUSTRIES.get(industry, "todos os nichos") if industry else "todos os nichos"
+        label = f'"{keyword}"' if keyword else INDUSTRIES.get(industry, "todos os nichos") if industry else "todos os nichos"
         log(f"TikTok Top Ads ({label}, últimos {PERIOD} dias): {len(ads)} anúncios")
         detailed = known(list(ads))
         new = [ad for ad in ads.values() if ad.id not in detailed]

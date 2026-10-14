@@ -50,6 +50,9 @@ async function download(items) {
 
 const HANDLERS = {
   ads: (m) => call("/api/extension/ads", { method: "POST", body: { url: m.url, nodes: m.nodes, run_id: m.runId } }),
+  youtube: (m) => call("/api/extension/youtube", { method: "POST", body: { term: m.term, country: m.country, ids: m.ids, run_id: m.runId } }),
+  tiktok: (m) => call("/api/extension/tiktok", { method: "POST", body: { country: m.country, industry: m.industry, keyword: m.keyword, materials: m.materials, run_id: m.runId } }),
+  tiktokDetails: (m) => call("/api/extension/tiktok/details", { method: "POST", body: { details: m.details } }),
   favorite: (m) => call("/api/extension/favorite", { method: "POST", body: { url: m.url, node: m.node } }),
   me: () => call("/api/extension/me"),
   lead: (m) => call("/api/extension/lead", { method: "POST", body: { email: m.email }, auth: false }),

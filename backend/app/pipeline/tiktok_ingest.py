@@ -52,9 +52,26 @@ def known_ids(db: Session, ids: list[str]) -> set[str]:
     return set(db.scalars(select(TikTokAd.id).where(TikTokAd.id.in_(ids), TikTokAd.comments.is_not(None))))
 
 
+def apply_details(ad: TikTokAd, comments: int | None, shares: int | None, landing_page: str | None) -> None:
+    if comments is not None:
+        ad.comments = comments
+    if shares is not None:
+        ad.shares = shares
+    if landing_page:
+        ad.landing_page = landing_page
+        offer = classify_destination(landing_page, None)
+        ad.offer_key = offer.key[:255] if offer else None
+        ad.offer_kind = offer.kind if offer else None
+        ad.offer_platform = offer.platform if offer else None
+
+
 def ingest_tiktok_ads(db: Session, source: Source, raw_ads: list[RawTikTokAd],
-                      log: Callable[[str], None]) -> tuple[int, int]:
-    """Returns (ads in this collection, ads never seen before)."""
+                      log: Callable[[str], None], prune: bool = True) -> tuple[int, int]:
+    """Returns (ads in this collection, ads never seen before).
+
+    prune: the collection is the source's whole current top list, so ads missing from it are unlinked.
+    The extension sends a page at a time and leaves it off.
+    """
     now = utcnow()
     linked = set(db.scalars(select(SourceTikTokAd.ad_id).where(SourceTikTokAd.source_id == source.id)))
     new = 0
@@ -76,23 +93,14 @@ def ingest_tiktok_ads(db: Session, source: Source, raw_ads: list[RawTikTokAd],
             ad.duration_s = raw.duration_s
             ad.last_seen_at = now
             # Details are fetched once per ad; later collections only refresh the listing metrics.
-            if raw.comments is not None:
-                ad.comments = raw.comments
-            if raw.shares is not None:
-                ad.shares = raw.shares
-            if raw.landing_page:
-                ad.landing_page = raw.landing_page
-                offer = classify_destination(raw.landing_page, None)
-                ad.offer_key = offer.key[:255] if offer else None
-                ad.offer_kind = offer.kind if offer else None
-                ad.offer_platform = offer.platform if offer else None
+            apply_details(ad, raw.comments, raw.shares, raw.landing_page)
             if raw.cover_url and not ad.cover_path:
                 saved = download_image(http, raw.cover_url)
                 ad.cover_path = saved[0] if saved else None
             score_tiktok_ad(ad)
     db.flush()
     current = {raw.id for raw in raw_ads}
-    gone = linked - current
+    gone = linked - current if prune else set()
     if gone:
         db.execute(delete(SourceTikTokAd).where(SourceTikTokAd.source_id == source.id, SourceTikTokAd.ad_id.in_(gone)))
     for ad_id in current - linked:

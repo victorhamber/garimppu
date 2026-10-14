@@ -38,8 +38,9 @@ def video_niche(title: str | None, description: str | None, channel: str | None,
     ))
 
 
-def ingest_videos(db: Session, source: Source, raw_videos: list[RawVideo], log: Callable[[str], None]) -> tuple[int, int]:
-    """Returns (videos in this collection, videos never seen before)."""
+def ingest_videos(db: Session, source: Source, raw_videos: list[RawVideo], log: Callable[[str], None],
+                  prune: bool = True) -> tuple[int, int]:
+    """Returns (videos in this collection, videos never seen before). prune: see ingest_tiktok_ads."""
     now = utcnow()
     today = now.date()
     linked = set(db.scalars(select(SourceVideo.video_id).where(SourceVideo.source_id == source.id)))
@@ -81,7 +82,7 @@ def ingest_videos(db: Session, source: Source, raw_videos: list[RawVideo], log: 
     db.flush()
     # The search shows what is trending now: videos that left its top list are unlinked (they stay in the base).
     current = {f"youtube:{raw.external_id}" for raw in raw_videos}
-    gone = linked - current
+    gone = linked - current if prune else set()
     if gone:
         db.execute(delete(SourceVideo).where(SourceVideo.source_id == source.id, SourceVideo.video_id.in_(gone)))
     for video_id in current - linked:
