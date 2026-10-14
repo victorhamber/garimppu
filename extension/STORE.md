@@ -22,7 +22,7 @@ Set `EXTENSION_UPGRADE_URL` on garimppu-api to the sales page the free plan's "A
   Cada anúncio ganha um botão para baixar a imagem ou o vídeo. Grátis com seu e-mail. Assinantes do Garimppu também
   enviam os anúncios filtrados e os favoritos direto para a conta, onde viram criativos, ofertas e pontuação.
 - **Privacy policy:** https://app.garimppu.com/extensao-privacidade.html
-- **Screenshots (1280x800):** cards with Baixar/Favoritar and the dimmed ones, the counter, the popup with filters.
+- **Screenshots (1280x800):** cards with Baixar/Favoritar and the dimmed ones, the sidebar (filters, sorting, auto-scroll), the popup.
 
 ## Privacy tab
 

@@ -32,4 +32,19 @@ const GARIMPPU_FILTERS = {
   active(filters) {
     return Boolean(filters.minDays || filters.minSameCreative || filters.minPageAds || filters.withLink);
   },
+
+  /** 0-100: time on air (caps at 60 days), ads sharing the creative (caps at 32) and advertiser's ads here (caps at 16). */
+  heat(node, pageAds) {
+    const days = Math.min(GARIMPPU_FILTERS.daysActive(node), 60) / 60;
+    const same = Math.min(Math.log2(Number(node.collation_count) || 1) / 5, 1);
+    const page = Math.min(Math.log2(pageAds || 1) / 4, 1);
+    return Math.round(100 * (0.4 * days + 0.4 * same + 0.2 * page));
+  },
+
+  viewDefaults: { sort: "library", speed: "normal", stopAt: 0, collapsed: false },
+
+  async loadView() {
+    const { view } = await chrome.storage.local.get("view");
+    return { ...GARIMPPU_FILTERS.viewDefaults, ...(view || {}) };
+  },
 };

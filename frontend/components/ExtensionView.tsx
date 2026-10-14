@@ -74,7 +74,7 @@ export function ExtensionView() {
         </Step>
         <Step n={3} title={search ? `Minere "${search.term}"` : "Minere"}>
           <p className="text-sm text-muted">
-            Ajuste os filtros no ícone da extensão e role a página. Cada anúncio ganha Baixar e Favoritar.
+            Filtros, ordenação e rolagem automática ficam na barra lateral da Biblioteca. Cada anúncio ganha Baixar e Favoritar.
           </p>
           <a href={libraryUrl} target="_blank" rel="noopener noreferrer" className="btn w-fit gap-1">
             Abrir a Biblioteca de Anúncios<ExternalIcon />

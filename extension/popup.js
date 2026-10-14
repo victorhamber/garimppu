@@ -2,10 +2,6 @@ const connectForm = document.getElementById("connect");
 const connected = document.getElementById("connected");
 const error = document.getElementById("error");
 const submit = connectForm.querySelector("button");
-const filtersForm = document.getElementById("filters");
-const NUMBERS = ["minDays", "minSameCreative", "minPageAds"];
-const CHECKS = ["withLink", "dim"];
-
 function showAccount(account) {
   connectForm.hidden = Boolean(account);
   connected.hidden = !account;
@@ -22,16 +18,9 @@ function showAccount(account) {
   upgrade.href = account.upgrade_url || "https://app.garimppu.com";
 }
 
-async function showFilters() {
-  const filters = await GARIMPPU_FILTERS.load();
-  for (const name of NUMBERS) document.getElementById(name).value = filters[name] || "";
-  for (const name of CHECKS) document.getElementById(name).checked = Boolean(filters[name]);
-}
-
 async function start() {
   const { account } = await chrome.storage.local.get("account");
   showAccount(account || null);
-  await showFilters();
   if (!account?.subscriber) return;
   const result = await chrome.runtime.sendMessage({ type: "me" });
   if (!result.ok && result.status === 401) {
@@ -63,19 +52,6 @@ connectForm.addEventListener("submit", async (event) => {
   await chrome.storage.local.set({ account, leadPingAt: Date.now() });
   showAccount(account);
 });
-
-let savedTimer = null;
-filtersForm.addEventListener("input", async () => {
-  const filters = {};
-  for (const name of NUMBERS) filters[name] = Math.max(0, Number.parseInt(document.getElementById(name).value, 10) || 0);
-  for (const name of CHECKS) filters[name] = document.getElementById(name).checked;
-  await chrome.storage.local.set({ filters });
-  const saved = document.getElementById("saved");
-  saved.textContent = "Filtros aplicados na página.";
-  clearTimeout(savedTimer);
-  savedTimer = setTimeout(() => (saved.textContent = ""), 2000);
-});
-filtersForm.addEventListener("submit", (event) => event.preventDefault());
 
 document.getElementById("disconnect").addEventListener("click", async () => {
   await chrome.storage.local.remove("account");

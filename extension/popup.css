@@ -85,44 +85,12 @@ input[type="email"], input[type="password"], input[type="number"] {
   font: 13px system-ui, sans-serif;
 }
 
-#filters {
-  gap: 8px;
-  padding: 12px;
+.note {
+  padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
-}
-
-.row {
-  display: grid;
-  grid-template-columns: 1fr 72px;
-  align-items: center;
-  gap: 8px;
-}
-
-.row label {
-  color: var(--foreground);
-}
-
-.row input {
-  height: 28px;
-  font: 13px ui-monospace, monospace;
-  text-align: right;
-  background: var(--surface-2);
-}
-
-.check {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--foreground);
   font-size: 12px;
-  cursor: pointer;
-}
-
-.check input {
-  accent-color: var(--accent);
-  margin: 0;
 }
 
 .account {

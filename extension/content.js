@@ -192,12 +192,15 @@
     button:focus-visible, a:focus-visible { outline: 2px solid #f2a93b; outline-offset: 2px; }
     .logo { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 4px; background: #f2a93b; color: #1a1206;
       font: 700 11px ui-monospace, monospace; }
+    .heat { margin-left: 2px; color: #f2a93b; font: 600 12px ui-monospace, monospace; cursor: help; }
+    .heat:empty { display: none; }
     .why { flex-basis: 100%; color: #8d9096; }
     .why.error { color: #f06363; }
     .why a { color: #f2a93b; }
     svg { width: 14px; height: 14px; }`;
 
   const DOWNLOAD_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg>';
+  const HEAT_TIP = "De 0 a 100: tempo no ar, anúncios com o mesmo criativo e anúncios do anunciante nesta busca";
   const STAR_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.8 6.2.9-4.5 4.4 1 6.3L12 17.5 6.5 20.4l1-6.3L3 9.7l6.2-.9z"/></svg>';
 
   function findCard(label) {
@@ -227,7 +230,8 @@
       const root = host.attachShadow({ mode: "open" });
       root.innerHTML = `<style>${CARD_CSS}</style><div class="bar"><span class="logo" aria-hidden="true">G</span>
         <button type="button" data-act="download">${DOWNLOAD_ICON}Baixar</button>
-        <button type="button" data-act="favorite">${STAR_ICON}Favoritar</button><span class="why" hidden></span></div>`;
+        <button type="button" data-act="favorite">${STAR_ICON}Favoritar</button>
+        <span class="heat" title="${HEAT_TIP}"></span><span class="why" hidden></span></div>`;
       root.querySelector('[data-act="download"]').addEventListener("click", () => downloadAd(id));
       root.querySelector('[data-act="favorite"]').addEventListener("click", () => favoriteAd(id));
       label.insertAdjacentElement("afterend", host);
@@ -255,6 +259,7 @@
       star.classList.toggle("saved", saved);
       star.disabled = saved || !node;
       star.lastChild.textContent = saved ? "Nos favoritos" : "Favoritar";
+      root.querySelector(".heat").textContent = node ? `Quente ${F.heat(node, pageCount(node))}` : "";
       const why = root.querySelector(".why");
       if (!why.dataset.locked) {
         why.hidden = !(filtering && reasons.length);
@@ -262,6 +267,62 @@
         why.textContent = reasons.length ? `Fora do filtro: ${reasons.join(", ")}` : "";
       }
     }
+    scheduleSort();
+  }
+
+  // --- Sorting: CSS order on a flattened grid, so Meta's own DOM is never moved -----------------------------
+
+  const SORTS = {
+    library: { label: "Ordem da Biblioteca" },
+    hot: { label: "Mais quentes", value: (node) => F.heat(node, pageCount(node)) },
+    same: { label: "Mais duplicados", value: (node) => Number(node.collation_count) || 1 },
+    days: { label: "Mais tempo no ar", value: (node) => F.daysActive(node) },
+    page: { label: "Anunciante com mais anúncios", value: (node) => pageCount(node) },
+    recent: { label: "Mais recentes", value: (node) => -F.daysActive(node) },
+  };
+  let view = { ...F.viewDefaults };
+  let sortTimer = null;
+
+  function scheduleSort() {
+    if (sortTimer) return;
+    sortTimer = setTimeout(() => {
+      sortTimer = null;
+      applySort();
+    }, 300);
+  }
+
+  function clearSort() {
+    for (const el of document.querySelectorAll("[data-garimppu-flat], [data-garimppu-sorted]")) {
+      delete el.dataset.garimppuFlat;
+      delete el.dataset.garimppuSorted;
+    }
+    for (const el of document.querySelectorAll("[data-garimppu-card]")) el.style.removeProperty("order");
+  }
+
+  function commonAncestor(elements) {
+    let root = elements[0].parentElement;
+    while (root && !elements.every((el) => root.contains(el))) root = root.parentElement;
+    return root;
+  }
+
+  function applySort() {
+    clearSort();
+    const sort = SORTS[view.sort];
+    if (!sort?.value || !account || !searchKey) return;
+    const list = [...cards].filter(([, entry]) => entry.card.isConnected);
+    if (list.length < 2) return;
+    const root = commonAncestor(list.map(([, entry]) => entry.card));
+    if (!root || root === document.body) return;
+    for (const [, { card }] of list) {
+      for (let el = card.parentElement; el && el !== root; el = el.parentElement) el.dataset.garimppuFlat = "";
+    }
+    root.dataset.garimppuSorted = "";
+    const ranked = list.map(([id, { card }]) => {
+      const node = nodes.get(id);
+      return { card, value: node ? sort.value(node) : -Infinity, fails: node ? Number(failures(node).length > 0) : 1 };
+    });
+    ranked.sort((a, b) => a.fails - b.fails || b.value - a.value);
+    ranked.forEach((item, i) => item.card.style.setProperty("order", String(i + 1)));
   }
 
   function say(id, html, error = false) {
@@ -311,71 +372,239 @@
     return String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   }
 
-  // --- On-page counter -------------------------------------------------------------------------------------
+  // --- Auto-scroll ----------------------------------------------------------------------------------------
 
-  let counter = null;
-  let hidden = false;
+  const SPEEDS = { slow: 2600, normal: 1400, fast: 700 };
+  const IDLE_LIMIT = 12;
+  let scroller = null;
+  let idleTicks = 0;
+  let lastSeen = 0;
+  let scrollNote = "";
 
-  function mount() {
-    if (counter || !document.body) return;
-    const style = document.createElement("style");
-    style.textContent = `[data-garimppu-dim="true"] { opacity: .3; transition: opacity .15s; }
-      [data-garimppu-dim="true"]:hover, [data-garimppu-dim="true"]:focus-within { opacity: 1; }`;
-    document.head.appendChild(style);
-    const host = document.createElement("div");
-    host.id = "garimppu-counter";
-    const shadow = host.attachShadow({ mode: "open" });
-    shadow.innerHTML = `
-      <style>
-        :host { all: initial; }
-        .box { position: fixed; left: 16px; bottom: 16px; z-index: 2147483647; width: 290px; box-sizing: border-box;
-          padding: 12px 14px; border: 1px solid #2a2e33; border-radius: 10px; background: #15171a; color: #e8e6e1;
-          font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; box-shadow: 0 12px 32px rgb(0 0 0 / .45); }
-        .head { display: flex; align-items: center; gap: 8px; font-weight: 600; }
-        .logo { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 4px; background: #f2a93b;
-          color: #1a1206; font: 700 12px ui-monospace, monospace; }
-        .close { margin-left: auto; border: 0; background: none; color: #8d9096; font-size: 18px; line-height: 1;
-          cursor: pointer; padding: 2px 4px; border-radius: 4px; }
-        .close:hover { color: #e8e6e1; }
-        .close:focus-visible, a:focus-visible { outline: 2px solid #f2a93b; outline-offset: 2px; }
-        .line { margin-top: 6px; font-variant-numeric: tabular-nums; }
-        .line b { font: 600 14px ui-monospace, monospace; }
-        .line:empty { display: none; }
-        .status { margin-top: 4px; color: #8d9096; font-size: 12px; }
-        .status.error { color: #f06363; }
-        .status:empty { display: none; }
-        a { color: #f2a93b; font-size: 12px; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        .links { display: flex; gap: 12px; margin-top: 8px; }
-        .links:empty { display: none; }
-      </style>
-      <div class="box" role="status" aria-live="polite">
-        <div class="head"><span class="logo" aria-hidden="true">G</span>Garimppu
-          <button class="close" type="button" aria-label="Esconder o contador do Garimppu">×</button></div>
-        <div class="line seen"></div>
-        <div class="line sent"></div>
-        <div class="status"></div>
-        <div class="links"></div>
-      </div>`;
-    shadow.querySelector(".close").addEventListener("click", () => {
-      hidden = true;
-      host.remove();
-    });
-    document.body.appendChild(host);
-    counter = shadow;
+  function setScrolling(on, reason = "") {
+    clearInterval(scroller);
+    scroller = null;
+    scrollNote = reason;
+    if (on) {
+      idleTicks = 0;
+      lastSeen = nodes.size;
+      scroller = setInterval(scrollTick, SPEEDS[view.speed] || SPEEDS.normal);
+      scrollTick();
+    }
     render();
   }
 
+  function scrollTick() {
+    if (view.stopAt && nodes.size >= view.stopAt) {
+      setScrolling(false, `Parou em ${nodes.size} anúncios, como pedido.`);
+      return;
+    }
+    const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 80;
+    if (nodes.size > lastSeen) {
+      lastSeen = nodes.size;
+      idleTicks = 0;
+    } else if (atBottom) {
+      idleTicks += 1;
+    }
+    if (idleTicks >= IDLE_LIMIT) {
+      setScrolling(false, "A Biblioteca não trouxe mais anúncios.");
+      return;
+    }
+    // At the bottom with nothing new, backing up a little makes the Library try loading again.
+    if (atBottom && idleTicks % 4 === 3) window.scrollBy(0, -900);
+    else window.scrollBy({ top: Math.round(window.innerHeight * 0.85), behavior: "smooth" });
+  }
+
+  // --- Sidebar ---------------------------------------------------------------------------------------------
+
+  const PANEL_WIDTH = 300;
+  const NUMBERS = ["minDays", "minSameCreative", "minPageAds"];
+  const CHECKS = ["withLink", "dim"];
+  let panel = null;
+  let panelHost = null;
+
+  const PANEL_CSS = `
+    :host { all: initial; }
+    * { box-sizing: border-box; }
+    .panel { position: fixed; top: 0; right: 0; bottom: 0; z-index: 2147483647; width: ${PANEL_WIDTH}px; display: flex;
+      flex-direction: column; border-left: 1px solid #2a2e33; background: #0c0d0f; color: #e8e6e1;
+      font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; box-shadow: -12px 0 32px rgb(0 0 0 / .35); }
+    .head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid #2a2e33; font-weight: 600; font-size: 14px; }
+    .logo { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 4px; background: #f2a93b;
+      color: #1a1206; font: 700 12px ui-monospace, monospace; }
+    .collapse { margin-left: auto; }
+    .body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+    .stats { padding: 12px; border: 1px solid #2a2e33; border-radius: 8px; background: #15171a; }
+    .line { font-variant-numeric: tabular-nums; }
+    .line + .line { margin-top: 4px; }
+    .line b { font: 600 14px ui-monospace, monospace; }
+    .line:empty, .status:empty, .links:empty, .hint:empty { display: none; }
+    .status { margin-top: 6px; color: #8d9096; font-size: 12px; }
+    .status.error { color: #f06363; }
+    .links { display: flex; gap: 12px; margin-top: 8px; }
+    a { color: #f2a93b; font-size: 12px; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .tools { display: flex; flex-direction: column; gap: 20px; }
+    section { display: flex; flex-direction: column; gap: 8px; }
+    h2 { margin: 0; color: #8d9096; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+    button { font: 600 13px system-ui, sans-serif; cursor: pointer; }
+    .primary { height: 34px; border: 0; border-radius: 6px; background: #f2a93b; color: #1a1206; }
+    .primary:hover { filter: brightness(1.08); }
+    .primary.on { background: #1d2024; color: #f2a93b; box-shadow: inset 0 0 0 1px #f2a93b; }
+    .icon { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 6px; background: none;
+      color: #8d9096; font-size: 18px; line-height: 1; }
+    .icon:hover { background: #1d2024; color: #e8e6e1; }
+    .seg { display: grid; grid-template-columns: repeat(3, 1fr); padding: 2px; border: 1px solid #2a2e33; border-radius: 6px; background: #15171a; }
+    .seg button { height: 26px; border: 0; border-radius: 4px; background: none; color: #8d9096; font-size: 12px; }
+    .seg button[aria-pressed="true"] { background: #1d2024; color: #e8e6e1; }
+    .row { display: grid; grid-template-columns: 1fr 76px; align-items: center; gap: 8px; }
+    label { font-size: 12px; }
+    input[type="number"], select { width: 100%; height: 30px; padding: 0 8px; border: 1px solid #2a2e33; border-radius: 6px;
+      background: #15171a; color: #e8e6e1; font: 13px system-ui, sans-serif; }
+    input[type="number"] { font-family: ui-monospace, monospace; text-align: right; }
+    .check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .check input { margin: 0; accent-color: #f2a93b; }
+    .hint { margin: 0; color: #8d9096; font-size: 12px; }
+    .tab { position: fixed; top: 50%; right: 0; z-index: 2147483647; display: flex; flex-direction: column; align-items: center;
+      gap: 6px; padding: 10px 6px; transform: translateY(-50%); border: 1px solid #2a2e33; border-right: 0;
+      border-radius: 8px 0 0 8px; background: #0c0d0f; color: #e8e6e1; font: 600 12px ui-monospace, monospace;
+      box-shadow: -6px 0 20px rgb(0 0 0 / .35); }
+    .tab:hover { color: #f2a93b; }
+    [hidden] { display: none !important; }
+    button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #f2a93b; outline-offset: 2px; }`;
+
+  function mount() {
+    if (panel || !document.body) return;
+    const style = document.createElement("style");
+    style.textContent = `[data-garimppu-dim="true"] { opacity: .3; transition: opacity .15s; }
+      [data-garimppu-dim="true"]:hover, [data-garimppu-dim="true"]:focus-within { opacity: 1; }
+      [data-garimppu-sorted] { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px; align-items: start; }
+      [data-garimppu-flat] { display: contents !important; }
+      [data-garimppu-sorted] > *, [data-garimppu-flat] > * { order: 100000; }
+      html[data-garimppu-panel="open"] body { margin-right: ${PANEL_WIDTH}px !important; }`;
+    document.head.appendChild(style);
+    panelHost = document.createElement("div");
+    panelHost.id = "garimppu-panel";
+    const shadow = panelHost.attachShadow({ mode: "open" });
+    const sortOptions = Object.entries(SORTS).map(([key, { label }]) => `<option value="${key}">${label}</option>`).join("");
+    shadow.innerHTML = `<style>${PANEL_CSS}</style>
+      <aside class="panel" aria-label="Garimppu">
+        <div class="head"><span class="logo" aria-hidden="true">G</span>Garimppu
+          <button class="icon collapse" type="button" aria-label="Recolher a barra do Garimppu" title="Recolher">›</button></div>
+        <div class="body">
+          <div class="stats" role="status" aria-live="polite">
+            <div class="line seen"></div><div class="line sent"></div><div class="status"></div><div class="links"></div>
+          </div>
+          <div class="tools">
+            <section>
+              <h2>Rolagem automática</h2>
+              <button class="primary" type="button" data-act="scroll">Rolar sozinho</button>
+              <div class="seg" role="group" aria-label="Velocidade da rolagem">
+                <button type="button" data-speed="slow">Lenta</button><button type="button" data-speed="normal">Normal</button><button type="button" data-speed="fast">Rápida</button>
+              </div>
+              <div class="row"><label for="stopAt">Parar em quantos anúncios</label>
+                <input id="stopAt" type="number" min="0" max="10000" inputmode="numeric" placeholder="—"></div>
+              <p class="hint scroll-note"></p>
+            </section>
+            <section>
+              <h2><label for="sort">Ordenar a página</label></h2>
+              <select id="sort">${sortOptions}</select>
+            </section>
+            <section class="filters">
+              <h2>Filtros</h2>
+              <div class="row"><label for="minDays">Dias no ar, no mínimo</label>
+                <input id="minDays" type="number" min="0" max="3650" inputmode="numeric" placeholder="0"></div>
+              <div class="row"><label for="minSameCreative">Anúncios com o mesmo criativo</label>
+                <input id="minSameCreative" type="number" min="0" max="999" inputmode="numeric" placeholder="0"></div>
+              <div class="row"><label for="minPageAds">Anúncios do anunciante na busca</label>
+                <input id="minPageAds" type="number" min="0" max="999" inputmode="numeric" placeholder="0"></div>
+              <label class="check"><input id="withLink" type="checkbox"> Só anúncios com link de venda</label>
+              <label class="check"><input id="dim" type="checkbox"> Apagar na página os que não passam</label>
+            </section>
+          </div>
+        </div>
+      </aside>
+      <button class="tab" type="button" aria-label="Abrir a barra do Garimppu" hidden><span class="logo" aria-hidden="true">G</span><span class="tab-count"></span></button>`;
+    // Keystrokes typed in the panel must not reach the Library's own shortcuts.
+    shadow.addEventListener("keydown", (event) => event.stopPropagation());
+    shadow.querySelector(".collapse").addEventListener("click", () => saveView({ collapsed: true }));
+    shadow.querySelector(".tab").addEventListener("click", () => saveView({ collapsed: false }));
+    shadow.querySelector('[data-act="scroll"]').addEventListener("click", () => setScrolling(!scroller));
+    for (const button of shadow.querySelectorAll("[data-speed]")) {
+      button.addEventListener("click", () => {
+        saveView({ speed: button.dataset.speed });
+        if (scroller) setScrolling(true);
+      });
+    }
+    shadow.getElementById("stopAt").addEventListener("input", (event) => {
+      saveView({ stopAt: Math.max(0, Number.parseInt(event.target.value, 10) || 0) });
+    });
+    shadow.getElementById("sort").addEventListener("change", (event) => {
+      saveView({ sort: event.target.value });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+    shadow.querySelector(".filters").addEventListener("input", saveFilters);
+    document.body.appendChild(panelHost);
+    panel = shadow;
+    fillControls(true);
+    render();
+  }
+
+  function saveView(change) {
+    view = { ...view, ...change };
+    chrome.storage.local.set({ view });
+    applySort();
+    render();
+  }
+
+  function saveFilters() {
+    const next = {};
+    for (const name of NUMBERS) next[name] = Math.max(0, Number.parseInt(panel.getElementById(name).value, 10) || 0);
+    for (const name of CHECKS) next[name] = panel.getElementById(name).checked;
+    chrome.storage.local.set({ filters: next });
+  }
+
+  /** Puts the saved values in the inputs, leaving alone the one the user is typing in. */
+  function fillControls(all = false) {
+    if (!panel) return;
+    const typing = panel.activeElement;
+    const set = (id, apply) => {
+      const el = panel.getElementById(id);
+      if (all || el !== typing) apply(el);
+    };
+    for (const name of NUMBERS) set(name, (el) => (el.value = filters[name] || ""));
+    for (const name of CHECKS) set(name, (el) => (el.checked = Boolean(filters[name])));
+    set("stopAt", (el) => (el.value = view.stopAt || ""));
+    set("sort", (el) => (el.value = view.sort));
+  }
+
+  function renderPanel() {
+    const open = !view.collapsed;
+    document.documentElement.dataset.garimppuPanel = open ? "open" : "closed";
+    panel.querySelector(".panel").hidden = !open;
+    panel.querySelector(".tab").hidden = open;
+    panel.querySelector(".tab-count").textContent = nodes.size ? String(nodes.size) : "";
+    panel.querySelector(".tools").hidden = !account;
+    const scrollButton = panel.querySelector('[data-act="scroll"]');
+    scrollButton.textContent = scroller ? "Parar a rolagem" : "Rolar sozinho";
+    scrollButton.classList.toggle("on", Boolean(scroller));
+    for (const button of panel.querySelectorAll("[data-speed]")) {
+      button.setAttribute("aria-pressed", String(button.dataset.speed === view.speed));
+    }
+    panel.querySelector(".scroll-note").textContent = scroller ? "Role com o mouse a qualquer momento; a rolagem segue." : scrollNote;
+  }
+
   function render() {
-    if (hidden) return;
-    if (!counter) {
+    if (!panel) {
       mount();
       return;
     }
-    const seen = counter.querySelector(".seen");
-    const sentLine = counter.querySelector(".sent");
-    const status = counter.querySelector(".status");
-    const links = counter.querySelector(".links");
+    renderPanel();
+    const seen = panel.querySelector(".seen");
+    const sentLine = panel.querySelector(".sent");
+    const status = panel.querySelector(".status");
+    const links = panel.querySelector(".links");
     status.classList.toggle("error", Boolean(paused || note));
     sentLine.textContent = "";
     links.innerHTML = "";
@@ -416,9 +645,12 @@
     const stored = await chrome.storage.local.get("account");
     account = stored.account || null;
     filters = await F.load();
+    view = await F.loadView();
     paused = null;
     enqueuePassing();
     scanCards();
+    fillControls();
+    applySort();
     render();
     if (queue.length) schedule(0);
   }
@@ -454,6 +686,6 @@
   });
 
   chrome.storage.onChanged.addListener((changes) => {
-    if (changes.account || changes.filters) loadSettings();
+    if (changes.account || changes.filters || changes.view) loadSettings();
   });
 })();
