@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { api, formatDate, formatDateTime, type ExtensionKey, type Run, type Search, type TikTokIndustry } from "@/lib/api";
-import { useNiches } from "@/lib/hooks";
+import { api, formatDate, formatDateTime, type Run, type Search, type TikTokIndustry } from "@/lib/api";
+import { useHasExtension, useNiches } from "@/lib/hooks";
 import { digitsOnly } from "@/lib/useUrlFilters";
 import { CountrySelect } from "./CountrySelect";
 import { ErrorState } from "./ErrorState";
@@ -144,7 +144,7 @@ export function SearchManager() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<{ action: string; message: string } | null>(null);
   const [refreshNote, setRefreshNote] = useState<{ id: number; text: string } | null>(null);
-  const [hasKey, setHasKey] = useState(false);
+  const hasExtension = useHasExtension();
   const [notice, setNotice] = useState<Search | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [createdId, setCreatedId] = useState<number | null>(null);
@@ -156,7 +156,6 @@ export function SearchManager() {
 
   useEffect(() => {
     api<TikTokIndustry[]>("/api/tiktok/industries").then(setIndustries).catch(() => setIndustries([]));
-    api<ExtensionKey>("/api/extension/token").then((k) => setHasKey(!!k.created_at)).catch(() => setHasKey(false));
   }, []);
 
   const load = useCallback(() => {
@@ -591,7 +590,7 @@ export function SearchManager() {
                             Coletar
                           </button>
                         )}
-                        {s.library_url && (hasKey ? (
+                        {s.library_url && (hasExtension ? (
                           <a href={s.library_url} target="_blank" rel="noopener noreferrer" className="btn h-8 gap-1 text-xs pointer-coarse:h-11"
                             aria-label={`Mineração avançada da busca ${searchName} (abre a Biblioteca de Anúncios)`}>
                             Mineração avançada<ExternalIcon />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { api, MINING_EVENT, type Collection, type Niche, type Search } from "./api";
 
 const MINING_POLL_BUSY_MS = 5_000;
@@ -40,6 +40,13 @@ export function useMining(enabled: boolean) {
     };
   }, [enabled]);
   return enabled ? running : 0;
+}
+
+const noSubscribe = () => () => {};
+
+/** True when the Garimppu Chrome extension is installed: it flags the page as soon as it loads. */
+export function useHasExtension() {
+  return useSyncExternalStore(noSubscribe, () => !!document.documentElement.dataset.garimppuExtension, () => false);
 }
 
 export function useNiches() {

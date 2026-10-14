@@ -41,10 +41,33 @@ class ExtensionAdsOut(BaseModel):
     total: int  # ads this search has after the batch
 
 
-class ExtensionTokenOut(BaseModel):
-    token: str | None = None  # only right after creating; afterwards just the dates
-    created_at: datetime | None = None
-    last_used_at: datetime | None = None
+class ExtensionLeadIn(BaseModel):
+    email: str = Field(min_length=5, max_length=255, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+class ExtensionAccountOut(BaseModel):
+    email: str
+    name: str | None = None
+    subscriber: bool  # sends ads and favorites to the app; the free plan only filters and downloads
+    token: str | None = None  # subscriber login session, sent back as a Bearer header
+    upgrade_url: str
+
+
+class ExtensionFavoriteIn(BaseModel):
+    url: str = Field(max_length=2000)
+    node: dict
+
+
+class ExtensionFavoriteOut(BaseModel):
+    creative_id: int
+    collection_id: int
+
+
+class AdminLeadOut(BaseModel):
+    email: str
+    created_at: datetime
+    last_seen_at: datetime
+    subscriber: bool
 
 
 class SearchUpdate(BaseModel):

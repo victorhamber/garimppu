@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db import get_db
-from app.models import AuthSession, ExtensionToken, User, utcnow
+from app.models import AuthSession, User, utcnow
 
 COOKIE_NAME = "garimppu_session"
 SCRYPT_N, SCRYPT_R, SCRYPT_P = 2**14, 8, 1
@@ -48,13 +48,18 @@ def _token_hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def start_session(db: Session, user: User, response: Response) -> None:
-    settings = get_settings()
+def issue_session(db: Session, user: User) -> str:
     token = secrets.token_urlsafe(32)
     db.add(AuthSession(token_hash=_token_hash(token), user_id=user.id,
-                       expires_at=utcnow() + timedelta(days=settings.session_days)))
+                       expires_at=utcnow() + timedelta(days=get_settings().session_days)))
     user.last_login_at = utcnow()
     db.commit()
+    return token
+
+
+def start_session(db: Session, user: User, response: Response) -> None:
+    settings = get_settings()
+    token = issue_session(db, user)
     response.set_cookie(
         COOKIE_NAME, token, max_age=settings.session_days * 86400, httponly=True, samesite="lax",
         secure=settings.cookie_secure, domain=settings.cookie_domain, path="/",
@@ -80,7 +85,16 @@ def access_problem(user: User) -> str | None:
 
 
 def current_user(request: Request, db: Session = Depends(get_db)) -> User:
-    token = request.cookies.get(COOKIE_NAME)
+    return _session_user(db, request.cookies.get(COOKIE_NAME))
+
+
+def extension_user(request: Request, db: Session = Depends(get_db)) -> User:
+    """The browser extension sends its login session as `Authorization: Bearer ...` instead of the cookie."""
+    scheme, _, token = request.headers.get("authorization", "").partition(" ")
+    return _session_user(db, token.strip() if scheme.lower() == "bearer" else None)
+
+
+def _session_user(db: Session, token: str | None) -> User:
     session = db.get(AuthSession, _token_hash(token)) if token else None
     if session is None:
         raise HTTPException(401, "Faça login para continuar.")
@@ -94,31 +108,6 @@ def current_user(request: Request, db: Session = Depends(get_db)) -> User:
         # 401 (not 403): the client must leave the app; 403 stays reserved for "not an admin".
         raise HTTPException(401, f"{problem} Fale com o suporte para renovar o acesso.")
     return session.user
-
-
-EXTENSION_TOKEN_PREFIX = "gp_"
-
-
-def new_extension_token(db: Session, user: User) -> str:
-    token = EXTENSION_TOKEN_PREFIX + secrets.token_urlsafe(32)
-    db.execute(delete(ExtensionToken).where(ExtensionToken.user_id == user.id))
-    db.add(ExtensionToken(token_hash=_token_hash(token), user_id=user.id))
-    db.commit()
-    return token
-
-
-def extension_user(request: Request, db: Session = Depends(get_db)) -> User:
-    """The browser extension authenticates with `Authorization: Bearer gp_...` instead of the session cookie."""
-    scheme, _, token = request.headers.get("authorization", "").partition(" ")
-    row = db.get(ExtensionToken, _token_hash(token.strip())) if scheme.lower() == "bearer" and token else None
-    if row is None:
-        raise HTTPException(401, "Chave da extensão inválida. Gere uma nova no Garimppu.")
-    problem = access_problem(row.user)
-    if problem:
-        raise HTTPException(401, f"{problem} Fale com o suporte para renovar o acesso.")
-    row.last_used_at = utcnow()
-    db.commit()
-    return row.user
 
 
 def admin_user(user: User = Depends(current_user)) -> User:

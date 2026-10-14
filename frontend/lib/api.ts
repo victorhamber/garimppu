@@ -1,10 +1,11 @@
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
-/** The browser extension's personal key; `token` only comes right after creating it. */
-export type ExtensionKey = {
-  token: string | null;
-  created_at: string | null;
-  last_used_at: string | null;
+/** An e-mail that unlocked the free extension; subscriber = has a license with access today. */
+export type ExtensionLead = {
+  email: string;
+  created_at: string;
+  last_seen_at: string;
+  subscriber: boolean;
 };
 
 export type Run = {

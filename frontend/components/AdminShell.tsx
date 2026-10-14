@@ -8,6 +8,7 @@ const TABS = [
   { href: "/admin", label: "Licenças" },
   { href: "/admin/webhook", label: "Webhook de compra" },
   { href: "/admin/email", label: "E-mail" },
+  { href: "/admin/leads", label: "Leads da extensão" },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {

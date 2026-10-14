@@ -59,6 +59,8 @@ class Settings(BaseSettings):
     # Accounts. In production set COOKIE_SECURE=true and serve app and API under the same site
     # (e.g. app.garimppu.com and api.garimppu.com) so the session cookie travels with API calls.
     app_url: str = "http://localhost:3000"
+    # Where the free extension sends people to subscribe; defaults to the app.
+    extension_upgrade_url: str | None = None
     api_public_url: str = "http://localhost:8000"
     session_days: int = 30
     cookie_secure: bool = False

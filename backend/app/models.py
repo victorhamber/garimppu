@@ -64,17 +64,14 @@ class AuthSession(Base):
     user: Mapped[User] = relationship()
 
 
-class ExtensionToken(Base):
-    """The browser extension's personal key; only its hash is stored and creating a new one revokes the old."""
+class ExtensionLead(Base):
+    """Whoever unlocked the free extension with an e-mail: a lead until they buy a license."""
 
-    __tablename__ = "extension_tokens"
+    __tablename__ = "extension_leads"
 
-    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True)
+    email: Mapped[str] = mapped_column(String(255), primary_key=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-
-    user: Mapped[User] = relationship()
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class PasswordReset(Base):

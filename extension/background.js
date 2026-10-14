@@ -1,13 +1,22 @@
 const DEFAULT_API = "https://api.garimppu.com";
-const NO_KEY = "Conecte a extensão: clique no ícone do Garimppu e cole sua chave.";
+const LEAD_PING_MS = 24 * 3_600_000;
 
-async function call(path, { method = "GET", body } = {}) {
-  const { token, apiBase } = await chrome.storage.local.get(["token", "apiBase"]);
-  if (!token) return { ok: false, status: 401, error: NO_KEY };
+async function apiBase() {
+  const { apiBase: base } = await chrome.storage.local.get("apiBase");
+  return base || DEFAULT_API;
+}
+
+async function call(path, { method = "GET", body, auth = true } = {}) {
+  const { account } = await chrome.storage.local.get("account");
+  const headers = { "Content-Type": "application/json" };
+  if (auth) {
+    if (!account?.token) return { ok: false, status: 401, error: "Entre com sua senha do Garimppu para enviar ao app." };
+    headers.Authorization = `Bearer ${account.token}`;
+  }
   try {
-    const response = await fetch((apiBase || DEFAULT_API) + path, {
+    const response = await fetch((await apiBase()) + path, {
       method,
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const data = await response.json().catch(() => null);
@@ -21,15 +30,47 @@ async function call(path, { method = "GET", body } = {}) {
   }
 }
 
+/** Free plan: tells Garimppu once a day that this e-mail is still using the extension. */
+async function pingLead() {
+  const { account, leadPingAt } = await chrome.storage.local.get(["account", "leadPingAt"]);
+  if (!account?.email || account.subscriber || Date.now() - (leadPingAt || 0) < LEAD_PING_MS) return;
+  const result = await call("/api/extension/lead", { method: "POST", body: { email: account.email }, auth: false });
+  if (result.ok) await chrome.storage.local.set({ leadPingAt: Date.now() });
+}
+
+function safeName(text) {
+  return (text || "anuncio").normalize("NFKD").replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "anuncio";
+}
+
+async function download(items) {
+  for (const item of items) {
+    await chrome.downloads.download({ url: item.url, filename: `Garimppu/${safeName(item.name)}.${item.ext}`, conflictAction: "uniquify" });
+  }
+}
+
+const HANDLERS = {
+  ads: (m) => call("/api/extension/ads", { method: "POST", body: { url: m.url, nodes: m.nodes, run_id: m.runId } }),
+  favorite: (m) => call("/api/extension/favorite", { method: "POST", body: { url: m.url, node: m.node } }),
+  me: () => call("/api/extension/me"),
+  lead: (m) => call("/api/extension/lead", { method: "POST", body: { email: m.email }, auth: false }),
+  login: (m) => call("/api/extension/login", { method: "POST", body: { email: m.email, password: m.password }, auth: false }),
+  download: async (m) => {
+    try {
+      await download(m.items);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: `Não foi possível baixar: ${error.message}` };
+    }
+  },
+  ping: async () => {
+    await pingLead();
+    return { ok: true };
+  },
+};
+
 chrome.runtime.onMessage.addListener((message, _sender, reply) => {
-  if (message?.type === "ads") {
-    call("/api/extension/ads", { method: "POST", body: { url: message.url, nodes: message.nodes, run_id: message.runId } })
-      .then(reply);
-    return true;
-  }
-  if (message?.type === "me") {
-    call("/api/extension/me").then(reply);
-    return true;
-  }
-  return false;
+  const handler = HANDLERS[message?.type];
+  if (!handler) return false;
+  handler(message).then(reply);
+  return true;
 });

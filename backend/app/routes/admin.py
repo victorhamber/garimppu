@@ -9,10 +9,11 @@ from app.auth import admin_user, end_user_sessions, find_user
 from app.db import get_db
 from app.licenses import grant, issue_password, log_event, resync_sources
 from app.mailer import MailError, access_values, deliver, email_configured, render
-from app.models import LicenseEvent, Search, Source, User
+from app.models import ExtensionLead, LicenseEvent, Search, Source, User
 from app.pipeline.sources import sync_source
 from app.schemas import (
     AccessIssued,
+    AdminLeadOut,
     AdminSettingsOut,
     AdminUserCreate,
     AdminUserOut,
@@ -56,6 +57,17 @@ def _get(db: Session, user_id: int) -> User:
     if user is None:
         raise HTTPException(404, "Licença não encontrada")
     return user
+
+
+@router.get("/leads", response_model=list[AdminLeadOut])
+def list_leads(db: Session = Depends(get_db)):
+    """E-mails that unlocked the free extension; subscriber = has a license with access today."""
+    users = {u.email: u for u in db.scalars(select(User).where(User.email.in_(select(ExtensionLead.email))))}
+    return [
+        AdminLeadOut(email=lead.email, created_at=lead.created_at, last_seen_at=lead.last_seen_at,
+                     subscriber=lead.email in users and users[lead.email].has_access)
+        for lead in db.scalars(select(ExtensionLead).order_by(ExtensionLead.created_at.desc()))
+    ]
 
 
 @router.get("/users", response_model=list[AdminUserOut])
