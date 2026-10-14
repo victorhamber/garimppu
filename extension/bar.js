@@ -32,6 +32,7 @@ const GARIMPPU_BAR = {
     shadow.innerHTML = `<style>${PANEL_CSS}</style>
       <aside class="panel" aria-label="Garimppu">
         <div class="head"><span class="logo" aria-hidden="true">G</span>Garimppu
+          <button class="stop" type="button" data-act="stop">Desativar</button>
           <button class="icon collapse" type="button" aria-label="Recolher a barra do Garimppu" title="Recolher">›</button></div>
         <div class="body">
           <div class="stats" role="status" aria-live="polite">
@@ -70,6 +71,7 @@ const GARIMPPU_BAR = {
       shadow.querySelector(".panel").hidden = bar.collapsed;
       shadow.querySelector(".tab").hidden = !bar.collapsed;
     };
+    shadow.querySelector('[data-act="stop"]').addEventListener("click", () => bar.onStop?.());
     shadow.querySelector(".collapse").addEventListener("click", () => {
       bar.collapsed = true;
       apply();
@@ -90,6 +92,14 @@ const GARIMPPU_BAR = {
     bar.show = () => {
       bar.collapsed = false;
       apply();
+    };
+    bar.hide = () => {
+      clearInterval(bar.timer);
+      bar.timer = null;
+      bar.scrolling = false;
+      document.documentElement.dataset[attr] = "closed";
+      shadow.querySelector(".panel").hidden = true;
+      shadow.querySelector(".tab").hidden = true;
     };
     bar.setScrolling = (on, tick) => {
       if (tick) bar.tick = tick;
@@ -126,6 +136,28 @@ const GARIMPPU_BAR = {
     bar.paint();
     return bar;
   },
+
+  /** Small edge button while mining is off, so the page stays clear until the person turns it on. */
+  latch(turnOn) {
+    let button = document.getElementById("garimppu-wake");
+    if (!button) {
+      button = document.createElement("button");
+      button.id = "garimppu-wake";
+      button.type = "button";
+      button.textContent = "Ativar mineração";
+      button.style.cssText = `position:fixed;top:50%;right:0;z-index:2147483646;transform:translateY(-50%);
+        padding:10px 8px;border:1px solid #2a2e33;border-right:0;border-radius:8px 0 0 8px;background:#0c0d0f;
+        color:#f2a93b;font:600 12px system-ui,sans-serif;cursor:pointer;box-shadow:-6px 0 20px rgb(0 0 0 / .35);`;
+      document.documentElement.appendChild(button);
+    }
+    button.onclick = turnOn;
+    button.hidden = false;
+  },
+
+  hideLatch() {
+    const button = document.getElementById("garimppu-wake");
+    if (button) button.hidden = true;
+  },
 };
 
 const PANEL_CSS = `
@@ -138,8 +170,8 @@ const PANEL_CSS = `
   .logo { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 4px; background: #f2a93b;
     color: #1a1206; font: 700 12px ui-monospace, monospace; }
   .collapse { margin-left: auto; }
-  .body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 14px; }
-  .stats { padding: 12px; border: 1px solid #2a2e33; border-radius: 8px; background: #15171a; }
+    .body { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+  .stats { padding: 8px; border: 1px solid #2a2e33; border-radius: 8px; background: #15171a; }
   .line { font-variant-numeric: tabular-nums; }
   .line + .line { margin-top: 4px; }
   .line b { font: 600 14px ui-monospace, monospace; }
@@ -149,8 +181,12 @@ const PANEL_CSS = `
   .links { display: flex; gap: 12px; margin-top: 8px; }
   a { color: #f2a93b; font-size: 12px; text-decoration: none; }
   a:hover { text-decoration: underline; }
-  section { display: flex; flex-direction: column; gap: 8px; }
-  h2 { margin: 0; color: #8d9096; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+  section { display: flex; flex-direction: column; gap: 6px; }
+  h2, summary { margin: 0; color: #8d9096; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
+  .stop { height: 26px; margin-left: auto; padding: 0 8px; border: 1px solid #2a2e33; border-radius: 6px; background: transparent;
+    color: #e8e6e1; font-size: 12px; }
+  .stop:hover { border-color: #f2a93b; color: #f2a93b; }
+  .collapse { margin-left: 0; }
   button { font: 600 13px system-ui, sans-serif; cursor: pointer; }
   .primary { height: 34px; border: 0; border-radius: 6px; background: #f2a93b; color: #1a1206; }
   .primary:hover { filter: brightness(1.08); }
@@ -161,10 +197,13 @@ const PANEL_CSS = `
   .seg { display: grid; grid-template-columns: repeat(3, 1fr); padding: 2px; border: 1px solid #2a2e33; border-radius: 6px; background: #15171a; }
   .seg button { height: 26px; border: 0; border-radius: 4px; background: none; color: #8d9096; font-size: 12px; }
   .seg button[aria-pressed="true"] { background: #1d2024; color: #e8e6e1; }
-  .extra { display: flex; flex-direction: column; gap: 16px; }
+  .extra { display: flex; flex-direction: column; gap: 8px; }
   .extra:empty { display: none; }
-  .extra section { display: flex; flex-direction: column; gap: 8px; }
-  .extra h2 { margin: 0; color: #8d9096; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+  .extra section, .extra details { display: flex; flex-direction: column; gap: 6px; }
+  .extra h2, .extra summary { margin: 0; color: #8d9096; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chips button { height: 24px; padding: 0 8px; border: 1px solid #2a2e33; border-radius: 999px; background: #15171a; color: #e8e6e1; font-size: 11px; }
+  .chips button:hover { border-color: #f2a93b; color: #f2a93b; }
   .extra .row { display: grid; grid-template-columns: 1fr 76px; align-items: center; gap: 8px; }
   .extra label { font-size: 12px; }
   .extra input[type="number"], .extra select { width: 100%; height: 30px; padding: 0 8px; border: 1px solid #2a2e33;

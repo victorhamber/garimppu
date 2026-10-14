@@ -59,11 +59,12 @@ const go = document.getElementById("go");
 const note = document.getElementById("note");
 let mineTab = null;
 
-function armButton() {
+function armButton(mining) {
   go.dataset.mine = "1";
+  go.dataset.on = mining ? "1" : "0";
   go.removeAttribute("href");
   go.removeAttribute("target");
-  go.textContent = "Ativar mineração";
+  go.textContent = mining ? "Desativar mineração" : "Ativar mineração";
 }
 
 async function place() {
@@ -73,7 +74,7 @@ async function place() {
   go.href = "https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=BR&media_type=all";
   go.target = "_blank";
   go.textContent = "Abrir a Biblioteca de Anúncios";
-  note.textContent = "Abra o YouTube, o TikTok ou a Biblioteca de Anúncios e clique em Ativar mineração.";
+  note.textContent = "Abra o YouTube, o TikTok ou a Biblioteca de Anúncios.";
   if (!tab?.id) return;
   let here = null;
   try {
@@ -86,8 +87,9 @@ async function place() {
     }
     return;
   }
-  armButton();
-  if (here.page === "youtube" && here.results) note.textContent = `Busca “${here.term}”.`;
+  armButton(Boolean(here.mining));
+  if (here.mining) note.textContent = "Mineração ligada nesta aba.";
+  else if (here.page === "youtube" && here.results) note.textContent = `Busca “${here.term}”.`;
   else if (here.page === "youtube") note.textContent = "Pesquise um termo nesta aba.";
   else if (here.page === "facebook") note.textContent = "Biblioteca de Anúncios aberta.";
   else note.textContent = "TikTok aberto nesta aba.";
@@ -96,16 +98,11 @@ async function place() {
 go.addEventListener("click", async (event) => {
   if (go.dataset.mine !== "1" || !mineTab?.id) return;
   event.preventDefault();
-  let result = null;
+  const turnOn = go.dataset.on !== "1";
   try {
-    result = await chrome.tabs.sendMessage(mineTab.id, { type: "mine" });
+    await chrome.tabs.sendMessage(mineTab.id, { type: "mine", on: turnOn });
   } catch {
     note.textContent = "Recarregue a página e clique de novo.";
-    return;
-  }
-  if (result?.armed) {
-    note.textContent = "Ativada. Pesquise um termo nesta aba.";
-    go.textContent = "Ativada";
     return;
   }
   window.close();

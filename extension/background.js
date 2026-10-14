@@ -54,6 +54,7 @@ const HANDLERS = {
   tiktok: (m) => call("/api/extension/tiktok", { method: "POST", body: { country: m.country, industry: m.industry, keyword: m.keyword, materials: m.materials, run_id: m.runId } }),
   tiktokDetails: (m) => call("/api/extension/tiktok/details", { method: "POST", body: { details: m.details } }),
   favorite: (m) => call("/api/extension/favorite", { method: "POST", body: { url: m.url, node: m.node } }),
+  save: (m) => call("/api/extension/save", { method: "POST", body: { kind: m.kind, ref: m.ref } }),
   me: () => call("/api/extension/me"),
   lead: (m) => call("/api/extension/lead", { method: "POST", body: { email: m.email }, auth: false }),
   login: (m) => call("/api/extension/login", { method: "POST", body: { email: m.email, password: m.password }, auth: false }),

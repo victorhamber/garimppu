@@ -11,6 +11,7 @@
   const ID_XPATH = "//body//*[not(self::script) and not(self::style)][text()[contains(., 'biblioteca:') or contains(., 'Library ID:')]]";
 
   let account = null; // { email, subscriber, token, upgrade_url }
+  let mining = false;
   let filters = { ...F.defaults };
   let searchKey = currentSearchKey();
   let nodes = new Map(); // ad id -> raw ad as the Library sent it
@@ -84,9 +85,11 @@
       }
     }
     if (!added) return;
-    enqueuePassing();
-    refreshCards();
-    render();
+    if (mining) {
+      enqueuePassing();
+      refreshCards();
+      render();
+    }
   }
 
   function checkSearch() {
@@ -106,7 +109,7 @@
   // --- Sending (subscribers) -------------------------------------------------------------------------------
 
   function enqueuePassing() {
-    if (!account?.subscriber || !searchKey) return;
+    if (!mining || !account?.subscriber || !searchKey) return;
     for (const [id, node] of nodes) {
       if (queued.has(id) || failures(node).length) continue;
       queued.add(id);
@@ -228,7 +231,7 @@
   }
 
   function scanCards() {
-    if (!account || !searchKey) return;
+    if (!mining || !account || !searchKey) return;
     const found = document.evaluate(ID_XPATH, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     for (let i = 0; i < found.snapshotLength; i += 1) {
       const label = found.snapshotItem(i);
@@ -471,8 +474,8 @@
     .logo { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 4px; background: #f2a93b;
       color: #1a1206; font: 700 12px ui-monospace, monospace; }
     .collapse { margin-left: auto; }
-    .body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 14px; }
-    .stats { padding: 12px; border: 1px solid #2a2e33; border-radius: 8px; background: #15171a; }
+    .body { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+    .stats { padding: 8px; border: 1px solid #2a2e33; border-radius: 8px; background: #15171a; }
     .line { font-variant-numeric: tabular-nums; }
     .line + .line { margin-top: 4px; }
     .line b { font: 600 14px ui-monospace, monospace; }
@@ -482,9 +485,11 @@
     .links { display: flex; gap: 12px; margin-top: 8px; }
     a { color: #f2a93b; font-size: 12px; text-decoration: none; }
     a:hover { text-decoration: underline; }
-    .tools { display: flex; flex-direction: column; gap: 20px; }
-    section { display: flex; flex-direction: column; gap: 8px; }
-    h2 { margin: 0; color: #8d9096; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+    .tools { display: flex; flex-direction: column; gap: 8px; }
+    section, details { display: flex; flex-direction: column; gap: 6px; }
+    h2, summary { margin: 0; color: #8d9096; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
+    .stop { height: 26px; margin-left: auto; padding: 0 8px; border: 1px solid #2a2e33; border-radius: 6px; background: transparent; color: #e8e6e1; font-size: 12px; }
+    .collapse { margin-left: 0; }
     button { font: 600 13px system-ui, sans-serif; cursor: pointer; }
     .primary { height: 34px; border: 0; border-radius: 6px; background: #f2a93b; color: #1a1206; }
     .primary:hover { filter: brightness(1.08); }
@@ -520,7 +525,8 @@
         gap: 16px; align-items: start; }
       [data-garimppu-flat] { display: contents !important; }
       [data-garimppu-sorted] > *, [data-garimppu-flat] > * { order: 100000; }
-      html[data-garimppu-panel="open"] body { margin-right: ${PANEL_WIDTH}px !important; }`;
+      html[data-garimppu-panel="open"] body { margin-right: ${PANEL_WIDTH}px !important; }
+      html[data-garimppu-mining="off"] .garimppu-tools { display: none !important; }`;
     document.head.appendChild(style);
     panelHost = document.createElement("div");
     panelHost.id = "garimppu-panel";
@@ -529,6 +535,7 @@
     shadow.innerHTML = `<style>${PANEL_CSS}</style>
       <aside class="panel" aria-label="Garimppu">
         <div class="head"><span class="logo" aria-hidden="true">G</span>Garimppu
+          <button class="stop" type="button" data-act="stop">Desativar</button>
           <button class="icon collapse" type="button" aria-label="Recolher a barra do Garimppu" title="Recolher">›</button></div>
         <div class="body">
           <div class="stats" role="status" aria-live="polite">
@@ -550,7 +557,8 @@
               <select id="sort">${sortOptions}</select>
             </section>
             <section class="filters">
-              <h2>Filtros</h2>
+              <details>
+                <summary>Filtros</summary>
               <div class="row"><label for="minNota">Pontuação mínima</label>
                 <input id="minNota" type="number" min="0" max="100" inputmode="numeric" placeholder="0"></div>
               <div class="row"><label for="minDays">Dias ativo, no mínimo</label>
@@ -561,6 +569,7 @@
                 <input id="minPageAds" type="number" min="0" max="999" inputmode="numeric" placeholder="0"></div>
               <label class="check"><input id="withLink" type="checkbox"> Só com link de venda</label>
               <label class="check"><input id="dim" type="checkbox"> Esconder os que ficam de fora</label>
+              </details>
             </section>
           </div>
         </div>
@@ -568,6 +577,7 @@
       <button class="tab" type="button" aria-label="Abrir a barra do Garimppu" hidden><span class="logo" aria-hidden="true">G</span><span class="tab-count"></span></button>`;
     // Keystrokes typed in the panel must not reach the Library's own shortcuts.
     shadow.addEventListener("keydown", (event) => event.stopPropagation());
+    shadow.querySelector('[data-act="stop"]').addEventListener("click", () => setMining(false));
     shadow.querySelector(".collapse").addEventListener("click", () => saveView({ collapsed: true }));
     shadow.querySelector(".tab").addEventListener("click", () => saveView({ collapsed: false }));
     shadow.querySelector('[data-act="scroll"]').addEventListener("click", () => setScrolling(!scroller));
@@ -635,7 +645,60 @@
     panel.querySelector(".scroll-note").textContent = scroller ? "A página continua rolando." : scrollNote;
   }
 
+  function showWake() {
+    let button = document.getElementById("garimppu-wake");
+    if (!button) {
+      button = document.createElement("button");
+      button.id = "garimppu-wake";
+      button.type = "button";
+      button.textContent = "Ativar mineração";
+      button.style.cssText = `position:fixed;top:50%;right:0;z-index:2147483646;transform:translateY(-50%);
+        padding:10px 8px;border:1px solid #2a2e33;border-right:0;border-radius:8px 0 0 8px;background:#0c0d0f;
+        color:#f2a93b;font:600 12px system-ui,sans-serif;cursor:pointer;box-shadow:-6px 0 20px rgb(0 0 0 / .35);`;
+      button.addEventListener("click", () => setMining(true));
+      document.documentElement.appendChild(button);
+    }
+    button.hidden = false;
+  }
+
+  function hideWake() {
+    const button = document.getElementById("garimppu-wake");
+    if (button) button.hidden = true;
+  }
+
+  function setMining(on) {
+    const next = Boolean(on);
+    if (next !== mining) {
+      mining = next;
+      chrome.storage.local.set({ miningOn: mining });
+    }
+    if (!mining) {
+      queue = [];
+      setScrolling(false);
+      render();
+      return;
+    }
+    render();
+    enqueuePassing();
+    scanCards();
+    fillControls();
+    applySort();
+    if (queue.length) schedule(0);
+  }
+
   function render() {
+    if (!mining) {
+      document.documentElement.dataset.garimppuMining = "off";
+      document.documentElement.dataset.garimppuPanel = "closed";
+      if (panel) {
+        panel.querySelector(".panel").hidden = true;
+        panel.querySelector(".tab").hidden = true;
+      }
+      showWake();
+      return;
+    }
+    document.documentElement.dataset.garimppuMining = "on";
+    hideWake();
     if (!panel) {
       mount();
       return;
@@ -682,17 +745,24 @@
   // --- Wiring ----------------------------------------------------------------------------------------------
 
   async function loadSettings() {
-    const stored = await chrome.storage.local.get("account");
+    const stored = await chrome.storage.local.get(["account", "miningOn"]);
     account = stored.account || null;
+    mining = Boolean(stored.miningOn);
     filters = await F.load();
     view = await F.loadView();
     paused = null;
-    enqueuePassing();
-    scanCards();
-    fillControls();
-    applySort();
+    if (new URLSearchParams(location.search).get("garimppu") === "1" && !mining) {
+      mining = true;
+      chrome.storage.local.set({ miningOn: true });
+    }
+    if (mining) {
+      enqueuePassing();
+      scanCards();
+      fillControls();
+      applySort();
+    }
     render();
-    if (queue.length) schedule(0);
+    if (mining && queue.length) schedule(0);
   }
 
   window.addEventListener("message", (event) => {
@@ -725,21 +795,19 @@
   setInterval(checkSearch, 1000);
 
   window.addEventListener("beforeunload", (event) => {
-    if (queue.length && !paused && account?.subscriber) event.preventDefault();
+    if (mining && queue.length && !paused && account?.subscriber) event.preventDefault();
   });
 
   chrome.storage.onChanged.addListener((changes) => {
     if (changes.account || changes.filters || changes.view) loadSettings();
+    else if (changes.miningOn && Boolean(changes.miningOn.newValue) !== mining) setMining(Boolean(changes.miningOn.newValue));
   });
 
-  function startMining() {
-    if (view.collapsed) saveView({ collapsed: false });
-    setScrolling(true);
-    return { ok: true, armed: false };
-  }
-
   chrome.runtime.onMessage.addListener((message, _sender, reply) => {
-    if (message?.type === "where") reply({ page: "facebook", results: true });
-    else if (message?.type === "mine") reply(startMining());
+    if (message?.type === "where") reply({ page: "facebook", results: Boolean(searchKey), mining });
+    else if (message?.type === "mine") {
+      setMining(message.on !== false);
+      reply({ ok: true, mining });
+    }
   });
 })();

@@ -7,6 +7,8 @@
   const FLUSH_MS = 1500;
 
   let account = null;
+  let mining = false;
+  let favorited = new Set();
   let pageKey = null;
   let country = "BR";
   let industry = null;
@@ -68,7 +70,7 @@
     lastCount = 0;
     idleTicks = 0;
     openedAt = Date.now();
-    if (keyword) {
+    if (keyword && mining) {
       const word = keyword;
       const poke = () => {
         if (!keywordReady && keyword === word) window.postMessage({ garimppu: "tiktok-type", keyword: word }, location.origin);
@@ -110,7 +112,7 @@
         keywordReady = true;
         note = "A busca por palavra não aplicou; coletando o que a página mostra.";
       }
-      if (keywordReady && autoScroll) bar.setScrolling(true, scrollTick);
+      if (keywordReady && mining && autoScroll && bar) bar.setScrolling(true, scrollTick);
     }
     let payload = null;
     try {
@@ -127,9 +129,10 @@
       ads.set(id, item);
       added += 1;
     }
-    if (!added) return;
+    if (!added || !mining) return;
     enqueue();
     paintNotas();
+    paintTools();
     render();
   }
 
@@ -150,6 +153,11 @@
     if (!body || (body.comment == null && body.share == null && !body.landing_page)) return;
     const adId = String(id || body.id || body.material_id || "");
     if (!adId) return;
+    const ad = ads.get(adId);
+    if (ad) {
+      if (body.comment != null) ad.comment = numberOrNull(body.comment);
+      if (body.share != null) ad.share = numberOrNull(body.share);
+    }
     detailQueue.push({
       id: adId,
       comment: numberOrNull(body.comment),
@@ -161,7 +169,7 @@
   }
 
   function enqueue() {
-    if (!account?.subscriber || paused) return;
+    if (!mining || !account?.subscriber || paused) return;
     for (const [id, item] of ads) {
       if (queued.has(id)) continue;
       queued.add(id);
@@ -179,7 +187,7 @@
   }
 
   async function flush() {
-    if (sending || paused || !queue.length || !account?.subscriber) return;
+    if (!mining || sending || paused || !queue.length || !account?.subscriber) return;
     sending = true;
     const key = pageKey;
     const batch = queue.slice(0, BATCH);
@@ -197,8 +205,17 @@
       fresh += result.data.new;
       total = result.data.total;
       Object.assign(notas, result.data.notas || {});
+      for (const [id, info] of Object.entries(result.data.stats || {})) {
+        const ad = ads.get(id);
+        if (!ad || !info) continue;
+        if (info.likes != null) ad.like = info.likes;
+        if (info.comments != null) ad.comment = info.comments;
+        if (info.shares != null) ad.share = info.shares;
+        if (info.ctr != null) ad.ctr = info.ctr;
+      }
       if (!note.startsWith("A busca")) note = "";
       paintNotas();
+      paintTools();
       askDetails(result.data.need_detail || []);
     } else if (result.status === 401 || result.status === 403) {
       paused = result.error;
@@ -233,6 +250,7 @@
       if (result.ok) {
         Object.assign(notas, result.data || {});
         paintNotas();
+        paintTools();
       } else {
         detailQueue.unshift(...batch);
       }
@@ -241,6 +259,7 @@
   }
 
   function paintNotas() {
+    if (!mining) return;
     for (const [id, nota] of Object.entries(notas)) {
       const link = document.querySelector(`a[href*="${id}"]`);
       if (!link || link.querySelector(".garimppu-nota")) continue;
@@ -256,6 +275,58 @@
     }
   }
 
+  function compactCount(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return "";
+    return new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 }).format(number);
+  }
+
+  function paintTools() {
+    if (!mining) return;
+    for (const [id, item] of ads) {
+      const link = document.querySelector(`a[href*="${id}"]`);
+      const parent = link?.parentElement;
+      if (!parent) continue;
+      let host = parent.querySelector(`:scope > .garimppu-tools[data-id="${id}"]`);
+      if (!host) {
+        host = document.createElement("div");
+        host.className = "garimppu-tools";
+        host.dataset.id = id;
+        host.style.cssText = "display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0;font:600 12px system-ui,sans-serif;";
+        link.insertAdjacentElement("afterend", host);
+      }
+      const bits = [];
+      if (item.like != null) bits.push(`${compactCount(item.like)} curtidas`);
+      if (item.comment != null) bits.push(`${compactCount(item.comment)} comentários`);
+      if (item.share != null) bits.push(`${compactCount(item.share)} compartilhamentos`);
+      const ctr = Number(item.ctr);
+      if (Number.isFinite(ctr) && ctr > 0 && ctr <= 1) bits.push(`top ${Math.max(1, Math.round(ctr * 100))}% em cliques`);
+      const saved = favorited.has(id);
+      host.innerHTML = `<button type="button" data-act="download" style="height:26px;padding:0 10px;border:1px solid #2a2e33;border-radius:6px;background:#15171a;color:#e8e6e1;cursor:pointer;">Baixar</button>
+        <button type="button" data-act="favorite" style="height:26px;padding:0 10px;border:1px solid ${saved ? "#5cc98b" : "#2a2e33"};border-radius:6px;background:#15171a;color:${saved ? "#5cc98b" : "#e8e6e1"};cursor:pointer;" ${saved ? "disabled" : ""}>${saved ? "Nos favoritos" : "Favoritar"}</button>
+        <span style="color:#8d9096;">${bits.join(" · ")}</span>`;
+      host.querySelector('[data-act="download"]').onclick = () => {
+        const cover = item.video_info?.cover;
+        if (!cover) return;
+        B.message({ type: "download", items: [{ url: cover, name: id, ext: "jpg" }] });
+      };
+      host.querySelector('[data-act="favorite"]').onclick = () => saveAd(id, host);
+    }
+  }
+
+  async function saveAd(id, host) {
+    const button = host.querySelector('[data-act="favorite"]');
+    if (!account?.subscriber) {
+      if (button) button.textContent = "Assine para favoritar";
+      return;
+    }
+    if (button) button.textContent = "Salvando...";
+    const result = await B.message({ type: "save", kind: "tiktok", ref: id });
+    if (result.ok) favorited.add(id);
+    else if (button) button.textContent = result.status === 404 ? "Envie antes" : "Falhou";
+    if (result.ok) paintTools();
+  }
+
   function scrollTick() {
     const root = scrollTarget();
     const before = ads.size;
@@ -266,7 +337,7 @@
     } else if (room < 80) idleTicks += 1;
     if (idleTicks >= 8) {
       scrollNote = "O TikTok não trouxe mais anúncios.";
-      bar.setScrolling(false);
+      bar?.setScrolling(false);
       render();
       return;
     }
@@ -290,12 +361,20 @@
   }
 
   const style = document.createElement("style");
-  style.textContent = `html[data-garimppu-tt="open"] body { margin-right: ${B.WIDTH}px !important; }`;
+  style.textContent = `html[data-garimppu-tt="open"] body { margin-right: ${B.WIDTH}px !important; }
+    html[data-garimppu-mining="off"] .garimppu-tools, html[data-garimppu-mining="off"] .garimppu-nota { display: none !important; }`;
   document.documentElement.appendChild(style);
-  const bar = B.open("garimppu-tt", "garimppuTt");
-  bar.tick = scrollTick;
+  let bar = null;
+
+  function ensureBar() {
+    if (bar) return;
+    bar = B.open("garimppu-tt", "garimppuTt");
+    bar.tick = scrollTick;
+    bar.onStop = () => setMining(false);
+  }
 
   function render() {
+    if (!bar) return;
     const links = [];
     if (searchId) links.push(`<a href="${B.APP}/tiktok?search_id=${searchId}" target="_blank" rel="noopener">Ver no Garimppu</a>`);
     let status = "";
@@ -322,20 +401,49 @@
     });
   }
 
-  async function loadAccount() {
-    const { account: stored } = await chrome.storage.local.get("account");
-    account = stored || null;
-    paused = null;
+  function setMining(on) {
+    const next = Boolean(on);
+    if (next !== mining) {
+      mining = next;
+      chrome.storage.local.set({ miningOn: mining });
+    }
+    document.documentElement.dataset.garimppuMining = mining ? "on" : "off";
+    if (!mining) {
+      bar?.setScrolling(false);
+      queue = [];
+      bar?.hide();
+      B.latch(() => setMining(true));
+      return;
+    }
+    B.hideLatch();
+    ensureBar();
+    bar.show();
+    if (keyword && !keywordReady) {
+      const word = keyword;
+      window.postMessage({ garimppu: "tiktok-type", keyword: word }, location.origin);
+    }
     enqueue();
+    paintNotas();
+    paintTools();
     render();
+    if (autoScroll && keywordReady) bar.setScrolling(true, scrollTick);
     if (queue.length) schedule(0);
   }
 
-  function start() {
-    if (autoScroll && keywordReady) bar.setScrolling(true, scrollTick);
+  async function loadAccount() {
+    const stored = await chrome.storage.local.get(["account", "miningOn"]);
+    account = stored.account || null;
+    mining = Boolean(stored.miningOn);
+    paused = null;
+    const page = readPage();
+    if (page.auto && !mining) {
+      mining = true;
+      chrome.storage.local.set({ miningOn: true });
+    }
+    reset(page);
+    setMining(mining);
   }
 
-  reset(readPage());
   loadAccount();
   B.message({ type: "ping" });
 
@@ -347,22 +455,19 @@
     if (data["garimppu:typed"]) render();
   });
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
-  else start();
-
   window.addEventListener("beforeunload", (event) => {
-    if ((queue.length || detailQueue.length) && !paused && account?.subscriber) event.preventDefault();
+    if (mining && (queue.length || detailQueue.length) && !paused && account?.subscriber) event.preventDefault();
   });
   chrome.storage.onChanged.addListener((changes) => {
     if (changes.account) loadAccount();
+    else if (changes.miningOn && Boolean(changes.miningOn.newValue) !== mining) setMining(Boolean(changes.miningOn.newValue));
   });
 
   chrome.runtime.onMessage.addListener((message, _sender, reply) => {
-    if (message?.type === "where") reply({ page: "tiktok", results: true });
+    if (message?.type === "where") reply({ page: "tiktok", results: true, mining });
     else if (message?.type === "mine") {
-      bar.show();
-      bar.setScrolling(true, scrollTick);
-      reply({ ok: true, armed: false });
+      setMining(message.on !== false);
+      reply({ ok: true, mining });
     }
   });
 })();

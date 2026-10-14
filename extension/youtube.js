@@ -10,6 +10,7 @@
   const FILTER_DEFAULTS = { minNota: 0, minViews: 0, maxDays: 0, hideShorts: false, dim: true, sort: "youtube" };
 
   let account = null;
+  let mining = false;
   let yt = { ...FILTER_DEFAULTS };
   let search = null;
   let epoch = 0;
@@ -19,6 +20,8 @@
   let queued = new Set();
   let queue = [];
   let notas = {};
+  let stats = {};
+  let favorited = new Set();
   let runId = null;
   let searchId = null;
   let sent = 0;
@@ -153,7 +156,9 @@
     bar = B.open("garimppu-yt", "garimppuYt");
     bar.tick = scrollTick;
     bar.shadow.querySelector(".extra").innerHTML = `
-      <section>
+      <div class="chips" hidden></div>
+      <details>
+        <summary>Filtros</summary>
         <h2><label for="yt-sort">Ordenar</label></h2>
         <select id="yt-sort">
           <option value="youtube">Como o YouTube mostra</option>
@@ -161,9 +166,6 @@
           <option value="views">Mais visualizações</option>
           <option value="recent">Mais recentes</option>
         </select>
-      </section>
-      <section>
-        <h2>Filtros</h2>
         <div class="row"><label for="minNota">Pontuação mínima</label>
           <input id="minNota" type="number" min="0" max="100" inputmode="numeric" placeholder="0"></div>
         <div class="row"><label for="minViews">Visualizações, no mínimo</label>
@@ -172,9 +174,18 @@
           <input id="maxDays" type="number" min="0" max="3650" inputmode="numeric" placeholder="0"></div>
         <label class="check"><input id="hideShorts" type="checkbox"> Esconder vídeos curtos</label>
         <label class="check"><input id="dim" type="checkbox"> Esconder os que ficam de fora</label>
-      </section>`;
+      </details>`;
     bar.shadow.querySelector(".extra").addEventListener("input", saveFilters);
     bar.shadow.querySelector(".extra").addEventListener("change", saveFilters);
+    bar.shadow.querySelector(".chips").addEventListener("click", (event) => {
+      const term = event.target.closest("button")?.dataset.term;
+      if (!term || !search) return;
+      const url = new URL("/results", location.origin);
+      url.searchParams.set("search_query", term);
+      url.searchParams.set("gl", search.country || "BR");
+      location.href = url.href;
+    });
+    bar.onStop = () => setMining(false);
     fillFilters(true);
   }
 
@@ -212,14 +223,24 @@
   function hideBar() {
     document.documentElement.dataset.garimppuYt = "closed";
     document.documentElement.dataset.garimppuYtSort = "off";
-    if (!bar) return;
-    bar.shadow.querySelector(".panel").hidden = true;
-    bar.shadow.querySelector(".tab").hidden = true;
+    bar?.hide();
   }
 
   function checkSearch() {
     const next = readSearch();
-    if ((next?.key || null) === (search?.key || null)) return;
+    if (!mining) {
+      bar?.setScrolling(false);
+      stopWatch();
+      hideBar();
+      if (next) B.latch(() => setMining(true));
+      else B.hideLatch();
+      return;
+    }
+    B.hideLatch();
+    if ((next?.key || null) === (search?.key || null)) {
+      paintSuggestions();
+      return;
+    }
     const switched = Boolean(search);
     epoch += 1;
     const mine = epoch;
@@ -237,23 +258,47 @@
     setTimeout(() => {
       if (mine !== epoch) return;
       harvest();
-      maybeAutoScroll(next);
+      paintSuggestions();
+      if (next.auto) bar.setScrolling(true, scrollTick);
       render();
     }, switched ? 1200 : 0);
     render();
   }
 
-  async function maybeAutoScroll(next) {
-    const { ytArmed } = await chrome.storage.local.get("ytArmed");
-    if (!search || search.key !== next.key) return;
-    if (!next.auto && !ytArmed) return;
+  function setMining(on) {
+    const next = Boolean(on);
+    if (next !== mining) {
+      mining = next;
+      chrome.storage.local.set({ miningOn: mining });
+    }
+    for (const tool of document.querySelectorAll(".garimppu-tools")) tool.hidden = !mining;
+    if (!mining) {
+      bar?.setScrolling(false);
+      stopWatch();
+      queue = [];
+      hideBar();
+      if (readSearch()) B.latch(() => setMining(true));
+      else B.hideLatch();
+      return;
+    }
+    B.hideLatch();
+    const current = readSearch();
+    if (!current) return;
+    if (!search || search.key !== current.key) {
+      epoch += 1;
+      reset(current);
+    }
+    ensureBar();
     bar.show();
-    bar.setScrolling(true, scrollTick);
-    if (ytArmed) chrome.storage.local.remove("ytArmed");
+    watchResults();
+    harvest();
+    paintSuggestions();
+    render();
+    if (current.auto) bar.setScrolling(true, scrollTick);
   }
 
   function harvest() {
-    if (!search) return;
+    if (!mining || !search) return;
     const scoped = document.querySelector("ytd-search");
     const root = scoped?.querySelector(CARD_SELECTOR) ? scoped : document.body;
     if (!root) return;
@@ -279,11 +324,13 @@
     }
     if (added) enqueue();
     schedulePresent();
+    paintTools();
+    paintSuggestions();
     if (added) render();
   }
 
   function addIds(list) {
-    if (!search || !Array.isArray(list)) return;
+    if (!mining || !search || !Array.isArray(list)) return;
     let added = 0;
     for (const id of list) {
       if (typeof id === "string" && /^[\w-]{11}$/.test(id) && !ids.has(id)) {
@@ -345,7 +392,7 @@
   }
 
   function enqueue() {
-    if (!account?.subscriber || !search || paused) return;
+    if (!mining || !account?.subscriber || !search || paused) return;
     for (const id of ids) {
       if (queued.has(id) || blocksSend(id)) continue;
       queued.add(id);
@@ -388,8 +435,10 @@
       fresh += result.data.new;
       total = result.data.total;
       Object.assign(notas, result.data.notas || {});
+      Object.assign(stats, result.data.stats || {});
       note = "";
       paintNotas();
+      paintTools();
       schedulePresent();
     } else if (result.status === 401 || result.status === 403) {
       paused = result.error;
@@ -422,6 +471,77 @@
       if (getComputedStyle(thumb).position === "static") thumb.style.position = "relative";
       thumb.appendChild(badge);
     }
+  }
+
+  function compactCount(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return "";
+    return new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 }).format(number);
+  }
+
+  function paintSuggestions() {
+    const box = bar?.shadow.querySelector(".chips");
+    if (!box || !search) return;
+    const current = search.term.trim().toLowerCase();
+    const seen = new Set();
+    const terms = [];
+    for (const link of document.querySelectorAll('a[href*="search_query="]')) {
+      let term = "";
+      try { term = new URL(link.href).searchParams.get("search_query") || ""; } catch { continue; }
+      term = term.replace(/\+/g, " ").replace(/\s+/g, " ").trim();
+      const key = term.toLowerCase();
+      if (!term || key === current || seen.has(key) || term.length > 60) continue;
+      seen.add(key);
+      terms.push(term);
+      if (terms.length >= 8) break;
+    }
+    const next = terms.join("\n");
+    if (box.dataset.terms === next) return;
+    box.dataset.terms = next;
+    box.hidden = terms.length === 0;
+    box.innerHTML = terms.map((term) => `<button type="button" data-term="${B.escapeHtml(term)}">${B.escapeHtml(term)}</button>`).join("");
+  }
+
+  function paintTools() {
+    if (!mining) return;
+    for (const [id, card] of cards) {
+      if (!card.isConnected) continue;
+      let host = card.querySelector(".garimppu-tools");
+      if (!host) {
+        host = document.createElement("div");
+        host.className = "garimppu-tools";
+        host.style.cssText = "display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0;font:600 12px system-ui,sans-serif;";
+        const barHost = card.querySelector("#metadata, ytd-video-meta-block, #meta") || card;
+        barHost.insertAdjacentElement("afterend", host);
+      }
+      const info = stats[id] || {};
+      const bits = [];
+      if (info.likes != null) bits.push(`${compactCount(info.likes)} curtidas`);
+      if (info.comments != null) bits.push(`${compactCount(info.comments)} comentários`);
+      const saved = favorited.has(id);
+      host.innerHTML = `<button type="button" data-act="download" style="height:26px;padding:0 10px;border:1px solid #2a2e33;border-radius:6px;background:#15171a;color:#e8e6e1;cursor:pointer;">Baixar</button>
+        <button type="button" data-act="favorite" style="height:26px;padding:0 10px;border:1px solid ${saved ? "#5cc98b" : "#2a2e33"};border-radius:6px;background:#15171a;color:${saved ? "#5cc98b" : "#e8e6e1"};cursor:pointer;" ${saved ? "disabled" : ""}>${saved ? "Nos favoritos" : "Favoritar"}</button>
+        <span style="color:#8d9096;">${bits.join(" · ")}</span>`;
+      host.querySelector('[data-act="download"]').onclick = () => {
+        const image = card.querySelector("img");
+        if (!image?.src) return;
+        B.message({ type: "download", items: [{ url: image.src, name: id, ext: "jpg" }] });
+      };
+      host.querySelector('[data-act="favorite"]').onclick = () => saveVideo(id, host);
+    }
+  }
+
+  async function saveVideo(id, host) {
+    const button = host.querySelector('[data-act="favorite"]');
+    if (!account?.subscriber) {
+      if (button) button.textContent = "Assine para favoritar";
+      return;
+    }
+    if (button) button.textContent = "Salvando...";
+    const result = await B.message({ type: "save", kind: "video", ref: `youtube:${id}` });
+    if (result.ok) favorited.add(id);
+    else if (button) button.textContent = result.status === 404 ? "Envie antes" : "Falhou";
+    if (result.ok) paintTools();
   }
 
   function atBottom() {
@@ -484,8 +604,9 @@
   }
 
   async function loadAccount() {
-    const stored = await chrome.storage.local.get(["account", "ytFilters"]);
+    const stored = await chrome.storage.local.get(["account", "ytFilters", "miningOn"]);
     account = stored.account || null;
+    mining = Boolean(stored.miningOn);
     yt = { ...FILTER_DEFAULTS, ...(stored.ytFilters || {}) };
     paused = null;
     fillFilters();
@@ -501,7 +622,7 @@
     observer = new MutationObserver((mutations) => {
       if (!search || pending) return;
       const own = mutations.every((mutation) => mutation.target instanceof Element
-        && mutation.target.closest("#garimppu-yt, .garimppu-nota"));
+        && mutation.target.closest("#garimppu-yt, .garimppu-nota, .garimppu-tools"));
       if (own) return;
       pending = setTimeout(() => {
         pending = null;
@@ -516,26 +637,19 @@
     observer = null;
   }
 
-  function startMining() {
+  function startMining(on) {
+    setMining(on);
     const current = readSearch();
-    if (!current) {
-      chrome.storage.local.set({ ytArmed: true });
-      return { ok: true, armed: true };
-    }
-    checkSearch();
-    ensureBar();
-    bar.show();
-    bar.setScrolling(true, scrollTick);
-    return { ok: true, armed: false };
+    return { ok: true, mining, idle: Boolean(mining && !current) };
   }
 
   chrome.runtime.onMessage.addListener((message, _sender, reply) => {
     if (message?.type === "where") {
       const current = readSearch();
-      reply({ page: "youtube", results: Boolean(current), term: current?.term || "" });
+      reply({ page: "youtube", results: Boolean(current), term: current?.term || "", mining });
       return;
     }
-    if (message?.type === "mine") reply(startMining());
+    if (message?.type === "mine") reply(startMining(message.on !== false));
   });
 
   window.addEventListener("message", (event) => {
@@ -546,20 +660,18 @@
   setInterval(checkSearch, 1000);
   chrome.storage.onChanged.addListener((changes) => {
     if (changes.account) loadAccount();
-    if (changes.ytArmed?.newValue && search) {
-      ensureBar();
-      bar.show();
-      bar.setScrolling(true, scrollTick);
-    }
+    if (changes.miningOn && Boolean(changes.miningOn.newValue) !== mining) setMining(Boolean(changes.miningOn.newValue));
   });
   window.addEventListener("beforeunload", (event) => {
     if (queue.length && !paused && account?.subscriber) event.preventDefault();
   });
 
   function start() {
-    loadAccount();
-    B.message({ type: "ping" });
-    checkSearch();
+    loadAccount().then(() => {
+      B.message({ type: "ping" });
+      if (new URLSearchParams(location.search).get("garimppu") === "1") setMining(true);
+      else checkSearch();
+    });
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });

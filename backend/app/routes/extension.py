@@ -32,6 +32,7 @@ from app.models import (
     AdCreative,
     Collection,
     CollectionItem,
+    CollectionRef,
     ExtensionLead,
     Run,
     Search,
@@ -48,7 +49,7 @@ from app.pipeline.ingest import ingest_ads
 from app.pipeline.sources import find_or_create_source, sync_source
 from app.pipeline.tiktok_ingest import apply_details, ingest_tiktok_ads, known_ids, score_tiktok_ad
 from app.pipeline.video_ingest import ingest_videos
-from app.routes.collections import DEFAULT_COLLECTION, ensure_default_collection
+from app.routes.collections import DEFAULT_COLLECTION, _ref_exists, ensure_default_collection
 from app.routes.searches import COUNTRY_LANGUAGE
 from app.schemas import (
     ExtensionAccountOut,
@@ -58,6 +59,7 @@ from app.schemas import (
     ExtensionFavoriteIn,
     ExtensionFavoriteOut,
     ExtensionLeadIn,
+    ExtensionSaveIn,
     ExtensionTikTokDetailsIn,
     ExtensionTikTokIn,
     ExtensionYouTubeIn,
@@ -220,6 +222,20 @@ def favorite(payload: ExtensionFavoriteIn, db: Session = Depends(get_db), user: 
     return ExtensionFavoriteOut(creative_id=creative_id, collection_id=collection_id)
 
 
+@router.post("/save", response_model=ExtensionFavoriteOut)
+def save_ref(payload: ExtensionSaveIn, db: Session = Depends(get_db), user: User = Depends(extension_user)):
+    """Puts a YouTube video or a TikTok ad the extension already sent into Favoritos."""
+    if not _ref_exists(db, payload.kind, payload.ref):
+        raise HTTPException(404, "Envie o item para o Garimppu antes de favoritar.")
+    ensure_default_collection(db, user)
+    collection_id = db.scalar(select(Collection.id).where(Collection.user_id == user.id,
+                                                          Collection.name == DEFAULT_COLLECTION))
+    if db.get(CollectionRef, (collection_id, payload.kind, payload.ref)) is None:
+        db.add(CollectionRef(collection_id=collection_id, kind=payload.kind, ref=payload.ref))
+    db.commit()
+    return ExtensionFavoriteOut(creative_id=0, collection_id=collection_id)
+
+
 _VIDEO_ID = re.compile(r"[\w-]{11}")
 
 
@@ -247,9 +263,11 @@ def receive_videos(payload: ExtensionYouTubeIn, db: Session = Depends(get_db), u
     db.commit()
 
     total = db.scalar(select(func.count()).select_from(SourceVideo).where(SourceVideo.source_id == source.id)) or 0
-    notas = {v.external_id: v.score for v in db.scalars(select(Video).where(Video.id.in_([f"youtube:{i}" for i in ids])))}
+    rows = list(db.scalars(select(Video).where(Video.id.in_([f"youtube:{i}" for i in ids]))))
+    notas = {v.external_id: v.score for v in rows}
+    stats = {v.external_id: {"likes": v.likes, "comments": v.comments} for v in rows}
     return ExtensionCollectOut(run_id=run.id, search_id=search.id, term=search.term, received=received, new=new,
-                               total=total, notas=notas)
+                               total=total, notas=notas, stats=stats)
 
 
 @router.post("/tiktok", response_model=ExtensionCollectOut)
@@ -281,9 +299,14 @@ def receive_tiktok(payload: ExtensionTikTokIn, db: Session = Depends(get_db), us
 
     total = db.scalar(select(func.count()).select_from(SourceTikTokAd).where(SourceTikTokAd.source_id == source.id)) or 0
     detailed = known_ids(db, list(ads))
-    notas = {ad.id: ad.score for ad in db.scalars(select(TikTokAd).where(TikTokAd.id.in_(list(ads))))}
+    rows = list(db.scalars(select(TikTokAd).where(TikTokAd.id.in_(list(ads)))))
+    notas = {ad.id: ad.score for ad in rows}
+    stats = {
+        ad.id: {"likes": ad.likes, "comments": ad.comments, "shares": ad.shares, "ctr": ad.ctr_rank}
+        for ad in rows
+    }
     return ExtensionCollectOut(run_id=run.id, search_id=search.id, term=search.term, received=received, new=new,
-                               total=total, notas=notas, need_detail=[i for i in ads if i not in detailed])
+                               total=total, notas=notas, stats=stats, need_detail=[i for i in ads if i not in detailed])
 
 
 @router.post("/tiktok/details", response_model=dict[str, float])

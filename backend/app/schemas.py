@@ -69,6 +69,7 @@ class ExtensionTikTokDetailsIn(BaseModel):
 
 class ExtensionCollectOut(ExtensionAdsOut):
     notas: dict[str, float] = {}  # id on the page -> the app's nota
+    stats: dict[str, dict] = {}  # id on the page -> likes, comments and whatever else the card shows
     need_detail: list[str] = []  # TikTok ads still missing comments, shares and landing page
 
 
@@ -92,6 +93,11 @@ class ExtensionFavoriteIn(BaseModel):
 class ExtensionFavoriteOut(BaseModel):
     creative_id: int
     collection_id: int
+
+
+class ExtensionSaveIn(BaseModel):
+    kind: Literal["video", "tiktok"]
+    ref: str = Field(min_length=1, max_length=255)
 
 
 class AdminLeadOut(BaseModel):
