@@ -1,4 +1,5 @@
 import { mediaUrl, type Creative } from "@/lib/api";
+import { AdVideo } from "./AdVideo";
 import { CoverImage, VideoFallback } from "./CoverImage";
 
 type Props = {
@@ -19,7 +20,7 @@ export function CreativeMedia({ creative, controls = false, fit = "cover", compa
   const text = creative.body ?? creative.title;
 
   if (controls && video) {
-    return <video src={video} poster={image ?? undefined} controls preload="none" aria-label={name("Vídeo")}
+    return <AdVideo src={video} poster={image ?? undefined} controls preload="none" aria-label={name("Vídeo")}
       className={`h-full w-full bg-black object-contain ${className}`} />;
   }
 

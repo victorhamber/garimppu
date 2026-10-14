@@ -11,6 +11,7 @@ import {
 import { useCollections, useNiches } from "@/lib/hooks";
 import { CollectionMenu } from "./CollectionMenu";
 import { CreativeMedia } from "./CreativeMedia";
+import { DownloadMedia } from "./DownloadMedia";
 import { ErrorState } from "./ErrorState";
 import { ExternalIcon } from "./ExternalIcon";
 import { formatGrowth, ScoreBadge } from "./Metrics";
@@ -102,10 +103,15 @@ export function CreativeDetailView() {
       <BackLink href="/criativos">Voltar para criativos</BackLink>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,460px)_1fr]">
-        <div className="overflow-hidden rounded-lg border border-line bg-surface-2">
-          <div className="aspect-square">
-            <CreativeMedia creative={creative} controls fit="contain" />
+        <div className="flex flex-col gap-3">
+          <div className="overflow-hidden rounded-lg border border-line bg-surface-2">
+            <div className="aspect-square">
+              <CreativeMedia creative={creative} controls fit="contain" />
+            </div>
           </div>
+          {(creative.video || creative.image) && (
+            <DownloadMedia creativeId={creative.id} video={creative.media_type === "video" && !!creative.video && creative.video !== creative.image} />
+          )}
         </div>
 
         <div className="flex flex-col gap-6">

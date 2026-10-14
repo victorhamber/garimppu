@@ -11,7 +11,7 @@ from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-_HEADERS = {
+BROWSER_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/129.0 Safari/537.36"
@@ -37,7 +37,7 @@ def download_image(client: httpx.Client, url: str) -> tuple[str, bytes] | None:
     if target.exists():
         return rel, target.read_bytes()
     try:
-        resp = client.get(url, headers=_HEADERS, follow_redirects=True)
+        resp = client.get(url, headers=BROWSER_HEADERS, follow_redirects=True)
         resp.raise_for_status()
     except httpx.HTTPError as exc:
         logger.warning("Falha ao baixar imagem %s: %s", url[:120], exc)
@@ -57,7 +57,7 @@ def download_video(client: httpx.Client, url: str) -> str | None:
     target.parent.mkdir(parents=True, exist_ok=True)
     tmp = target.with_suffix(".part")
     try:
-        with client.stream("GET", url, headers=_HEADERS, follow_redirects=True) as resp:
+        with client.stream("GET", url, headers=BROWSER_HEADERS, follow_redirects=True) as resp:
             resp.raise_for_status()
             size = 0
             with tmp.open("wb") as fh:

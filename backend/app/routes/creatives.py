@@ -1,14 +1,20 @@
 import csv
 import io
+import re
+import unicodedata
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal
+from urllib.parse import quote
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.auth import current_user
+from app.config import get_settings
 from app.db import get_db
 from app.models import (
     Ad,
@@ -22,12 +28,13 @@ from app.models import (
     SourceAd,
     User,
 )
+from app.pipeline import media
 from app.pipeline.heat import HOT_SHARE, MIN_DAYS_ACTIVE, MIN_DUPLICATES, MIN_GROWTH, WARM_SHARE, metric_cutoffs, rank_cutoff, rank_cutoffs
 from app.pipeline.niche import NICHES
 from app.pipeline.sources import SCOPE_HELP, resolve_scope, user_search_source, user_source_ids
 from app.routes.collections import user_collection_ids
 from app.schemas import CreativeDetail, CreativePage, ScoreHeat
-from app.serializers import creative_card, creative_detail
+from app.serializers import creative_card, creative_detail, representative_ad
 
 router = APIRouter(prefix="/api/creatives", tags=["creatives"])
 
@@ -252,6 +259,53 @@ def export_csv(f: CreativeFilters = Depends(), limit: int = Query(5000, ge=1, le
         rows(), media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": 'attachment; filename="criativos.csv"'},
     )
+
+
+def _attachment(name: str) -> dict[str, str]:
+    return {"Content-Disposition": f"attachment; filename=\"{name}\"; filename*=UTF-8''{quote(name)}"}
+
+
+@router.get("/{creative_id}/download")
+def download_creative(creative_id: int, db: Session = Depends(get_db)):
+    """The creative's video (or image) as a file: local copy when there is one, else streamed from Meta's CDN."""
+    creative = db.get(Creative, creative_id)
+    if creative is None:
+        raise HTTPException(404, "Criativo não encontrado")
+    ad = representative_ad(creative)
+    owner = re.sub(r"[^\w-]+", "-", unicodedata.normalize("NFKD", (ad.page.name if ad and ad.page else "") or "criativo")
+                   .encode("ascii", "ignore").decode()).strip("-")[:40] or "criativo"
+    # Some video creatives only have the cover (Meta sent no video URL): those download the image.
+    video = creative.media_type == "video" and bool(
+        creative.local_video_path or (creative.media_url and creative.media_url != creative.thumbnail_url))
+    name = f"{owner}-{creative.id}.{'mp4' if video else 'jpg'}"
+
+    local = creative.local_video_path if video else creative.local_path
+    if local and (path := Path(get_settings().media_dir) / local).is_file():
+        return FileResponse(path, media_type="video/mp4" if video else "image/jpeg", headers=_attachment(name))
+    remote = creative.media_url if video else creative.thumbnail_url
+    if not remote:
+        raise HTTPException(404, "Este criativo não tem mídia para baixar.")
+
+    client = httpx.Client(timeout=60, follow_redirects=True)
+    try:
+        response = client.send(client.build_request("GET", remote, headers=media.BROWSER_HEADERS), stream=True)
+    except httpx.HTTPError:
+        client.close()
+        raise HTTPException(502, "O Meta não respondeu. Tente de novo em instantes.")
+    if response.status_code != 200:
+        response.close()
+        client.close()
+        raise HTTPException(410, "O link da mídia no Meta expirou. Ele volta a funcionar depois da próxima coleta.")
+
+    def body():
+        try:
+            yield from response.iter_bytes()
+        finally:
+            response.close()
+            client.close()
+
+    default_type = "video/mp4" if video else "image/jpeg"
+    return StreamingResponse(body(), media_type=response.headers.get("content-type", default_type), headers=_attachment(name))
 
 
 @router.get("/{creative_id}", response_model=CreativeDetail)

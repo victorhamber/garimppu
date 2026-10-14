@@ -427,8 +427,8 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 /** A file from the API (CSV export), with the same error messages as `api()`. */
-export async function apiFile(path: string): Promise<{ blob: Blob; filename: string | null }> {
-  const res = await request(path, { headers: { Accept: "text/csv" } });
+export async function apiFile(path: string, accept = "text/csv"): Promise<{ blob: Blob; filename: string | null }> {
+  const res = await request(path, { headers: { Accept: accept } });
   const filename = /filename="?([^";]+)"?/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? null;
   return { blob: await res.blob(), filename };
 }
