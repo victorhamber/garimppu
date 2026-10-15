@@ -6,8 +6,10 @@ COPY . .
 # Baked into the browser bundle at build time: set it as a Build Argument, and rebuild when it changes.
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ARG NEXT_PUBLIC_SUPPORT_URL=
+ARG NEXT_PUBLIC_EXTENSION_STORE_URL=https://chromewebstore.google.com/detail/ccgeppkckiholhbiffhpofakooddefce
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
     NEXT_PUBLIC_SUPPORT_URL=$NEXT_PUBLIC_SUPPORT_URL \
+    NEXT_PUBLIC_EXTENSION_STORE_URL=$NEXT_PUBLIC_EXTENSION_STORE_URL \
     NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 

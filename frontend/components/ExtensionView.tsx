@@ -7,8 +7,10 @@ import { useHasExtension } from "@/lib/hooks";
 import { useAuth } from "./AuthProvider";
 import { ExternalIcon } from "./ExternalIcon";
 
-/** Set once the extension is published; until then the page offers the .zip for manual install. */
-const STORE_URL = process.env.NEXT_PUBLIC_EXTENSION_STORE_URL;
+/** Chrome Web Store listing. A build can override it with NEXT_PUBLIC_EXTENSION_STORE_URL. */
+const STORE_URL =
+  process.env.NEXT_PUBLIC_EXTENSION_STORE_URL ||
+  "https://chromewebstore.google.com/detail/ccgeppkckiholhbiffhpofakooddefce";
 const ZIP_URL = "/garimppu-extensao.zip";
 const LIBRARY_URL = "https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=BR&media_type=all";
 
